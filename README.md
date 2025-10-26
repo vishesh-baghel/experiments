@@ -1,13 +1,88 @@
-I am going to earn 10K per month and won't stop until I reach this goal. No matter how many years it take to reach this number, no matter how many rejections I have to face, I will never stop. Even before reaching this number, I would have already achieved financial freedom but I still won't stop because I love writing code and building things. Even if I don't reach this number, I would still build things forever until my last breadth.
+# Vishesh's Experiments
 
-All my experiments are going to be my legacy and would help the builders forever. Even if nobody uses my creations, it doesn't matter. I loved every moment while building them.
+Production-ready integration patterns and experiments built with modern AI frameworks.
 
+##  Available Experiments
 
-If you are reading this then either I have achieved my goal or someone found this very first commit after my death. I hope you will also dedicate your life to the craft you love. 
+### 1. LLM Router - Intelligent Model Selection
+**Location**: `packages/llm-router`
 
-It may sound like I am money hungry(I am a bit) but the money reflects the value I am able to create for others. 
+Automatically route queries to optimal LLMs based on complexity and cost. Built with Mastra for real-world customer care applications.
 
-I don't expect people to remember my name but hope they believe in the idea of lifelong learning and giving their life for something bigger than them.
+**What You'll Learn**:
+- Query complexity analysis (heuristics-based)
+- Cost-aware model selection
+- Token estimation and savings tracking
+- Building intelligent agents with Mastra
 
-I am vishesh, the lifelong builder. 
-Peace
+**Tech Stack**: TypeScript, Mastra, OpenAI, Anthropic
+
+**Status**:  Complete and documented
+
+[Read Full Documentation →](./packages/llm-router/README.md)
+
+---
+
+##  Getting Started
+
+### Prerequisites
+- Node.js >= 18.0.0
+- pnpm >= 8.0.0
+
+### Quick Setup
+
+```bash
+# Install dependencies
+pnpm install
+
+# Navigate to an experiment
+cd packages/llm-router
+
+# Setup environment
+cp .env.example .env
+# Add your API keys
+
+# Run demo
+pnpm dev
+```
+
+---
+
+## 📁 Repository Structure
+
+```
+experiments/
+├── packages/
+│   └── llm-router/          # LLM Router experiment
+├── package.json             # Workspace root
+├── turbo.json               # Turborepo config
+├── pnpm-workspace.yaml      # PNPM workspace config
+└── README.md                # This file
+```
+
+---
+
+##  Design Philosophy
+
+Each experiment follows these principles:
+
+1. **Educational First** - Teach patterns, not just show code
+2. **Production Quality** - Real-world code, not toy examples
+3. **Actually Usable** - Works in dev/staging environments
+4. **Well Documented** - Comprehensive guides and examples
+5. **Open Source** - MIT licensed, free to use and learn from
+
+---
+
+## 🛠 Development
+
+```bash
+# Build all packages
+pnpm build
+
+# Run specific experiment
+pnpm --filter @experiments/llm-router dev
+
+# Clean all builds
+pnpm clean
+```
