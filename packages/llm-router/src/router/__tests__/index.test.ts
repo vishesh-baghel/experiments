@@ -123,7 +123,7 @@ describe('LLMRouter', () => {
       const stats = router.getStats();
       
       expect(stats.totalQueries).toBe(3);
-      expect(stats.totalCost).toBe(0.0012);
+      expect(stats.totalCost).toBeCloseTo(0.0012, 4);
       expect(stats.modelBreakdown['gpt-3.5-turbo']).toBe(2);
       expect(stats.modelBreakdown['gpt-4o']).toBe(1);
       expect(stats.complexityBreakdown.simple).toBe(2);

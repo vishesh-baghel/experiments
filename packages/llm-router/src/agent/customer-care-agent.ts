@@ -5,7 +5,7 @@
 import { Agent } from '@mastra/core/agent';
 import { LLMRouter } from '../router';
 import { RouterOptions, ExecutionResult } from '../types';
-import { LanguageModel } from '@mastra/core';
+import { getModelConfig } from '../models/config';
 
 export class CustomerCareAgent {
   private router: LLMRouter;
@@ -75,8 +75,7 @@ Guidelines:
           { ...routing, inputCostPerToken: 0, outputCostPerToken: 0 } as any
         );
 
-      // Import model config to get pricing
-      const { getModelConfig } = require('../models/config');
+      // Get model config for accurate pricing
       const modelConfig = getModelConfig(routing.model.split('/').pop() || routing.model);
       const realActualCost = this.router
         .getCostCalculator()
@@ -135,17 +134,13 @@ Guidelines:
    * Create Mastra agent with specific model
    */
   private createAgent(provider: string, model: string): Agent {
-    // Map provider to Mastra provider format
-    const mastraProvider = provider === 'openai' ? 'OPEN_AI' : 'ANTHROPIC';
-
+    // Use Mastra's model router format: "provider/model"
+    const modelString = `${provider}/${model}`;
+    
     return new Agent({
       name: 'customer-care',
       instructions: this.systemPrompt,
-      model: {
-        provider: mastraProvider,
-        name: model,
-        toolChoice: 'auto',
-      },
+      model: modelString,
     });
   }
 

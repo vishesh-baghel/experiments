@@ -3,6 +3,7 @@
  */
 
 import { ModelConfig } from '../types';
+import { getModelConfig, MODEL_CONFIGS } from '../models/config';
 
 export class CostCalculator {
   /**
@@ -65,8 +66,6 @@ export class CostCalculator {
     vsExpensive: number;
     percentage: number;
   } {
-    // Import here to avoid circular dependency
-    const { getModelConfig } = require('../models/config');
     const expensiveModel = getModelConfig(expensiveModelKey);
     
     const expensiveCost = this.estimateCost(query, expensiveModel).total;
@@ -100,8 +99,6 @@ export class CostCalculator {
     cost: number;
     formatted: string;
   }> {
-    const { MODEL_CONFIGS } = require('../models/config');
-    
     return (Object.entries(MODEL_CONFIGS) as Array<[string, ModelConfig]>).map(
       ([key, config]) => {
         const cost = this.estimateCost(query, config).total;
