@@ -3,8 +3,12 @@
  * Run with: pnpm dev
  */
 
+import { config } from 'dotenv';
 import { CustomerCareAgent } from '../agent/customer-care-agent';
 import { demoQueries, getQueriesByComplexity } from './queries';
+
+// Load environment variables from .env file
+config();
 
 async function main() {
   console.log('\n' + '='.repeat(80));

@@ -1,22 +1,38 @@
-/**
- * LLM Router - Main orchestrator for intelligent model selection
- */
-
 import { RouterOptions, RoutingDecision, UsageStats } from '../types';
 import { ComplexityAnalyzer } from './analyzer';
 import { ModelSelector } from './selector';
 import { CostCalculator } from './calculator';
+import { SemanticCache } from '../cache/semantic-cache';
+import { MLClassifier } from '../classifier/ml-classifier';
 
+/**
+ * LLM Router - Main orchestrator for intelligent model selection
+ * Now with semantic caching and ML-based classification
+ */
 export class LLMRouter {
   private analyzer: ComplexityAnalyzer;
   private selector: ModelSelector;
   private calculator: CostCalculator;
+  private cache: SemanticCache;
+  private mlClassifier: MLClassifier | null = null;
   private stats: UsageStats;
+  private useMLClassifier: boolean = false;
 
-  constructor() {
+  constructor(options: {
+    useCache?: boolean;
+    useMLClassifier?: boolean;
+    cacheOptions?: { similarityThreshold?: number; maxEntries?: number };
+  } = {}) {
     this.analyzer = new ComplexityAnalyzer();
     this.selector = new ModelSelector();
     this.calculator = new CostCalculator();
+    this.cache = new SemanticCache(options.cacheOptions);
+    this.useMLClassifier = options.useMLClassifier ?? false;
+    
+    if (this.useMLClassifier) {
+      this.mlClassifier = new MLClassifier();
+    }
+    
     this.stats = {
       totalQueries: 0,
       totalCost: 0,
@@ -32,15 +48,38 @@ export class LLMRouter {
   }
 
   /**
+   * Initialize ML classifier with training data
+   */
+  async initializeMLClassifier(trainingData: any[]): Promise<void> {
+    if (!this.mlClassifier) {
+      this.mlClassifier = new MLClassifier();
+      this.useMLClassifier = true;
+    }
+    await this.mlClassifier.loadTrainingData(trainingData);
+  }
+
+  /**
    * Route a query to the optimal model
    * This is the main entry point for the router
+   * Now with semantic caching and optional ML classification
    */
   async routeQuery(
     query: string,
     options: RouterOptions = {}
-  ): Promise<RoutingDecision> {
-    // Step 1: Analyze query complexity
-    const complexity = await this.analyzer.analyze(query);
+  ): Promise<RoutingDecision & { cached?: boolean }> {
+    // Step 1: Analyze query complexity (use ML if available, otherwise heuristics)
+    let complexity;
+    if (this.useMLClassifier && this.mlClassifier?.isTrained()) {
+      const mlResult = await this.mlClassifier.classify(query);
+      complexity = {
+        level: mlResult.level,
+        score: Math.round(mlResult.confidence * 100),
+        reasoning: mlResult.reasoning,
+        factors: { mlConfidence: mlResult.confidence, scores: mlResult.scores },
+      };
+    } else {
+      complexity = await this.analyzer.analyze(query);
+    }
 
     // Step 2: Select optimal model
     const selectedModel = this.selector.select(complexity.level, options);
@@ -210,6 +249,27 @@ export class LLMRouter {
    */
   async compareCosts(query: string) {
     return this.calculator.compareCosts(query);
+  }
+
+  /**
+   * Get semantic cache instance
+   */
+  getCache(): SemanticCache {
+    return this.cache;
+  }
+
+  /**
+   * Get ML classifier instance
+   */
+  getMLClassifier(): MLClassifier | null {
+    return this.mlClassifier;
+  }
+
+  /**
+   * Check if ML classifier is enabled and trained
+   */
+  isMLClassifierReady(): boolean {
+    return this.useMLClassifier && this.mlClassifier?.isTrained() === true;
   }
 }
 

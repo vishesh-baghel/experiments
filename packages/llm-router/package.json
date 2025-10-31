@@ -7,6 +7,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/demo/run.ts",
+    "train": "tsx src/classifier/train.ts",
+    "precompute": "tsx src/classifier/precompute-embeddings.ts",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -26,7 +28,12 @@
   "author": "Vishesh Baghel <hi@visheshbaghel.com>",
   "license": "MIT",
   "dependencies": {
+    "@ai-sdk/anthropic": "^1.0.8",
+    "@ai-sdk/google": "^1.0.10",
+    "@ai-sdk/openai": "^1.0.10",
+    "@dqbd/tiktoken": "^1.0.18",
     "@mastra/core": "^0.20.2",
+    "ai": "^4.0.38",
     "zod": "^3.23.8"
   },
   "devDependencies": {
