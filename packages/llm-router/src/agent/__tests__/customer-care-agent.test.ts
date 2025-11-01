@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { CustomerCareAgent } from '../customer-care-agent';
 
-describe('CustomerCareAgent', () => {
+// Skip tests if required API keys are missing
+const hasRequiredKeys = process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY;
+const testMode = hasRequiredKeys ? describe : describe.skip;
+
+testMode('CustomerCareAgent', () => {
   let agent: CustomerCareAgent;
 
   beforeEach(() => {

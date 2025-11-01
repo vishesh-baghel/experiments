@@ -9,6 +9,8 @@
     "dev": "tsx src/demo/run.ts",
     "train": "tsx src/classifier/train.ts",
     "precompute": "tsx src/classifier/precompute-embeddings.ts",
+    "generate-queries": "tsx src/benchmarks/generate-queries.ts",
+    "benchmark": "tsx src/benchmarks/benchmark.ts",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -34,6 +36,9 @@
     "@dqbd/tiktoken": "^1.0.18",
     "@mastra/core": "^0.20.2",
     "ai": "^4.0.38",
+    "groq-sdk": "^0.7.0",
+    "together-ai": "^0.6.0-alpha.5",
+    "ollama": "^0.5.9",
     "zod": "^3.23.8"
   },
   "devDependencies": {

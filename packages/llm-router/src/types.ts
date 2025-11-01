@@ -2,7 +2,7 @@
  * Core type definitions for the LLM Router
  */
 
-export type Provider = 'openai' | 'anthropic';
+export type Provider = 'openai' | 'anthropic' | 'google' | 'groq' | 'together' | 'ollama';
 
 export type ComplexityLevel = 'simple' | 'moderate' | 'complex' | 'reasoning';
 

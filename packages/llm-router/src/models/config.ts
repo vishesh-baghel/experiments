@@ -79,6 +79,94 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     capabilities: ['chat', 'reasoning', 'long-context', 'advanced-analysis'],
     recommendedFor: ['complex', 'reasoning'],
   },
+
+  // Google Gemini Models
+  'gemini-1.5-flash': {
+    provider: 'google',
+    model: 'gemini-1.5-flash',
+    displayName: 'Gemini 1.5 Flash',
+    contextWindow: 1000000,
+    inputCostPerToken: 0.075 / 1_000_000, // $0.075 per 1M tokens (CHEAPEST)
+    outputCostPerToken: 0.30 / 1_000_000, // $0.30 per 1M tokens
+    capabilities: ['chat', 'vision', 'long-context'],
+    recommendedFor: ['simple', 'moderate'],
+  },
+  'gemini-1.5-pro': {
+    provider: 'google',
+    model: 'gemini-1.5-pro',
+    displayName: 'Gemini 1.5 Pro',
+    contextWindow: 2000000,
+    inputCostPerToken: 1.25 / 1_000_000, // $1.25 per 1M tokens
+    outputCostPerToken: 5.00 / 1_000_000, // $5.00 per 1M tokens
+    capabilities: ['chat', 'vision', 'reasoning', 'long-context'],
+    recommendedFor: ['moderate', 'complex'],
+  },
+
+  // Groq Models (Fast Inference)
+  'groq-llama-3.1-8b': {
+    provider: 'groq',
+    model: 'llama-3.1-8b-instant',
+    displayName: 'Llama 3.1 8B (Groq)',
+    contextWindow: 128000,
+    inputCostPerToken: 0.05 / 1_000_000, // $0.05 per 1M tokens (VERY CHEAP)
+    outputCostPerToken: 0.08 / 1_000_000, // $0.08 per 1M tokens
+    capabilities: ['chat', 'fast-inference'],
+    recommendedFor: ['simple'],
+  },
+  'groq-llama-3.1-70b': {
+    provider: 'groq',
+    model: 'llama-3.1-70b-versatile',
+    displayName: 'Llama 3.1 70B (Groq)',
+    contextWindow: 128000,
+    inputCostPerToken: 0.59 / 1_000_000, // $0.59 per 1M tokens
+    outputCostPerToken: 0.79 / 1_000_000, // $0.79 per 1M tokens
+    capabilities: ['chat', 'reasoning', 'fast-inference'],
+    recommendedFor: ['moderate', 'complex'],
+  },
+
+  // Together AI Models (Open Source)
+  'together-llama-3.1-8b': {
+    provider: 'together',
+    model: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+    displayName: 'Llama 3.1 8B (Together)',
+    contextWindow: 128000,
+    inputCostPerToken: 0.18 / 1_000_000, // $0.18 per 1M tokens
+    outputCostPerToken: 0.18 / 1_000_000, // $0.18 per 1M tokens
+    capabilities: ['chat', 'open-source'],
+    recommendedFor: ['simple', 'moderate'],
+  },
+  'together-qwen-2.5-72b': {
+    provider: 'together',
+    model: 'Qwen/Qwen2.5-72B-Instruct-Turbo',
+    displayName: 'Qwen 2.5 72B (Together)',
+    contextWindow: 32768,
+    inputCostPerToken: 0.88 / 1_000_000, // $0.88 per 1M tokens
+    outputCostPerToken: 0.88 / 1_000_000, // $0.88 per 1M tokens
+    capabilities: ['chat', 'reasoning', 'open-source'],
+    recommendedFor: ['moderate', 'complex'],
+  },
+
+  // Ollama Models (Local, Free)
+  'ollama-llama-3.1-8b': {
+    provider: 'ollama',
+    model: 'llama3.1:8b',
+    displayName: 'Llama 3.1 8B (Local)',
+    contextWindow: 128000,
+    inputCostPerToken: 0, // FREE (local inference)
+    outputCostPerToken: 0, // FREE (local inference)
+    capabilities: ['chat', 'local', 'privacy'],
+    recommendedFor: ['simple', 'moderate'],
+  },
+  'ollama-qwen-2.5-14b': {
+    provider: 'ollama',
+    model: 'qwen2.5:14b',
+    displayName: 'Qwen 2.5 14B (Local)',
+    contextWindow: 32768,
+    inputCostPerToken: 0, // FREE (local inference)
+    outputCostPerToken: 0, // FREE (local inference)
+    capabilities: ['chat', 'reasoning', 'local', 'privacy'],
+    recommendedFor: ['moderate', 'complex'],
+  },
 };
 
 /**
@@ -105,9 +193,18 @@ export function getModelsForComplexity(
 
 /**
  * Get cheapest model for complexity level
+ * Now includes Gemini Flash (cheapest), Groq, Together, and Ollama (free)
  */
 export function getCheapestModel(level: string): ModelConfig {
   const models = getModelsForComplexity(level);
+  
+  // Prefer Ollama (free) if available for simple/moderate
+  if (level === 'simple' || level === 'moderate') {
+    const ollamaModel = models.find((m) => m.provider === 'ollama');
+    if (ollamaModel) return ollamaModel;
+  }
+  
+  // Otherwise find cheapest by cost
   return models.reduce((cheapest, current) => {
     const cheapestCost =
       cheapest.inputCostPerToken + cheapest.outputCostPerToken;

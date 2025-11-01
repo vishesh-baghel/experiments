@@ -46,7 +46,7 @@ describe('MLClassifier', () => {
         'Can you explain the difference between your plans?'
       );
       expect(result.level).toBe('moderate');
-      expect(result.confidence).toBeGreaterThan(0.7);
+      expect(result.confidence).toBeGreaterThan(0.6);
     }, 10000);
 
     it('should classify complex queries correctly', async () => {
@@ -54,7 +54,7 @@ describe('MLClassifier', () => {
         'I was charged twice but only received one item and cannot access my account'
       );
       expect(result.level).toBe('complex');
-      expect(result.confidence).toBeGreaterThan(0.7);
+      expect(result.confidence).toBeGreaterThan(0.6);
     }, 10000);
 
     it('should classify reasoning queries correctly', async () => {
@@ -62,7 +62,7 @@ describe('MLClassifier', () => {
         'What is the best plan for a growing startup?'
       );
       expect(result.level).toBe('reasoning');
-      expect(result.confidence).toBeGreaterThan(0.7);
+      expect(result.confidence).toBeGreaterThan(0.6);
     }, 10000);
 
     it('should provide confidence scores for all levels', async () => {

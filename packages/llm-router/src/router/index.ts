@@ -1,4 +1,4 @@
-import { RouterOptions, RoutingDecision, UsageStats } from '../types';
+import { RouterOptions, RoutingDecision, UsageStats, Provider } from '../types';
 import { ComplexityAnalyzer } from './analyzer';
 import { ModelSelector } from './selector';
 import { CostCalculator } from './calculator';
@@ -22,9 +22,10 @@ export class LLMRouter {
     useCache?: boolean;
     useMLClassifier?: boolean;
     cacheOptions?: { similarityThreshold?: number; maxEntries?: number };
+    enabledProviders?: Provider[];
   } = {}) {
     this.analyzer = new ComplexityAnalyzer();
-    this.selector = new ModelSelector();
+    this.selector = new ModelSelector(options.enabledProviders);
     this.calculator = new CostCalculator();
     this.cache = new SemanticCache(options.cacheOptions);
     this.useMLClassifier = options.useMLClassifier ?? false;

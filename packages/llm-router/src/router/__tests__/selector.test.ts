@@ -143,10 +143,18 @@ describe('ModelSelector', () => {
   });
 
   describe('Model Quality Selection', () => {
-    it('should prefer GPT-4o-mini for simple tasks', () => {
+    it('should prefer high-quality models for simple tasks', () => {
       const model = selector.select('simple', { preferCheaper: false });
       
-      expect(['gpt-4o-mini', 'claude-3-haiku-20240307', 'gpt-3.5-turbo']).toContain(model.model);
+      // With dynamic scoring, Gemini Flash may win due to 1M context window
+      expect([
+        'gpt-4o-mini',
+        'claude-3-haiku-20240307',
+        'gpt-3.5-turbo',
+        'gemini-1.5-flash',
+        'groq-llama-3.1-8b',
+        'together-llama-3.1-8b'
+      ]).toContain(model.model);
     });
 
     it('should prefer advanced models for reasoning', () => {

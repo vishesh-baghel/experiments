@@ -2,15 +2,26 @@
  * Model selector - chooses optimal model based on complexity and constraints
  */
 
-import { ComplexityLevel, RouterOptions, ModelConfig } from '../types';
+import { ComplexityLevel, RouterOptions, ModelConfig, Provider } from '../types';
 import {
   getModelsForComplexity,
-  getCheapestModel,
-  getBestModel,
   getModelConfig,
 } from '../models/config';
 
 export class ModelSelector {
+  private enabledProviders: Provider[];
+
+  constructor(enabledProviders?: Provider[]) {
+    // Default: exclude Ollama (requires local setup)
+    this.enabledProviders = enabledProviders || [
+      'openai',
+      'anthropic',
+      'google',
+      'groq',
+      'together',
+    ];
+  }
+
   /**
    * Select optimal model based on complexity and options
    */
@@ -25,6 +36,11 @@ export class ModelSelector {
 
     // Get available models for this complexity level
     let availableModels = getModelsForComplexity(complexity);
+
+    // Filter by enabled providers (exclude Ollama by default)
+    availableModels = availableModels.filter((m) =>
+      this.enabledProviders.includes(m.provider)
+    );
 
     // Filter by provider if specified
     if (options.forceProvider) {
@@ -66,42 +82,45 @@ export class ModelSelector {
 
   /**
    * Select best quality model for complexity level
+   * Uses dynamic sorting based on model capabilities and context window
+   * This automatically includes new models without code changes
    */
   private selectBestModel(
     models: ModelConfig[],
     complexity: ComplexityLevel
   ): ModelConfig {
-    // For reasoning/complex tasks, prioritize advanced models
-    if (complexity === 'reasoning' || complexity === 'complex') {
-      // Prefer: Claude 3.5 Sonnet, o1-mini, GPT-4o, Claude Opus
-      const priorities = [
-        'claude-3-5-sonnet-20241022',
-        'o1-mini',
-        'gpt-4o',
-        'claude-3-opus-20240229',
-      ];
-
-      for (const modelId of priorities) {
-        const found = models.find((m) => m.model === modelId);
-        if (found) return found;
+    // Calculate quality score for each model
+    const scored = models.map((model) => {
+      let score = 0;
+      
+      // Context window contributes to score (larger = better)
+      score += model.contextWindow / 1000; // Normalize to reasonable range
+      
+      // Capabilities contribute to score
+      score += model.capabilities.length * 10000;
+      
+      // Reasoning capability is highly valued for complex/reasoning queries
+      if (complexity === 'reasoning' || complexity === 'complex') {
+        if (model.capabilities.includes('reasoning')) score += 50000;
+        if (model.capabilities.includes('advanced-analysis')) score += 40000;
+        if (model.capabilities.includes('problem-solving')) score += 40000;
       }
-    }
-
-    // For simple/moderate, prefer fast and efficient models
-    // Prefer: GPT-4o-mini, Claude Haiku, GPT-3.5
-    const priorities = [
-      'gpt-4o-mini',
-      'claude-3-haiku-20240307',
-      'gpt-3.5-turbo',
-    ];
-
-    for (const modelId of priorities) {
-      const found = models.find((m) => m.model === modelId);
-      if (found) return found;
-    }
-
-    // Fallback to first available
-    return models[0];
+      
+      // Fast inference is valued for simple queries
+      if (complexity === 'simple') {
+        if (model.capabilities.includes('fast-inference')) score += 30000;
+      }
+      
+      // Long context is valuable for all complexities
+      if (model.capabilities.includes('long-context')) score += 20000;
+      
+      return { model, score };
+    });
+    
+    // Sort by score descending (highest quality first)
+    scored.sort((a, b) => b.score - a.score);
+    
+    return scored[0].model;
   }
 
   /**

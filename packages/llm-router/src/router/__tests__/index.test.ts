@@ -14,7 +14,14 @@ describe('LLMRouter', () => {
       
       expect(result).toBeDefined();
       expect(result.complexity.level).toBe('simple');
-      expect(['gpt-3.5-turbo', 'gpt-4o-mini', 'claude-3-haiku-20240307']).toContain(result.model);
+      expect([
+        'gpt-3.5-turbo',
+        'gpt-4o-mini',
+        'claude-3-haiku-20240307',
+        'gemini-1.5-flash',
+        'groq-llama-3.1-8b',
+        'together-llama-3.1-8b'
+      ]).toContain(result.model);
     });
 
     it('should route complex query to advanced model', async () => {
