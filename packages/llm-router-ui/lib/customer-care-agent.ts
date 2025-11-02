@@ -70,7 +70,7 @@ Guidelines:
         routing: {
           model: cachedEntry.model,
           provider: cachedEntry.provider,
-          complexity: 'simple', // Cached responses are "free"
+          complexity: cachedEntry.complexity, // Return actual complexity from cache
           estimatedCost: 0, // No cost for cached responses
           cacheHit: true,
         },
@@ -120,10 +120,11 @@ Guidelines:
     response: string,
     model: string,
     cost: number,
-    provider: string
+    provider: string,
+    complexity: string
   ): Promise<void> {
     const cache = this.router.getCache();
-    await cache.set(query, response, model, cost, provider);
+    await cache.set(query, response, model, cost, provider, complexity);
   }
 
 

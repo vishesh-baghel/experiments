@@ -15,6 +15,7 @@ export interface CacheEntry {
   response: string;
   model: string;
   provider: string;
+  complexity: string;
   timestamp: number;
   hits: number;
   cost: number;
@@ -100,7 +101,8 @@ export class SemanticCache {
     response: string,
     model: string,
     cost: number,
-    provider?: string
+    provider?: string,
+    complexity?: string
   ): Promise<void> {
     // Evict oldest entry if cache is full
     if (this.cache.size >= this.maxEntries) {
@@ -116,6 +118,7 @@ export class SemanticCache {
         response,
         model,
         provider: provider || 'openai',
+        complexity: complexity || 'unknown',
         timestamp: Date.now(),
         hits: 0,
         cost,
@@ -129,6 +132,7 @@ export class SemanticCache {
         response,
         model,
         provider: provider || 'openai',
+        complexity: complexity || 'unknown',
         timestamp: Date.now(),
         hits: 0,
         cost,

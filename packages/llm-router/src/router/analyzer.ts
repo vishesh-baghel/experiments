@@ -64,11 +64,11 @@ export class ComplexityAnalyzer {
     ) && factors.keywords.length >= 3;
     if (hasMultipleIssues) score += 10;
 
-    // Determine level based on score
+    // Determine level based on score (adjusted thresholds for better accuracy)
     let level: ComplexityLevel;
-    if (score < 25) level = 'simple';
-    else if (score < 50) level = 'moderate';
-    else if (score < 75) level = 'complex';
+    if (score < 20) level = 'simple';
+    else if (score < 40) level = 'moderate';
+    else if (score < 65) level = 'complex';
     else level = 'reasoning';
 
     // Generate reasoning explanation

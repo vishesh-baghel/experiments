@@ -38,6 +38,15 @@ interface BenchmarkSummary {
   cacheHitRate: number;
   totalTokens: number;
   costSaved: number;
+  routingAccuracy: number;
+  simpleCorrect: number;
+  simpleTotal: number;
+  moderateCorrect: number;
+  moderateTotal: number;
+  complexCorrect: number;
+  complexTotal: number;
+  reasoningCorrect: number;
+  reasoningTotal: number;
 }
 
 export default function BenchmarksPage() {
@@ -166,6 +175,20 @@ export default function BenchmarksPage() {
       setProgress((benchmarkResults.length / queriesToRun.length) * 100);
     }
 
+    // Calculate routing accuracy
+    const simpleResults = benchmarkResults.filter(r => r.expectedComplexity === 'simple');
+    const moderateResults = benchmarkResults.filter(r => r.expectedComplexity === 'moderate');
+    const complexResults = benchmarkResults.filter(r => r.expectedComplexity === 'complex');
+    const reasoningResults = benchmarkResults.filter(r => r.expectedComplexity === 'reasoning');
+
+    const simpleCorrect = simpleResults.filter(r => r.complexity === 'simple').length;
+    const moderateCorrect = moderateResults.filter(r => r.complexity === 'moderate').length;
+    const complexCorrect = complexResults.filter(r => r.complexity === 'complex').length;
+    const reasoningCorrect = reasoningResults.filter(r => r.complexity === 'reasoning').length;
+
+    const totalCorrect = simpleCorrect + moderateCorrect + complexCorrect + reasoningCorrect;
+    const routingAccuracy = benchmarkResults.length > 0 ? (totalCorrect / benchmarkResults.length) * 100 : 0;
+
     // Calculate summary
     const summaryData: BenchmarkSummary = {
       totalQueries: queriesToRun.length,
@@ -177,6 +200,15 @@ export default function BenchmarksPage() {
       cacheHitRate: (cacheHits / queriesToRun.length) * 100,
       totalTokens,
       costSaved,
+      routingAccuracy,
+      simpleCorrect,
+      simpleTotal: simpleResults.length,
+      moderateCorrect,
+      moderateTotal: moderateResults.length,
+      complexCorrect,
+      complexTotal: complexResults.length,
+      reasoningCorrect,
+      reasoningTotal: reasoningResults.length,
     };
 
     setSummary(summaryData);
@@ -251,35 +283,77 @@ export default function BenchmarksPage() {
 
       {/* Summary */}
       {summary && (
-        <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="border border-border rounded-lg p-4 bg-muted/30">
-            <div className="text-xs text-muted-foreground mb-1">Total Queries</div>
-            <div className="text-2xl font-bold">{summary.totalQueries}</div>
-            <div className="text-xs text-green-600 mt-1">
-              {summary.successfulQueries} successful
+        <div className="mb-6 space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="border border-border rounded-lg p-4 bg-muted/30">
+              <div className="text-xs text-muted-foreground mb-1">Total Queries</div>
+              <div className="text-2xl font-bold">{summary.totalQueries}</div>
+              <div className="text-xs text-green-600 mt-1">
+                {summary.successfulQueries} successful
+              </div>
+            </div>
+            <div className="border border-border rounded-lg p-4 bg-muted/30">
+              <div className="text-xs text-muted-foreground mb-1">Routing Accuracy</div>
+              <div className={`text-2xl font-bold ${
+                summary.routingAccuracy >= 90 ? 'text-green-600' : 
+                summary.routingAccuracy >= 75 ? 'text-orange-600' : 
+                'text-red-600'
+              }`}>
+                {summary.routingAccuracy.toFixed(1)}%
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {summary.simpleCorrect + summary.moderateCorrect + summary.complexCorrect + summary.reasoningCorrect}/{summary.totalQueries} correct
+              </div>
+            </div>
+            <div className="border border-border rounded-lg p-4 bg-muted/30">
+              <div className="text-xs text-muted-foreground mb-1">Avg Response Time</div>
+              <div className="text-2xl font-bold">{summary.avgResponseTime.toFixed(0)}ms</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Total: {(summary.totalTime / 1000).toFixed(1)}s
+              </div>
+            </div>
+            <div className="border border-border rounded-lg p-4 bg-muted/30">
+              <div className="text-xs text-muted-foreground mb-1">Total Cost</div>
+              <div className="text-2xl font-bold text-blue-600">${summary.totalCost.toFixed(6)}</div>
+              <div className="text-xs text-green-600 mt-1">
+                Saved: ${summary.costSaved.toFixed(6)}
+              </div>
+            </div>
+            <div className="border border-border rounded-lg p-4 bg-muted/30">
+              <div className="text-xs text-muted-foreground mb-1">Cache Hit Rate</div>
+              <div className="text-2xl font-bold text-purple-600">
+                {summary.cacheHitRate.toFixed(1)}%
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {Math.round((summary.cacheHitRate / 100) * summary.totalQueries)} hits
+              </div>
             </div>
           </div>
+          
+          {/* Routing Accuracy Breakdown */}
           <div className="border border-border rounded-lg p-4 bg-muted/30">
-            <div className="text-xs text-muted-foreground mb-1">Avg Response Time</div>
-            <div className="text-2xl font-bold">{summary.avgResponseTime.toFixed(0)}ms</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Total: {(summary.totalTime / 1000).toFixed(1)}s
-            </div>
-          </div>
-          <div className="border border-border rounded-lg p-4 bg-muted/30">
-            <div className="text-xs text-muted-foreground mb-1">Total Cost</div>
-            <div className="text-2xl font-bold text-blue-600">${summary.totalCost.toFixed(6)}</div>
-            <div className="text-xs text-green-600 mt-1">
-              Saved: ${summary.costSaved.toFixed(6)}
-            </div>
-          </div>
-          <div className="border border-border rounded-lg p-4 bg-muted/30">
-            <div className="text-xs text-muted-foreground mb-1">Cache Hit Rate</div>
-            <div className="text-2xl font-bold text-purple-600">
-              {summary.cacheHitRate.toFixed(1)}%
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {Math.round((summary.cacheHitRate / 100) * summary.totalQueries)} hits
+            <div className="text-xs font-semibold mb-3 text-muted-foreground">Routing Accuracy by Complexity</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Simple</div>
+                <div className="text-lg font-bold">{summary.simpleTotal > 0 ? ((summary.simpleCorrect / summary.simpleTotal) * 100).toFixed(1) : 0}%</div>
+                <div className="text-xs text-muted-foreground">{summary.simpleCorrect}/{summary.simpleTotal}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Moderate</div>
+                <div className="text-lg font-bold">{summary.moderateTotal > 0 ? ((summary.moderateCorrect / summary.moderateTotal) * 100).toFixed(1) : 0}%</div>
+                <div className="text-xs text-muted-foreground">{summary.moderateCorrect}/{summary.moderateTotal}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Complex</div>
+                <div className="text-lg font-bold">{summary.complexTotal > 0 ? ((summary.complexCorrect / summary.complexTotal) * 100).toFixed(1) : 0}%</div>
+                <div className="text-xs text-muted-foreground">{summary.complexCorrect}/{summary.complexTotal}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Reasoning</div>
+                <div className="text-lg font-bold">{summary.reasoningTotal > 0 ? ((summary.reasoningCorrect / summary.reasoningTotal) * 100).toFixed(1) : 0}%</div>
+                <div className="text-xs text-muted-foreground">{summary.reasoningCorrect}/{summary.reasoningTotal}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -289,7 +363,7 @@ export default function BenchmarksPage() {
       {results.length > 0 && (
         <div className="flex-1 overflow-auto border border-border rounded-lg">
           <table className="w-full text-sm">
-            <thead className="bg-muted sticky top-0">
+            <thead className="bg-background sticky top-0 z-10 border-b border-border">
               <tr>
                 <th className="text-left p-3 font-semibold">ID</th>
                 <th className="text-left p-3 font-semibold">Query</th>

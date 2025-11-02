@@ -76,9 +76,9 @@ export async function POST(req: Request) {
     model,
     messages: allMessages,
     onFinish: async ({ text, usage }) => {
-      // Cache the response for future use
+      // Cache the response for future use with complexity
       const actualCost = (usage.promptTokens * 0.00000015) + (usage.completionTokens * 0.0000006);
-      await agent.cacheResponse(userQuery, text, routing.model, actualCost, routing.provider);
+      await agent.cacheResponse(userQuery, text, routing.model, actualCost, routing.provider, routing.complexity);
 
       // Log routing decision and actual cost
       console.log('Routing:', {
