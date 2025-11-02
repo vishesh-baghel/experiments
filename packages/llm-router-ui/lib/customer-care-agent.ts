@@ -126,6 +126,7 @@ Guidelines:
     await cache.set(query, response, model, cost, provider);
   }
 
+
   /**
    * Get the system prompt
    */
