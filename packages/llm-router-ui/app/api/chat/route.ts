@@ -2,9 +2,38 @@ import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { CustomerCareAgent } from '@/lib/customer-care-agent';
+import { kv } from '@vercel/kv';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
+
+// Cache data structure
+interface CachedResponse {
+  response: string;
+  model: string;
+  provider: string;
+  complexity: string;
+  timestamp: number;
+}
+
+// Simple persistent cache using Vercel KV
+const persistentCache = {
+  async get(query: string): Promise<CachedResponse | null> {
+    try {
+      return await kv.get<CachedResponse>(`llm-cache:${query}`);
+    } catch (error) {
+      console.error('[Cache] KV get error:', error);
+      return null;
+    }
+  },
+  async set(query: string, data: CachedResponse): Promise<void> {
+    try {
+      await kv.set(`llm-cache:${query}`, data, { ex: 86400 }); // 24h TTL
+    } catch (error) {
+      console.error('[Cache] KV set error:', error);
+    }
+  }
+};
 
 // Initialize agent with router
 const agent = new CustomerCareAgent(undefined, {
@@ -20,14 +49,46 @@ export async function POST(req: Request) {
   const lastMessage = messages[messages.length - 1];
   const userQuery = lastMessage.content;
 
-  // Use agent to get routing decision (checks cache internally)
+  // Check Vercel KV cache first (persistent across deployments)
+  const kvCached = await persistentCache.get(userQuery);
+  if (kvCached) {
+    console.log('[Cache] KV cache hit!');
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        const text = kvCached.response;
+        const chunkSize = 50;
+        
+        for (let i = 0; i < text.length; i += chunkSize) {
+          const chunk = text.slice(i, i + chunkSize);
+          controller.enqueue(encoder.encode(`0:${JSON.stringify(chunk)}\n`));
+        }
+        
+        controller.enqueue(encoder.encode(`d:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`));
+        controller.close();
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Router-Cache-Hit': 'true',
+        'X-Router-Model': kvCached.model,
+        'X-Router-Provider': kvCached.provider,
+        'X-Router-Complexity': kvCached.complexity,
+        'X-Router-Cost': '0',
+      },
+    });
+  }
+
+  // Use agent to get routing decision (checks in-memory cache)
   const agentResponse = await agent.handleQuery(userQuery, {
     preferCheaper: true,
   });
 
   const routing = agentResponse.routing;
 
-  // If cache hit, return cached response in streaming format
+  // If in-memory cache hit, return cached response in streaming format
   if (routing.cacheHit && agentResponse.response) {
     // Create a streaming response for cached content in AI SDK format
     const encoder = new TextEncoder();
@@ -76,9 +137,20 @@ export async function POST(req: Request) {
     model,
     messages: allMessages,
     onFinish: async ({ text, usage }) => {
-      // Cache the response for future use with complexity
+      // Cache the response in both in-memory and Vercel KV
       const actualCost = (usage.promptTokens * 0.00000015) + (usage.completionTokens * 0.0000006);
+      
+      // In-memory cache (for local dev)
       await agent.cacheResponse(userQuery, text, routing.model, actualCost, routing.provider, routing.complexity);
+      
+      // Vercel KV cache (for production persistence)
+      await persistentCache.set(userQuery, {
+        response: text,
+        model: routing.model,
+        provider: routing.provider,
+        complexity: routing.complexity,
+        timestamp: Date.now(),
+      });
 
       // Log routing decision and actual cost
       console.log('Routing:', {
