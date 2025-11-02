@@ -1,8 +1,9 @@
 {
-  "buildCommand": "pnpm build",
+  "buildCommand": "cd ../llm-router && pnpm build && cd ../llm-router-ui && pnpm build",
   "devCommand": "pnpm dev",
-  "installCommand": "pnpm install",
+  "installCommand": "pnpm install --shamefully-hoist",
   "framework": "nextjs",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./",
   "env": {
     "OPENAI_API_KEY": "@openai-api-key",
     "ANTHROPIC_API_KEY": "@anthropic-api-key"
