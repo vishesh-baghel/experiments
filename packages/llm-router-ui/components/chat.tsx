@@ -76,6 +76,7 @@ export function Chat() {
     }
   }
 
+
   const toggleExpanded = (messageId: string) => {
     setExpandedMessages((prev) => {
       const next = new Set(prev);
