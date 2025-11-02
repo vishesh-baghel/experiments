@@ -3,7 +3,8 @@
 import { useChat } from 'ai/react';
 import { useState, useEffect } from 'react';
 import React from 'react';
-import { Send, ChevronDown, ChevronUp, Zap, DollarSign, Database, TrendingDown, Target } from 'lucide-react';
+import { Send, ChevronDown, ChevronUp, Zap, DollarSign, Database, TrendingDown, Target, Github, BarChart3 } from 'lucide-react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 interface RoutingMetadata {
@@ -106,7 +107,7 @@ export function Chat() {
 
   const sampleQueries = [
     {
-      category: '💬 Simple Queries',
+      category: 'Simple Queries',
       description: 'Fast models (gpt-4o-mini)',
       queries: [
         { text: 'What are your business hours?', type: 'base' },
@@ -117,7 +118,7 @@ export function Chat() {
       ],
     },
     {
-      category: '🔄 Semantic Variations',
+      category: 'Semantic Variations',
       description: 'Different words, same meaning',
       queries: [
         { text: 'How do I reset my password?', type: 'base' },
@@ -127,8 +128,8 @@ export function Chat() {
       ],
     },
     {
-      category: '🧠 Complex Queries',
-      description: 'Advanced models (gpt-4o)',
+      category: 'Moderate Queries',
+      description: 'Advanced models (gpt-4o-mini)',
       queries: [
         { text: "I've been charged twice for the same order, but only received one item. I also noticed my subscription was upgraded without my consent. Can you investigate this and explain what happened?", type: 'base' },
         { text: "I got double charged for my order and only got one item. Also my subscription got upgraded without asking me. What's going on?", type: 'semantic', hint: 'Similar to above' },
@@ -137,7 +138,15 @@ export function Chat() {
       ],
     },
     {
-      category: '🎯 Exact Match',
+      category: 'Complex Queries',
+      description: 'Reasoning models (gpt-4o)',
+      queries: [
+        { text: 'I placed three orders last month but was charged for four. Two items arrived damaged, one never shipped, and my account shows duplicate charges. I need a full breakdown of what happened, which charges are legitimate, how to return the damaged items, and get refunds for everything that went wrong. Also, I want to understand why this happened and how to prevent it.', type: 'base' },
+        { text: 'Last month I got charged 4 times but only ordered 3 things. Some stuff came broken, one thing never came, and I see double charges. Can you explain everything wrong, tell me which charges are real, how to send back broken stuff, get my money back, and make sure this doesn\'t happen again?', type: 'semantic', hint: 'Similar to above' },
+      ],
+    },
+    {
+      category: 'Exact Match',
       description: '100% cache hits',
       queries: [
         { text: 'Hello, how can you help me?', type: 'base' },
@@ -151,11 +160,31 @@ export function Chat() {
   return (
     <div className="flex flex-col h-screen max-w-7xl mx-auto p-4">
       {/* Header */}
-      <div className="mb-4">
-        <h1 className="text-3xl font-bold mb-2">LLM Router Demo</h1>
-        <p className="text-muted-foreground">
-          Intelligent routing with cost optimization and caching
-        </p>
+      <div className="mb-4 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">LLM Router Demo</h1>
+          <p className="text-muted-foreground">
+            Intelligent routing with cost optimization and caching
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/benchmarks"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-sm"
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span>Benchmarks</span>
+          </Link>
+          <a
+            href="https://github.com/vishesh-baghel/experiments"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-sm"
+          >
+            <Github className="w-4 h-4" />
+            <span>GitHub</span>
+          </a>
+        </div>
       </div>
 
       {/* Two Column Layout */}
@@ -239,7 +268,7 @@ export function Chat() {
                           query.type === 'semantic' && "text-green-600",
                           query.type === 'exact' && "text-blue-600"
                         )}>
-                          ← {query.hint}
+                          {query.hint}
                         </div>
                       )}
                     </button>

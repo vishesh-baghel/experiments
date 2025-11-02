@@ -29,13 +29,22 @@ export async function POST(req: Request) {
 
   // If cache hit, return cached response in streaming format
   if (routing.cacheHit && agentResponse.response) {
-    // Create a streaming response for cached content
+    // Create a streaming response for cached content in AI SDK format
+    const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
-        // Send the cached text
-        controller.enqueue(new TextEncoder().encode(`0:"${agentResponse.response}"\n`));
+        // Split response into chunks for streaming effect
+        const text = agentResponse.response;
+        const chunkSize = 50;
+        
+        for (let i = 0; i < text.length; i += chunkSize) {
+          const chunk = text.slice(i, i + chunkSize);
+          // AI SDK text stream format
+          controller.enqueue(encoder.encode(`0:${JSON.stringify(chunk)}\n`));
+        }
+        
         // Send finish event
-        controller.enqueue(new TextEncoder().encode(`d:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`));
+        controller.enqueue(encoder.encode(`d:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`));
         controller.close();
       },
     });

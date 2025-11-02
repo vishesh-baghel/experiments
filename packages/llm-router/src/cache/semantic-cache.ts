@@ -93,6 +93,7 @@ export class SemanticCache {
 
   /**
    * Cache a new query-response pair
+   * Generates embedding asynchronously to avoid blocking
    */
   async set(
     query: string,
@@ -106,17 +107,32 @@ export class SemanticCache {
       this.evictOldest();
     }
 
-    const embedding = await this.getEmbedding(query);
-
-    this.cache.set(query, {
-      query,
-      embedding,
-      response,
-      model,
-      provider: provider || 'openai',
-      timestamp: Date.now(),
-      hits: 0,
-      cost,
+    // Generate embedding asynchronously (fire-and-forget)
+    // This prevents blocking the response while embedding is generated
+    this.getEmbedding(query).then(embedding => {
+      this.cache.set(query, {
+        query,
+        embedding,
+        response,
+        model,
+        provider: provider || 'openai',
+        timestamp: Date.now(),
+        hits: 0,
+        cost,
+      });
+    }).catch(error => {
+      console.error('[Cache] Failed to cache entry:', error);
+      // Still cache with zero vector as fallback
+      this.cache.set(query, {
+        query,
+        embedding: new Array(256).fill(0),
+        response,
+        model,
+        provider: provider || 'openai',
+        timestamp: Date.now(),
+        hits: 0,
+        cost,
+      });
     });
   }
 
