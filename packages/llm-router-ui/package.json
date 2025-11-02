@@ -10,26 +10,27 @@
     "clean": "rm -rf .next"
   },
   "dependencies": {
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "next": "16.0.1",
-    "llm-router": "file:../llm-router",
-    "ai": "^4.0.0",
-    "@ai-sdk/openai": "^1.0.0",
     "@ai-sdk/anthropic": "^1.0.0",
-    "lucide-react": "^0.460.0",
+    "@ai-sdk/openai": "^1.0.0",
+    "@vercel/kv": "^3.0.0",
+    "ai": "^4.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "llm-router": "file:../llm-router",
+    "lucide-react": "^0.460.0",
+    "next": "16.0.1",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
     "tailwind-merge": "^2.5.5"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
-    "eslint-config-next": "16.0.1"
+    "eslint-config-next": "16.0.1",
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }

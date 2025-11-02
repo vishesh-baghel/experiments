@@ -20,6 +20,10 @@ export { LLMRouter } from './router';
 // Router components (for advanced usage)
 export { ComplexityAnalyzer, ModelSelector, CostCalculator } from './router';
 
+// Cache
+export { SemanticCache } from './cache/semantic-cache';
+export type { CacheEntry, CacheStats } from './cache/semantic-cache';
+
 // Model configurations
 export * from './models/config';
 
