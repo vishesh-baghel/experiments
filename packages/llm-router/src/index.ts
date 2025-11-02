@@ -3,21 +3,19 @@
  * 
  * @example
  * ```typescript
- * import { CustomerCareAgent, LLMRouter } from '@experiments/llm-router';
+ * import { LLMRouter } from 'llm-router';
  * 
- * // Use the customer care agent
- * const agent = new CustomerCareAgent();
- * const result = await agent.handleQuery('How do I reset my password?');
- * 
- * // Or use the router directly
+ * // Use the router directly
  * const router = new LLMRouter();
  * const routing = await router.routeQuery('Explain quantum computing');
+ * 
+ * console.log(`Selected: ${routing.model} (${routing.provider})`);
+ * console.log(`Cost: $${routing.estimatedCost.total}`);
  * ```
  */
 
 // Main exports
 export { LLMRouter } from './router';
-export { CustomerCareAgent } from './agent/customer-care-agent';
 
 // Router components (for advanced usage)
 export { ComplexityAnalyzer, ModelSelector, CostCalculator } from './router';

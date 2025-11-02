@@ -50,11 +50,19 @@ export class ComplexityAnalyzer {
     else if (factors.questionType === 'complex') score += 15;
     else if (factors.questionType === 'reasoning') score += 25;
 
-    // Keywords (0-20 points)
-    score += Math.min(factors.keywords.length * 5, 20);
+    // Keywords (0-25 points) - increased weight
+    score += Math.min(factors.keywords.length * 5, 25);
 
     // Sentence complexity (0-15 points)
     score += Math.min(factors.sentenceComplexity * 3, 15);
+    
+    // Multiple issues bonus (0-10 points)
+    // Detect if query mentions multiple problems/issues
+    const issueIndicators = ['also', 'and', 'but', 'however', 'additionally'];
+    const hasMultipleIssues = issueIndicators.some(indicator => 
+      query.toLowerCase().includes(indicator)
+    ) && factors.keywords.length >= 3;
+    if (hasMultipleIssues) score += 10;
 
     // Determine level based on score
     let level: ComplexityLevel;
@@ -166,6 +174,18 @@ export class ComplexityAnalyzer {
       'reasoning',
       'strategy',
       'recommend',
+      'investigate',
+      'diagnose',
+      'resolve',
+      'dispute',
+      'complaint',
+      'issue',
+      'problem',
+      'charged',
+      'refund',
+      'subscription',
+      'unauthorized',
+      'consent',
     ];
 
     const lowerQuery = query.toLowerCase();

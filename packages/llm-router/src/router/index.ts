@@ -24,7 +24,7 @@ export class LLMRouter {
     cacheOptions?: { similarityThreshold?: number; maxEntries?: number };
     enabledProviders?: Provider[];
   } = {}) {
-    this.analyzer = new ComplexityAnalyzer();
+    this.analyzer = new ComplexityAnalyzer(); 
     this.selector = new ModelSelector(options.enabledProviders);
     this.calculator = new CostCalculator();
     this.cache = new SemanticCache(options.cacheOptions);
@@ -63,6 +63,9 @@ export class LLMRouter {
    * Route a query to the optimal model
    * This is the main entry point for the router
    * Now with semantic caching and optional ML classification
+   * 
+   * Note: Cache checking should be done at application layer (agent/API)
+   * since cache stores full responses, not just routing decisions
    */
   async routeQuery(
     query: string,

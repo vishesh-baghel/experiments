@@ -14,6 +14,7 @@ export interface CacheEntry {
   embedding: number[];
   response: string;
   model: string;
+  provider: string;
   timestamp: number;
   hits: number;
   cost: number;
@@ -74,13 +75,19 @@ export class SemanticCache {
       }
     }
 
+    console.log(`[Cache] Query: "${query.substring(0, 50)}..."`);
+    console.log(`[Cache] Best match: "${bestMatch?.query.substring(0, 50)}..." (similarity: ${(maxSimilarity * 100).toFixed(1)}%)`);
+    console.log(`[Cache] Threshold: ${(this.similarityThreshold * 100).toFixed(1)}%`);
+
     // Return if similarity exceeds threshold
     if (bestMatch && maxSimilarity >= this.similarityThreshold) {
+      console.log(`[Cache] ✓ HIT - Returning cached response`);
       bestMatch.hits++;
       this.totalHits++;
       return bestMatch;
     }
 
+    console.log(`[Cache] ✗ MISS - Similarity below threshold`);
     return null;
   }
 
@@ -91,7 +98,8 @@ export class SemanticCache {
     query: string,
     response: string,
     model: string,
-    cost: number
+    cost: number,
+    provider?: string
   ): Promise<void> {
     // Evict oldest entry if cache is full
     if (this.cache.size >= this.maxEntries) {
@@ -105,6 +113,7 @@ export class SemanticCache {
       embedding,
       response,
       model,
+      provider: provider || 'openai',
       timestamp: Date.now(),
       hits: 0,
       cost,
@@ -149,6 +158,7 @@ export class SemanticCache {
    */
   private async getEmbedding(text: string): Promise<number[]> {
     try {
+      console.log(`[Cache] Generating embedding for: "${text.substring(0, 50)}..."`);
       const { embedding } = await embed({
         model: openai.embedding('text-embedding-3-small', {
           dimensions: 256, // Reduced from 1536 for 6x memory savings
@@ -156,10 +166,13 @@ export class SemanticCache {
         value: text,
         maxRetries: 3, // Retry up to 3 times on transient failures
       });
+      console.log(`[Cache] ✓ Embedding generated (${embedding.length} dimensions)`);
       return embedding;
     } catch (error) {
-      console.error('Failed to generate embedding after retries:', error);
-      throw new Error(`Embedding generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('[Cache] ✗ Failed to generate embedding:', error);
+      // Return a zero vector as fallback - will never match semantically
+      // This allows the cache to continue working with exact matches
+      return new Array(256).fill(0);
     }
   }
 

@@ -60,10 +60,11 @@ export class BenchmarkRunner {
   private router: LLMRouter;
   private results: BenchmarkResult[] = [];
 
-  constructor() {
+  constructor(enabledProviders?: string[]) {
     this.router = new LLMRouter({
       useCache: true,
       useMLClassifier: false, // Use heuristics for fair comparison
+      enabledProviders: enabledProviders as any || ['openai'], // Default to OpenAI only
     });
   }
 

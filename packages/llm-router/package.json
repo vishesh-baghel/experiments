@@ -1,11 +1,26 @@
 {
   "name": "llm-router",
   "version": "1.0.0",
-  "description": "Intelligent LLM router that selects optimal models based on query complexity and cost",
+  "description": "Pure utility library for intelligent LLM routing based on query complexity and cost optimization",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsup && pnpm copy:wasm",
+    "copy:wasm": "mkdir -p dist && cp node_modules/@dqbd/tiktoken/*.wasm dist/ 2>/dev/null || true",
+    "build:tsc": "tsc --noEmit",
+    "prepare": "pnpm build",
     "dev": "tsx src/demo/run.ts",
     "train": "tsx src/classifier/train.ts",
     "precompute": "tsx src/classifier/precompute-embeddings.ts",
@@ -30,21 +45,40 @@
   "author": "Vishesh Baghel <hi@visheshbaghel.com>",
   "license": "MIT",
   "dependencies": {
+    "@dqbd/tiktoken": "^1.0.18",
+    "zod": "^3.23.8"
+  },
+  "peerDependencies": {
     "@ai-sdk/anthropic": "^1.0.8",
     "@ai-sdk/google": "^1.0.10",
     "@ai-sdk/openai": "^1.0.10",
-    "@dqbd/tiktoken": "^1.0.18",
+    "@mastra/core": "^0.20.2",
+    "ai": "^4.0.38"
+  },
+  "peerDependenciesMeta": {
+    "@ai-sdk/anthropic": {
+      "optional": true
+    },
+    "@ai-sdk/google": {
+      "optional": true
+    },
+    "@mastra/core": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@ai-sdk/anthropic": "^1.0.8",
+    "@ai-sdk/google": "^1.0.10",
+    "@ai-sdk/openai": "^1.0.10",
     "@mastra/core": "^0.20.2",
     "ai": "^4.0.38",
     "groq-sdk": "^0.7.0",
-    "together-ai": "^0.6.0-alpha.5",
     "ollama": "^0.5.9",
-    "zod": "^3.23.8"
-  },
-  "devDependencies": {
-    "@types/node": "^22.10.2",
+    "together-ai": "^0.6.0-alpha.5",
+    "@types/node": "^22.18.12",
     "@vitest/coverage-v8": "^2.1.9",
     "dotenv": "^17.2.3",
+    "tsup": "^8.5.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.9"

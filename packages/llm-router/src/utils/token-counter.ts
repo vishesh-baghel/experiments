@@ -5,7 +5,18 @@
  * actual tokenization (±2% error) for accurate cost calculation.
  */
 
-import { encoding_for_model, TiktokenModel } from '@dqbd/tiktoken';
+// Try to import tiktoken, fall back to estimation if not available
+let encoding_for_model: any;
+let TiktokenModel: any;
+
+try {
+  const tiktoken = require('@dqbd/tiktoken');
+  encoding_for_model = tiktoken.encoding_for_model;
+  TiktokenModel = tiktoken.TiktokenModel;
+} catch (error) {
+  // Tiktoken not available - will use estimation fallback
+  console.warn('tiktoken not available, using token estimation (±15% accuracy)');
+}
 
 export interface TokenCount {
   tokens: number;
@@ -20,6 +31,11 @@ export class TokenCounter {
    * Count tokens accurately using tiktoken
    */
   countTokens(text: string, model: string): TokenCount {
+    // If tiktoken is not available, use estimation immediately
+    if (!encoding_for_model) {
+      return this.estimateTokens(text);
+    }
+
     try {
       // Map model names to tiktoken models
       const tiktokenModel = this.getTiktokenModel(model);
@@ -45,7 +61,7 @@ export class TokenCounter {
         accuracy: 'high',
       };
     } catch (error) {
-      console.warn(`Failed to count tokens with tiktoken for ${model}:`, error);
+      // Silently fall back to estimation
       return this.estimateTokens(text);
     }
   }
@@ -78,7 +94,7 @@ export class TokenCounter {
   /**
    * Map provider model names to tiktoken models
    */
-  private getTiktokenModel(model: string): TiktokenModel | null {
+  private getTiktokenModel(model: string): string | null {
     // OpenAI models
     if (model.includes('gpt-4o')) return 'gpt-4o';
     if (model.includes('gpt-4-turbo')) return 'gpt-4-turbo';
