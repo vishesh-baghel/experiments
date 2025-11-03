@@ -24,6 +24,7 @@
     "dev": "tsx src/demo/run.ts",
     "train": "tsx src/classifier/train.ts",
     "precompute": "tsx src/classifier/precompute-embeddings.ts",
+    "upload-training": "tsx src/classifier/upload-to-upstash.ts",
     "generate-queries": "tsx src/benchmarks/generate-queries.ts",
     "benchmark": "tsx src/benchmarks/benchmark.ts",
     "clean": "rm -rf dist",

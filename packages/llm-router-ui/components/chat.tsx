@@ -3,7 +3,7 @@
 import { useChat } from 'ai/react';
 import { useState, useEffect } from 'react';
 import React from 'react';
-import { Send, ChevronDown, ChevronUp, Zap, DollarSign, Database, TrendingDown, Target, Github, BarChart3 } from 'lucide-react';
+import { Send, ChevronDown, ChevronUp, Zap, DollarSign, Database, TrendingDown, Target, Github, BarChart3, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
@@ -168,6 +168,13 @@ export function Chat() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            href="/training"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-sm"
+          >
+            <GraduationCap className="w-4 h-4" />
+            <span>Training</span>
+          </Link>
           <Link
             href="/benchmarks"
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-sm"

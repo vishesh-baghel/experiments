@@ -51,16 +51,15 @@ export class LLMRouter {
   }
 
   /**
-   * Auto-load precomputed embeddings for ML classifier
+   * Auto-load training embeddings from Upstash Vector
    */
   private async loadPrecomputedEmbeddings(): Promise<void> {
     try {
-      // Import precomputed embeddings
-      const precomputedData = await import('../classifier/precomputed-embeddings.json');
-      await this.mlClassifier!.loadTrainingData(precomputedData.embeddings as any);
-      console.log('[Router] ML Classifier trained with precomputed embeddings');
+      // Load from Upstash Vector (serverless-friendly)
+      this.mlClassifier = await MLClassifier.loadFromUpstash();
+      console.log('[Router] ML Classifier trained from Upstash Vector');
     } catch (error) {
-      console.warn('[Router] Failed to load precomputed embeddings, falling back to heuristics:', error);
+      console.warn('[Router] Failed to load training data from Upstash, falling back to heuristics:', error);
       this.useMLClassifier = false;
     }
   }

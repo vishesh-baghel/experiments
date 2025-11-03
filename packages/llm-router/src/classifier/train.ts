@@ -3,8 +3,11 @@
  * Run this to pre-train the classifier and evaluate accuracy
  */
 
+import { config } from 'dotenv';
 import { MLClassifier } from './ml-classifier';
 import { trainingData } from './training-data';
+
+config()
 
 async function main() {
   console.log('='.repeat(80));

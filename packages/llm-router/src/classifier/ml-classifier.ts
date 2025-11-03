@@ -3,10 +3,13 @@
  * 
  * Uses embeddings + centroid-based classification for 95%+ accuracy
  * vs 85% with heuristics. Demonstrates production ML approach.
+ * 
+ * Training data is stored in Upstash Vector for serverless deployment.
  */
 
 import { embed } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { Index } from '@upstash/vector';
 import { cosineSimilarity } from '../utils/similarity';
 import type { ComplexityLevel } from '../types';
 import type { TrainingExample } from './training-data';
@@ -66,7 +69,7 @@ export class MLClassifier {
 
   /**
    * Load pre-computed embeddings from file
-   * This is the recommended way for production
+   * @deprecated Use loadFromUpstash() instead for serverless deployment
    */
   static async loadFromPrecomputed(filePath: string): Promise<MLClassifier> {
     const fs = await import('fs/promises');
@@ -74,6 +77,57 @@ export class MLClassifier {
     
     const classifier = new MLClassifier();
     await classifier.loadTrainingData(data.embeddings);
+    
+    return classifier;
+  }
+
+  /**
+   * Load training embeddings from Upstash Vector
+   * This is the recommended way for serverless deployment
+   */
+  static async loadFromUpstash(): Promise<MLClassifier> {
+    if (!process.env.UPSTASH_VECTOR_REST_URL || !process.env.UPSTASH_VECTOR_REST_TOKEN) {
+      throw new Error('UPSTASH_VECTOR_REST_URL and UPSTASH_VECTOR_REST_TOKEN must be set');
+    }
+
+    const vectorDb = new Index({
+      url: process.env.UPSTASH_VECTOR_REST_URL,
+      token: process.env.UPSTASH_VECTOR_REST_TOKEN,
+    });
+
+    // Fetch all training embeddings
+    // They are stored with IDs like: training_simple_0, training_moderate_0, etc.
+    const trainingExamples: TrainingExample[] = [];
+    
+    // Fetch by complexity level to ensure we get all examples
+    const complexityLevels: ComplexityLevel[] = ['simple', 'moderate', 'complex', 'reasoning'];
+    
+    for (const complexity of complexityLevels) {
+      // Query for training examples of this complexity
+      // We use a dummy query and filter by metadata
+      const results = await vectorDb.query({
+        data: `training ${complexity}`, // Dummy query
+        topK: 100, // Get up to 100 per complexity
+        includeMetadata: true,
+        filter: `type = 'training' AND complexity = '${complexity}'`,
+      });
+
+      for (const result of results) {
+        if (result.metadata) {
+          const metadata = result.metadata as any;
+          trainingExamples.push({
+            query: metadata.query,
+            complexity: metadata.complexity as ComplexityLevel,
+            embedding: result.vector,
+          });
+        }
+      }
+    }
+
+    console.log(`Loaded ${trainingExamples.length} training examples from Upstash Vector`);
+
+    const classifier = new MLClassifier();
+    await classifier.loadTrainingData(trainingExamples);
     
     return classifier;
   }
