@@ -45,24 +45,31 @@ export class ComplexityAnalyzer {
     if (factors.hasCode) score += 15;
     if (factors.hasMath) score += 10;
 
-    // Question type (0-25 points)
+    // Question type (0-30 points) - increased weight for reasoning
     if (factors.questionType === 'simple') score += 5;
     else if (factors.questionType === 'complex') score += 15;
-    else if (factors.questionType === 'reasoning') score += 25;
+    else if (factors.questionType === 'reasoning') score += 30;
 
-    // Keywords (0-25 points) - increased weight
-    score += Math.min(factors.keywords.length * 5, 25);
+    // Keywords (0-30 points) - increased weight
+    score += Math.min(factors.keywords.length * 6, 30);
 
     // Sentence complexity (0-15 points)
     score += Math.min(factors.sentenceComplexity * 3, 15);
     
-    // Multiple issues bonus (0-10 points)
+    // Multiple issues bonus (0-15 points) - increased for reasoning
     // Detect if query mentions multiple problems/issues
-    const issueIndicators = ['also', 'and', 'but', 'however', 'additionally'];
+    const issueIndicators = ['also', 'and', 'but', 'however', 'additionally', 'while', 'whereas'];
     const hasMultipleIssues = issueIndicators.some(indicator => 
       query.toLowerCase().includes(indicator)
-    ) && factors.keywords.length >= 3;
-    if (hasMultipleIssues) score += 10;
+    ) && factors.keywords.length >= 2;
+    if (hasMultipleIssues) score += 15;
+    
+    // Strategic/planning indicators (0-20 points) - NEW
+    const strategicIndicators = ['should we', 'how can we', 'what if', 'consider', 'evaluate', 'decide', 'choose', 'recommend', 'strategy', 'approach', 'plan', 'ensure'];
+    const hasStrategicThinking = strategicIndicators.some(indicator =>
+      query.toLowerCase().includes(indicator)
+    );
+    if (hasStrategicThinking) score += 20;
 
     // Determine level based on score (adjusted thresholds for better accuracy)
     let level: ComplexityLevel;

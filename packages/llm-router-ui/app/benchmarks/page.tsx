@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { ArrowLeft, Play, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { ArrowLeft, Play, Loader2, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import benchmarkQueries from './queries.json';
 
@@ -55,6 +55,17 @@ export default function BenchmarksPage() {
   const [summary, setSummary] = useState<BenchmarkSummary | null>(null);
   const [progress, setProgress] = useState(0);
   const [selectedComplexity, setSelectedComplexity] = useState<string>('all');
+  const [isClearing, setIsClearing] = useState(false);
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to table bottom when benchmarks complete
+  useEffect(() => {
+    if (!isRunning && results.length > 0 && tableRef.current) {
+      setTimeout(() => {
+        tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 100);
+    }
+  }, [isRunning, results.length]);
 
   const runBenchmarks = async () => {
     setIsRunning(true);
@@ -215,6 +226,30 @@ export default function BenchmarksPage() {
     setIsRunning(false);
   };
 
+  const clearCache = async () => {
+    if (!confirm('Clear all cached responses? This will allow you to see cache hits on the next run.')) {
+      return;
+    }
+
+    setIsClearing(true);
+    try {
+      const response = await fetch('/api/cache/clear', {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        alert('Cache cleared successfully! Run benchmarks again to see fresh results.');
+      } else {
+        alert('Failed to clear cache. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+      alert('Error clearing cache. Please try again.');
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen max-w-7xl mx-auto p-4">
       {/* Header */}
@@ -233,7 +268,7 @@ export default function BenchmarksPage() {
       </div>
 
       {/* Controls */}
-      <div className="mb-6 flex items-center gap-4">
+      <div className="mb-6 flex items-center gap-4 flex-wrap">
         <button
           onClick={runBenchmarks}
           disabled={isRunning}
@@ -248,6 +283,24 @@ export default function BenchmarksPage() {
             <>
               <Play className="w-4 h-4" />
               Run Benchmarks
+            </>
+          )}
+        </button>
+
+        <button
+          onClick={clearCache}
+          disabled={isRunning || isClearing}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-border bg-background hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {isClearing ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Clearing...
+            </>
+          ) : (
+            <>
+              <Trash2 className="w-4 h-4" />
+              Clear Cache
             </>
           )}
         </button>
@@ -361,7 +414,7 @@ export default function BenchmarksPage() {
 
       {/* Results Table */}
       {results.length > 0 && (
-        <div className="flex-1 overflow-auto border border-border rounded-lg">
+        <div ref={tableRef} className="flex-1 min-h-[500px] overflow-auto border border-border rounded-lg custom-scrollbar">
           <table className="w-full text-sm">
             <thead className="bg-background sticky top-0 z-10 border-b border-border">
               <tr>

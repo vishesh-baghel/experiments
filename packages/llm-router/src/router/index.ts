@@ -32,6 +32,8 @@ export class LLMRouter {
     
     if (this.useMLClassifier) {
       this.mlClassifier = new MLClassifier();
+      // Auto-load precomputed embeddings
+      this.loadPrecomputedEmbeddings();
     }
     
     this.stats = {
@@ -46,6 +48,21 @@ export class LLMRouter {
         reasoning: 0,
       },
     };
+  }
+
+  /**
+   * Auto-load precomputed embeddings for ML classifier
+   */
+  private async loadPrecomputedEmbeddings(): Promise<void> {
+    try {
+      // Import precomputed embeddings
+      const precomputedData = await import('../classifier/precomputed-embeddings.json');
+      await this.mlClassifier!.loadTrainingData(precomputedData.embeddings as any);
+      console.log('[Router] ML Classifier trained with precomputed embeddings');
+    } catch (error) {
+      console.warn('[Router] Failed to load precomputed embeddings, falling back to heuristics:', error);
+      this.useMLClassifier = false;
+    }
   }
 
   /**
