@@ -2,7 +2,7 @@ import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { CustomerCareAgent } from '@/lib/customer-care-agent';
-import { kv } from '@vercel/kv';
+import { createClient } from 'redis';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -16,21 +16,42 @@ interface CachedResponse {
   timestamp: number;
 }
 
-// Simple persistent cache using Vercel KV
+// Initialize Redis client
+let redisClient: ReturnType<typeof createClient> | null = null;
+
+async function getRedisClient() {
+  if (!redisClient) {
+    redisClient = createClient({
+      url: process.env.REDIS_URL || 'redis://localhost:6379',
+    });
+    
+    redisClient.on('error', (err) => console.error('[Redis] Client Error:', err));
+    
+    await redisClient.connect();
+    console.log('[Redis] Connected successfully');
+  }
+  return redisClient;
+}
+
+// Simple persistent cache using Redis
 const persistentCache = {
   async get(query: string): Promise<CachedResponse | null> {
     try {
-      return await kv.get<CachedResponse>(`llm-cache:${query}`);
+      const redis = await getRedisClient();
+      const cached = await redis.get(`llm-cache:${query}`);
+      if (!cached) return null;
+      return JSON.parse(cached) as CachedResponse;
     } catch (error) {
-      console.error('[Cache] KV get error:', error);
+      console.error('[Cache] Redis get error:', error);
       return null;
     }
   },
   async set(query: string, data: CachedResponse): Promise<void> {
     try {
-      await kv.set(`llm-cache:${query}`, data, { ex: 86400 }); // 24h TTL
+      const redis = await getRedisClient();
+      await redis.setEx(`llm-cache:${query}`, 86400, JSON.stringify(data)); // 24h TTL
     } catch (error) {
-      console.error('[Cache] KV set error:', error);
+      console.error('[Cache] Redis set error:', error);
     }
   }
 };
@@ -129,8 +150,6 @@ export async function POST(req: Request) {
   const systemMessage = { role: 'system' as const, content: agent.getSystemPrompt() };
   const allMessages = [systemMessage, ...messages];
 
-  // Track full response for caching
-  let fullResponse = '';
 
   // Stream the response with routing metadata
   const result = streamText({
