@@ -46,6 +46,8 @@
   "license": "MIT",
   "dependencies": {
     "@dqbd/tiktoken": "^1.0.18",
+    "@upstash/vector": "^1.2.2",
+    "redis": "^5.9.0",
     "zod": "^3.23.8"
   },
   "peerDependencies": {
@@ -71,13 +73,13 @@
     "@ai-sdk/google": "^1.0.10",
     "@ai-sdk/openai": "^1.0.10",
     "@mastra/core": "^0.20.2",
+    "@types/node": "^22.18.12",
+    "@vitest/coverage-v8": "^2.1.9",
     "ai": "^4.0.38",
+    "dotenv": "^17.2.3",
     "groq-sdk": "^0.7.0",
     "ollama": "^0.5.9",
     "together-ai": "^0.6.0-alpha.5",
-    "@types/node": "^22.18.12",
-    "@vitest/coverage-v8": "^2.1.9",
-    "dotenv": "^17.2.3",
     "tsup": "^8.5.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",

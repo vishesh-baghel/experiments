@@ -1,46 +1,33 @@
-import { createClient } from 'redis';
 import { NextResponse } from 'next/server';
-
-// Initialize Redis client
-let redisClient: ReturnType<typeof createClient> | null = null;
-
-async function getRedisClient() {
-  if (!redisClient) {
-    redisClient = createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379',
-    });
-    
-    redisClient.on('error', (err) => console.error('[Redis] Client Error:', err));
-    
-    await redisClient.connect();
-  }
-  return redisClient;
-}
+import { Index } from '@upstash/vector';
 
 export async function POST() {
   try {
-    const redis = await getRedisClient();
-    
-    // Get all cache keys
-    const keys = await redis.keys('llm-cache:*');
-    
-    if (keys.length > 0) {
-      // Delete all cache keys
-      await redis.del(keys);
-      console.log(`[Cache] Cleared ${keys.length} cache entries`);
-      
-      return NextResponse.json({ 
-        success: true, 
-        message: `Cleared ${keys.length} cache entries`,
-        count: keys.length 
-      });
-    } else {
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Cache was already empty',
-        count: 0 
-      });
+    if (!process.env.UPSTASH_VECTOR_REST_URL || !process.env.UPSTASH_VECTOR_REST_TOKEN) {
+      return NextResponse.json(
+        { success: false, error: 'Upstash Vector not configured' },
+        { status: 500 }
+      );
     }
+
+    const vectorDb = new Index({
+      url: process.env.UPSTASH_VECTOR_REST_URL,
+      token: process.env.UPSTASH_VECTOR_REST_TOKEN,
+    });
+    
+    // Get count before clearing
+    const info = await vectorDb.info();
+    const count = info.vectorCount || 0;
+    
+    // Clear all vectors
+    await vectorDb.reset();
+    console.log(`[Cache] Cleared ${count} semantic cache entries`);
+    
+    return NextResponse.json({ 
+      success: true, 
+      message: `Cleared ${count} cache entries`,
+      count 
+    });
   } catch (error) {
     console.error('[Cache] Error clearing cache:', error);
     return NextResponse.json(

@@ -20,6 +20,12 @@ importers:
       '@dqbd/tiktoken':
         specifier: ^1.0.18
         version: 1.0.22
+      '@upstash/vector':
+        specifier: ^1.2.2
+        version: 1.2.2
+      redis:
+        specifier: ^5.9.0
+        version: 5.9.0
       zod:
         specifier: ^3.23.8
         version: 3.25.76
@@ -78,6 +84,9 @@ importers:
       '@ai-sdk/openai':
         specifier: ^1.0.0
         version: 1.3.24(zod@4.1.12)
+      '@upstash/vector':
+        specifier: ^1.2.2
+        version: 1.2.2
       ai:
         specifier: ^4.0.0
         version: 4.3.19(react@19.2.0)(zod@4.1.12)
@@ -1946,6 +1955,9 @@ packages:
     resolution: {integrity: sha512-lrW200hZdbfRtztbygyaq/6jP6AKE8qQN2KvPcJ+x7wiD038YtnYtZ82IMNJ69GJibV7bwL3y9FgK+5w/pYt6g==}
     cpu: [x64]
     os: [win32]
+
+  '@upstash/vector@1.2.2':
+    resolution: {integrity: sha512-ptQ9xnxtKqmpNK52PCcHCszlPOLxIBfjsv7ty8RoF95pkjctS9rSjTQ3Pl9bx5VFbpDj+0dMXw88WLt6swDkgQ==}
 
   '@vercel/oidc@3.0.3':
     resolution: {integrity: sha512-yNEQvPcVrK9sIe637+I0jD6leluPxzwJKx/Haw6F4H77CdDsszUn5V3o96LPziXkSNE2B83+Z3mjqGKBK/R6Gg==}
@@ -6452,6 +6464,8 @@ snapshots:
   '@unrs/resolver-binding-win32-x64-msvc@1.11.1':
     optional: true
 
+  '@upstash/vector@1.2.2': {}
+
   '@vercel/oidc@3.0.3': {}
 
   '@vitest/coverage-v8@2.1.9(vitest@2.1.9(@types/node@22.18.12)(lightningcss@1.30.2))':
@@ -7994,7 +8008,9 @@ snapshots:
     dependencies:
       '@ai-sdk/openai': 1.3.24(zod@4.1.12)
       '@dqbd/tiktoken': 1.0.22
+      '@upstash/vector': 1.2.2
       ai: 4.3.19(react@19.2.0)(zod@4.1.12)
+      redis: 5.9.0
       zod: 3.25.76
     optionalDependencies:
       '@ai-sdk/anthropic': 1.2.12(zod@4.1.12)
