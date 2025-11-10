@@ -1,7 +1,4 @@
-import { streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
-import { anthropic } from '@ai-sdk/anthropic';
-import { CustomerCareAgent } from '@/lib/customer-care-agent';
+import { CustomerCareAgent } from '@/lib/agent';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -20,31 +17,35 @@ export async function POST(req: Request) {
   const lastMessage = messages[messages.length - 1];
   const userQuery = lastMessage.content;
 
-  // Use agent to get routing decision (checks Redis-backed semantic cache)
-  const agentResponse = await agent.handleQuery(userQuery, {
+  // Add system prompt to messages
+  const systemMessage = { role: 'system' as const, content: agent.getSystemPrompt() };
+  const allMessages = [systemMessage, ...messages];
+
+  // Use agent to handle query with streaming (uses Mastra Agent + LLM Router)
+  const result = await agent.handleQueryStream(userQuery, allMessages, {
     preferCheaper: true,
   });
 
-  const routing = agentResponse.routing;
+  const routing = result.routing;
 
-  // If cache hit, return cached response instantly (no streaming delay)
-  if (routing.cacheHit && agentResponse.response) {
-    // Create a streaming response for cached content in AI SDK format
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      start(controller) {
-        const text = agentResponse.response;
-        
-        // Send entire response as single chunk for instant display
-        controller.enqueue(encoder.encode(`0:${JSON.stringify(text)}\n`));
-        
-        // Send finish event
-        controller.enqueue(encoder.encode(`d:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`));
-        controller.close();
-      },
-    });
+  // Log routing decision with full details
+  console.log('Routing Decision:', {
+    query: userQuery.substring(0, 80) + '...',
+    complexity: routing.complexity,
+    selectedModel: routing.model,
+    provider: routing.provider,
+    estimatedCost: routing.estimatedCost,
+    cacheHit: routing.cacheHit,
+  });
+  
+  // DEBUG: Log the actual routing object structure
+  console.log('DEBUG - Full routing object:', JSON.stringify(routing, null, 2));
+  console.log('DEBUG - routing.complexity type:', typeof routing.complexity);
+  console.log('DEBUG - routing.complexity value:', routing.complexity);
 
-    return new Response(stream, {
+  // If cache hit, return cached response instantly
+  if (routing.cacheHit) {
+    return new Response(result.stream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'X-Router-Cache-Hit': 'true',
@@ -56,58 +57,27 @@ export async function POST(req: Request) {
     });
   }
 
-  // Cache miss - get fresh response from LLM
-  const model = getModelInstance(routing.provider, routing.model);
-
-  // Add system prompt from agent
-  const systemMessage = { role: 'system' as const, content: agent.getSystemPrompt() };
-  const allMessages = [systemMessage, ...messages];
-
-
-  // Stream the response with routing metadata
-  const result = streamText({
-    model,
-    messages: allMessages,
-    onFinish: async ({ text, usage }) => {
-      // Cache the response (stored in Redis-backed semantic cache)
-      const actualCost = (usage.promptTokens * 0.00000015) + (usage.completionTokens * 0.0000006);
-      await agent.cacheResponse(userQuery, text, routing.model, actualCost, routing.provider, routing.complexity);
-
-      // Log routing decision and actual cost
-      console.log('Routing:', {
-        query: userQuery,
-        complexity: routing.complexity,
-        selectedModel: routing.model,
-        provider: routing.provider,
-        estimatedCost: routing.estimatedCost,
-        actualCost,
-        cacheHit: routing.cacheHit,
-        tokensUsed: usage.totalTokens,
-        cached: true, // Now cached for next time
-      });
-    },
+  // Cache miss - stream fresh response from Mastra Agent
+  // The stream is already in the correct format from our agent
+  // Just add usage tracking
+  result.usage.then((usage) => {
+    const actualCost = (usage.inputTokens * 0.00000015) + (usage.outputTokens * 0.0000006);
+    console.log('Response:', {
+      tokensUsed: usage.totalTokens,
+      actualCost,
+      cached: true, // Now cached for next time
+    });
   });
 
-  // Add routing metadata to response headers
-  return result.toDataStreamResponse({
+  // Return streaming response with routing metadata
+  return new Response(result.stream, {
     headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
       'X-Router-Model': routing.model,
       'X-Router-Provider': routing.provider,
       'X-Router-Complexity': routing.complexity,
       'X-Router-Cost': routing.estimatedCost.toString(),
-      'X-Router-Cache-Hit': routing.cacheHit.toString(),
+      'X-Router-Cache-Hit': 'false',
     },
   });
-}
-
-function getModelInstance(provider: string, modelName: string) {
-  switch (provider) {
-    case 'openai':
-      return openai(modelName);
-    case 'anthropic':
-      return anthropic(modelName);
-    default:
-      // Fallback to GPT-4o-mini
-      return openai('gpt-4o-mini');
-  }
 }
