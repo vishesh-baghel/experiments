@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Don't transpile - use built dist/ instead
-  // transpilePackages: ['llm-router'],
-  
   // Turbopack configuration for Next.js 16
   turbopack: {
     resolveAlias: {
@@ -13,7 +10,7 @@ const nextConfig: NextConfig = {
   },
   
   // Webpack config for production builds (still uses webpack)
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     // Fix for tiktoken WASM file
     config.resolve.alias = {
       ...config.resolve.alias,

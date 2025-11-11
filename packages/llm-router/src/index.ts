@@ -29,6 +29,3 @@ export * from './models/config';
 
 // Types
 export * from './types';
-
-// Demo utilities (for testing)
-export * from './demo/queries';

@@ -37,6 +37,9 @@ export interface RouterOptions {
   forceProvider?: Provider;
   forceModel?: string;
   enableEmbeddings?: boolean;
+  enabledProviders?: Provider[];
+  useMLClassifier?: boolean;
+  useCache?: boolean;
 }
 
 export interface RoutingDecision {

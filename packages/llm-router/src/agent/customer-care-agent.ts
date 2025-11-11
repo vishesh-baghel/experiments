@@ -14,8 +14,11 @@ export class CustomerCareAgent {
   private systemPrompt: string;
   private mlClassifierReady: boolean = false;
 
-  constructor(customPrompt?: string) {
-    this.router = new LLMRouter({ useMLClassifier: true });
+  constructor(customPrompt?: string, routerOptions?: Partial<RouterOptions>) {
+    this.router = new LLMRouter({ 
+      useMLClassifier: true,
+      ...routerOptions 
+    });
     this.systemPrompt =
       customPrompt ||
       `You are a helpful and friendly customer care agent.

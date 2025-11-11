@@ -27,7 +27,7 @@ export class CustomerCareAgent {
   private router: LLMRouter;
   private systemPrompt: string;
 
-  constructor(customPrompt?: string, routerOptions?: any) {
+  constructor(customPrompt?: string, routerOptions?: RouterOptions) {
     this.router = new LLMRouter({
       useCache: true,
       useMLClassifier: true, // Use ML classifier for better accuracy

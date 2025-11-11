@@ -255,7 +255,7 @@ export function Chat() {
                     <button
                       key={qIdx}
                       onClick={() => {
-                        handleInputChange({ target: { value: query.text } } as any);
+                        handleInputChange({ target: { value: query.text } } as React.ChangeEvent<HTMLInputElement>);
                         // Auto-submit after a short delay
                         setTimeout(() => {
                           const form = document.querySelector('form');

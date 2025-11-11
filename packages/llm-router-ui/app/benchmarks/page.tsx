@@ -5,13 +5,6 @@ import { ArrowLeft, Play, Loader2, CheckCircle, XCircle, Trash2 } from 'lucide-r
 import Link from 'next/link';
 import benchmarkQueries from './queries.json';
 
-interface BenchmarkQuery {
-  id: number;
-  query: string;
-  expectedComplexity: string;
-  category: string;
-}
-
 interface BenchmarkResult {
   id: number;
   query: string;
@@ -492,7 +485,7 @@ export default function BenchmarksPage() {
         <div className="flex-1 flex items-center justify-center text-center text-muted-foreground">
           <div>
             <p className="text-lg mb-2">No benchmark results yet</p>
-            <p className="text-sm">Click "Run Benchmarks" to start testing</p>
+            <p className="text-sm">Click &quot;Run Benchmarks&quot; to start testing</p>
           </div>
         </div>
       )}

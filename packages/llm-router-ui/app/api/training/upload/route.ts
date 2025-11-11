@@ -5,6 +5,11 @@ import { Index } from '@upstash/vector';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
+interface TrainingExample {
+  query: string;
+  complexity: 'simple' | 'moderate' | 'complex' | 'reasoning';
+}
+
 // Load training data from source file
 async function loadTrainingData() {
   const TRAINING_DATA_PATH = path.join(process.cwd(), '../llm-router/src/classifier/training-data.ts');
@@ -53,7 +58,7 @@ export async function POST() {
       
       // Generate embeddings for batch
       const vectors = await Promise.all(
-        batch.map(async (example: any, batchIndex: number) => {
+        batch.map(async (example: TrainingExample, batchIndex: number) => {
           const { embedding } = await embed({
             model: openai.embedding('text-embedding-3-small', {
               dimensions: 384, // Match Upstash Vector dimensions

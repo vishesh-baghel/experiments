@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
+interface TrainingExample {
+  query: string;
+  complexity: 'simple' | 'moderate' | 'complex' | 'reasoning';
+}
+
 // Load training data from source file
 const TRAINING_DATA_PATH = path.join(process.cwd(), '../llm-router/src/classifier/training-data.ts');
 
@@ -29,10 +34,10 @@ export async function GET() {
     
     const stats = {
       total: trainingData.length,
-      simple: trainingData.filter((e: any) => e.complexity === 'simple').length,
-      moderate: trainingData.filter((e: any) => e.complexity === 'moderate').length,
-      complex: trainingData.filter((e: any) => e.complexity === 'complex').length,
-      reasoning: trainingData.filter((e: any) => e.complexity === 'reasoning').length,
+      simple: trainingData.filter((e: TrainingExample) => e.complexity === 'simple').length,
+      moderate: trainingData.filter((e: TrainingExample) => e.complexity === 'moderate').length,
+      complex: trainingData.filter((e: TrainingExample) => e.complexity === 'complex').length,
+      reasoning: trainingData.filter((e: TrainingExample) => e.complexity === 'reasoning').length,
     };
 
     return NextResponse.json({

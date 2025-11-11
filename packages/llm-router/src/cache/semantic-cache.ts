@@ -268,6 +268,9 @@ export class SemanticCache {
    * Set similarity threshold
    */
   setSimilarityThreshold(threshold: number): void {
+    if (threshold < 0 || threshold > 1) {
+      throw new Error('Similarity threshold must be between 0 and 1');
+    }
     this.similarityThreshold = threshold;
   }
 
@@ -276,5 +279,22 @@ export class SemanticCache {
    */
   getSimilarityThreshold(): number {
     return this.similarityThreshold;
+  }
+
+  /**
+   * Get the number of entries in the cache
+   */
+  async size(): Promise<number> {
+    if (!this.useVector || !this.vectorDb) {
+      return 0;
+    }
+
+    try {
+      const info = await this.vectorDb.info();
+      return info.vectorCount || 0;
+    } catch (error) {
+      console.error('[Cache] Error getting size:', error);
+      return 0;
+    }
   }
 }

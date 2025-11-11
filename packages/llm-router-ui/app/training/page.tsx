@@ -305,7 +305,7 @@ export default function TrainingPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Select value={filterComplexity} onValueChange={(v) => setFilterComplexity(v as any)}>
+            <Select value={filterComplexity} onValueChange={(v) => setFilterComplexity(v as 'all' | 'simple' | 'moderate' | 'complex' | 'reasoning')}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue />
               </SelectTrigger>
