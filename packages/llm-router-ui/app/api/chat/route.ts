@@ -3,42 +3,33 @@ import { openai } from '@ai-sdk/openai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { CustomerCareAgent } from '@/lib/customer-care-agent';
 
-// Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
-// Initialize agent with router (uses Redis-backed semantic cache)
 const agent = new CustomerCareAgent(undefined, {
   useCache: true,
-  useMLClassifier: true, // Use ML classifier for better accuracy
-  enabledProviders: ['openai', 'anthropic'], // Only providers with API keys
+  useMLClassifier: true,
+  enabledProviders: ['openai', 'anthropic'],
 });
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  // Get the last user message for routing
   const lastMessage = messages[messages.length - 1];
   const userQuery = lastMessage.content;
 
-  // Use agent to get routing decision (checks Redis-backed semantic cache)
   const agentResponse = await agent.handleQuery(userQuery, {
     preferCheaper: true,
   });
 
   const routing = agentResponse.routing;
 
-  // If cache hit, return cached response instantly (no streaming delay)
   if (routing.cacheHit && agentResponse.response) {
-    // Create a streaming response for cached content in AI SDK format
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
         const text = agentResponse.response;
         
-        // Send entire response as single chunk for instant display
         controller.enqueue(encoder.encode(`0:${JSON.stringify(text)}\n`));
-        
-        // Send finish event
         controller.enqueue(encoder.encode(`d:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`));
         controller.close();
       },
@@ -56,24 +47,15 @@ export async function POST(req: Request) {
     });
   }
 
-  // Cache miss - get fresh response from LLM
   const model = getModelInstance(routing.provider, routing.model);
-
-  // Add system prompt from agent
   const systemMessage = { role: 'system' as const, content: agent.getSystemPrompt() };
   const allMessages = [systemMessage, ...messages];
-
-
-  // Stream the response with routing metadata
   const result = streamText({
     model,
     messages: allMessages,
     onFinish: async ({ text, usage }) => {
-      // Cache the response (stored in Redis-backed semantic cache)
       const actualCost = (usage.promptTokens * 0.00000015) + (usage.completionTokens * 0.0000006);
       await agent.cacheResponse(userQuery, text, routing.model, actualCost, routing.provider, routing.complexity);
-
-      // Log routing decision and actual cost
       console.log('Routing:', {
         query: userQuery,
         complexity: routing.complexity,
@@ -83,12 +65,11 @@ export async function POST(req: Request) {
         actualCost,
         cacheHit: routing.cacheHit,
         tokensUsed: usage.totalTokens,
-        cached: true, // Now cached for next time
+        cached: true
       });
     },
   });
 
-  // Add routing metadata to response headers
   return result.toDataStreamResponse({
     headers: {
       'X-Router-Model': routing.model,
@@ -107,7 +88,6 @@ function getModelInstance(provider: string, modelName: string) {
     case 'anthropic':
       return anthropic(modelName);
     default:
-      // Fallback to GPT-4o-mini
       return openai('gpt-4o-mini');
   }
 }

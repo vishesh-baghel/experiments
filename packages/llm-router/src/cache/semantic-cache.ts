@@ -96,7 +96,6 @@ export class SemanticCache {
     try {
       console.log(`[Cache] Querying for: "${query.substring(0, 50)}..."`);
       
-      // Query Upstash Vector with raw text (Upstash generates embedding automatically)
       const results = await this.vectorDb.query({
         data: query, // Pass raw text instead of vector
         topK: 1,
@@ -112,18 +111,15 @@ export class SemanticCache {
       const similarity = match.score;
 
       const matchId = String(match.id || '');
-      console.log(`[Cache] Best match: "${matchId.substring(0, 50)}..." (similarity: ${(similarity * 100).toFixed(1)}%)`);
-      console.log(`[Cache] Threshold: ${(this.similarityThreshold * 100).toFixed(1)}%`);
+      console.log(`[Cache] Best match: "${matchId.substring(0, 50)}..." (similarity: ${(similarity * 100).toFixed(1)}%, threshold: ${(this.similarityThreshold * 100).toFixed(1)}%)`);
 
       if (similarity >= this.similarityThreshold && match.metadata) {
         console.log(`[Cache] ✓ HIT - Returning cached response`);
         this.totalHits++;
         
-        // Cast metadata to CacheEntry
         const entry = match.metadata as unknown as CacheEntry;
         entry.hits = (entry.hits || 0) + 1;
         
-        // Update hits asynchronously
         this.vectorDb.update({
           id: matchId,
           metadata: entry as any,
@@ -156,7 +152,6 @@ export class SemanticCache {
       return;
     }
 
-    // Fire-and-forget async
     this.setCacheAsync(query, response, model, cost, provider, complexity).catch(err =>
       console.error('[Cache] Failed to cache entry:', err)
     );
@@ -188,10 +183,9 @@ export class SemanticCache {
         cost,
       };
 
-      // Store in Upstash Vector with raw text (Upstash generates embedding automatically)
       await this.vectorDb.upsert({
         id: query,
-        data: query, // Pass raw text instead of vector
+        data: query,
         metadata: entry as any,
       });
 
@@ -210,7 +204,6 @@ export class SemanticCache {
     }
 
     try {
-      // Upstash Vector reset
       await this.vectorDb.reset();
       
       this.totalLookups = 0;

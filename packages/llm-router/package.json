@@ -41,7 +41,7 @@
     "openai",
     "anthropic",
     "cost-optimization",
-    "mastra"
+    "ai-sdk"
   ],
   "author": "Vishesh Baghel <hi@visheshbaghel.com>",
   "license": "MIT",

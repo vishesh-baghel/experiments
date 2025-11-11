@@ -9,14 +9,7 @@ export class ComplexityAnalyzer {
    * Analyze query complexity using multiple signals
    */
   async analyze(query: string): Promise<ComplexityAnalysis> {
-    // Tier 1: Rule-based heuristics (fast, ~1ms)
-    const heuristicAnalysis = this.analyzeWithHeuristics(query);
-
-    // Tier 2: Embeddings-based analysis (optional, ~50ms)
-    // For now, we'll use heuristics only
-    // In production, you'd add: const embeddingScore = await this.analyzeWithEmbeddings(query);
-
-    return heuristicAnalysis;
+    return this.analyzeWithHeuristics(query);
   }
 
   /**
@@ -32,46 +25,44 @@ export class ComplexityAnalyzer {
       sentenceComplexity: this.calculateSentenceComplexity(query),
     };
 
-    // Calculate complexity score (0-100)
     let score = 0;
 
-    // Length factor (0-20 points)
+    // Length factor
     if (factors.length < 50) score += 5;
     else if (factors.length < 150) score += 10;
     else if (factors.length < 300) score += 15;
     else score += 20;
 
-    // Code/Math detection (0-20 points)
+    // Code/Math detection
     if (factors.hasCode) score += 15;
     if (factors.hasMath) score += 10;
 
-    // Question type (0-30 points) - increased weight for reasoning
+    // Question type
     if (factors.questionType === 'simple') score += 5;
     else if (factors.questionType === 'complex') score += 15;
     else if (factors.questionType === 'reasoning') score += 30;
 
-    // Keywords (0-30 points) - increased weight
+    // Keywords
     score += Math.min(factors.keywords.length * 6, 30);
 
-    // Sentence complexity (0-15 points)
+    // Sentence complexity
     score += Math.min(factors.sentenceComplexity * 3, 15);
     
-    // Multiple issues bonus (0-15 points) - increased for reasoning
-    // Detect if query mentions multiple problems/issues
+    // Multiple issues bonus
     const issueIndicators = ['also', 'and', 'but', 'however', 'additionally', 'while', 'whereas'];
     const hasMultipleIssues = issueIndicators.some(indicator => 
       query.toLowerCase().includes(indicator)
     ) && factors.keywords.length >= 2;
     if (hasMultipleIssues) score += 15;
     
-    // Strategic/planning indicators (0-20 points) - NEW
+    // Strategic/planning indicators
     const strategicIndicators = ['should we', 'how can we', 'what if', 'consider', 'evaluate', 'decide', 'choose', 'recommend', 'strategy', 'approach', 'plan', 'ensure'];
     const hasStrategicThinking = strategicIndicators.some(indicator =>
       query.toLowerCase().includes(indicator)
     );
     if (hasStrategicThinking) score += 20;
 
-    // Determine level based on score (adjusted thresholds for better accuracy)
+    // Determine level based on score
     let level: ComplexityLevel;
     if (score < 20) level = 'simple';
     else if (score < 40) level = 'moderate';
