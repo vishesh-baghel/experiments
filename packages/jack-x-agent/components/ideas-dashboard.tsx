@@ -1,0 +1,222 @@
+/**
+ * Ideas Dashboard Component
+ * Main view for content ideas
+ */
+
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { formatRelativeTime, getPillarColor, getEngagementColor } from '@/lib/utils';
+
+interface ContentIdea {
+  id: string;
+  title: string;
+  description: string;
+  rationale: string;
+  contentPillar: string;
+  suggestedFormat: string;
+  estimatedEngagement: 'low' | 'medium' | 'high';
+  status: 'suggested' | 'accepted' | 'rejected' | 'used';
+  createdAt: Date;
+}
+
+interface IdeasDashboardProps {
+  userId: string;
+  initialIdeas?: ContentIdea[];
+}
+
+export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProps) {
+  const router = useRouter();
+  const [ideas, setIdeas] = useState<ContentIdea[]>(initialIdeas);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<'suggested' | 'accepted' | 'rejected' | 'used'>('suggested');
+
+  const handleGenerateIdeas = async () => {
+    setIsGenerating(true);
+    try {
+      const response = await fetch('/api/ideas/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          trendingTopics: [], // TODO: Add trending topics input
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to generate ideas');
+
+      const data = await response.json();
+      setIdeas([...data.ideas, ...ideas]);
+    } catch (error) {
+      console.error('Error generating ideas:', error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleUpdateStatus = async (ideaId: string, status: ContentIdea['status']) => {
+    try {
+      const response = await fetch(`/api/ideas/${ideaId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update idea');
+
+      setIdeas(ideas.map(idea => 
+        idea.id === ideaId ? { ...idea, status } : idea
+      ));
+    } catch (error) {
+      console.error('Error updating idea:', error);
+    }
+  };
+
+  const handleGenerateOutline = async (idea: ContentIdea) => {
+    try {
+      const response = await fetch('/api/outlines/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          contentIdeaId: idea.id,
+          idea: {
+            title: idea.title,
+            description: idea.description,
+            rationale: idea.rationale,
+            contentPillar: idea.contentPillar,
+            suggestedFormat: idea.suggestedFormat,
+            estimatedEngagement: idea.estimatedEngagement,
+          },
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to generate outline');
+
+      const { outline } = await response.json();
+      router.push(`/outline/${outline.id}`);
+    } catch (error) {
+      console.error('Error generating outline:', error);
+    }
+  };
+
+  const filteredIdeas = ideas.filter(idea => idea.status === selectedStatus);
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">content ideas</h1>
+          <p className="text-muted-foreground">
+            ai-generated ideas based on your voice and trending topics
+          </p>
+        </div>
+        <Button 
+          onClick={handleGenerateIdeas}
+          disabled={isGenerating}
+        >
+          {isGenerating ? 'generating...' : 'generate ideas'}
+        </Button>
+      </div>
+
+      {/* Status Tabs */}
+      <div className="flex gap-2 border-b">
+        {(['suggested', 'accepted', 'rejected', 'used'] as const).map((status) => (
+          <button
+            key={status}
+            onClick={() => setSelectedStatus(status)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              selectedStatus === status
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {status}
+          </button>
+        ))}
+      </div>
+
+      {/* Ideas Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {filteredIdeas.map((idea) => (
+          <Card key={idea.id} className="flex flex-col">
+            <CardHeader>
+              <div className="flex items-start justify-between gap-2">
+                <CardTitle className="text-lg">{idea.title}</CardTitle>
+                <span className={`text-xs px-2 py-1 rounded ${getPillarColor(idea.contentPillar)}`}>
+                  {idea.contentPillar}
+                </span>
+              </div>
+              <CardDescription className="line-clamp-2">
+                {idea.description}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 space-y-4">
+              <div className="text-sm text-muted-foreground">
+                <p className="font-medium">why this works:</p>
+                <p className="line-clamp-3">{idea.rationale}</p>
+              </div>
+              
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{idea.suggestedFormat}</span>
+                <span className={getEngagementColor(idea.estimatedEngagement)}>
+                  {idea.estimatedEngagement} engagement
+                </span>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                {idea.status === 'suggested' && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => handleUpdateStatus(idea.id, 'accepted')}
+                      className="flex-1"
+                    >
+                      accept
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleUpdateStatus(idea.id, 'rejected')}
+                      className="flex-1"
+                    >
+                      reject
+                    </Button>
+                  </>
+                )}
+                {idea.status === 'accepted' && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="w-full"
+                    onClick={() => handleGenerateOutline(idea)}
+                  >
+                    get outline
+                  </Button>
+                )}
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                {formatRelativeTime(new Date(idea.createdAt))}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {filteredIdeas.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+          <p>no {selectedStatus} ideas yet</p>
+          {selectedStatus === 'suggested' && (
+            <p className="text-sm mt-2">click &quot;generate ideas&quot; to get started</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

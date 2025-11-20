@@ -224,7 +224,7 @@ I want an AI agent that:
 │  • Apify ($5/mo)       → X data scraping        │
 │  • OpenAI ($10/mo)     → GPT-4 generation       │
 │  • Neon (Free)         → Postgres database      │
-│  • Helicone (Free)     → LLM observability      │
+│  • Langfuse (Free)     → Langfuse tracks observability      │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -403,7 +403,7 @@ Total:          $15/month
 
 ### Week 5: Launch (Dec 12-18)
 - [ ] Deploy to Vercel (single deployment)
-- [ ] Setup Helicone observability
+- [ ] Setup Langfuse observability
 - [ ] Documentation for open source
 - [ ] First use in production
 - [ ] Share on X

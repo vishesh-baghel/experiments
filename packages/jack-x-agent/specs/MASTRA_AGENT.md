@@ -549,25 +549,30 @@ if (!toneEval.passed) {
 
 ---
 
-## Observability (Helicone)
+## Observability (Langfuse)
 
 **Setup:**
 ```typescript
-// src/lib/openai.ts
-import { Configuration, OpenAIApi } from 'openai';
+// lib/observability/langfuse.ts
+import { Langfuse } from 'langfuse';
 
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-  basePath: 'https://oai.hconeai.com/v1',
-  baseOptions: {
-    headers: {
-      'Helicone-Auth': `Bearer ${process.env.HELICONE_API_KEY}`,
-      'Helicone-Property-Environment': process.env.NODE_ENV,
-    },
-  },
+export const langfuse = new Langfuse({
+  publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+  secretKey: process.env.LANGFUSE_SECRET_KEY,
+  baseUrl: process.env.LANGFUSE_HOST || 'https://cloud.langfuse.com',
 });
 
-export const openai = new OpenAIApi(configuration);
+// Create trace for idea generation
+export function createIdeaGenerationTrace(userId: string) {
+  return langfuse.trace({
+    name: 'generate-ideas',
+    userId,
+    metadata: {
+      component: 'mastra-agent',
+      function: 'generateIdeas',
+    },
+  });
+}
 ```
 
 **Tracked Metrics:**

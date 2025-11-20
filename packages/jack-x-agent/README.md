@@ -95,7 +95,7 @@ Jack reduces content creation from **50 min to 20 min per post** by:
 **External APIs:**  
 - Apify ($5/month for X data scraping)
 - OpenAI GPT-4 (~$10/month for generation)
-- Helicone (free - LLM observability)
+- Langfuse (free - LLM observability)
 
 **Deployment:**  
 - Single deployment: Vercel (free tier)
@@ -322,7 +322,7 @@ Jack will be open-sourced after MVP validation. Others can:
 Apify:         $5   (X data scraping)
 OpenAI:        $10  (GPT-4 generation)
 Neon DB:       $0   (free tier)
-Helicone:      $0   (free tier)
+Langfuse:      $0   (free tier)
 Vercel:        $0   (free tier)
 ──────────────────
 Total:         $15/month

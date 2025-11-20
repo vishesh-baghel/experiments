@@ -32,7 +32,7 @@
 #### 6. **Development Approach**
 - **Added:** Test-Driven Development (TDD) for all features
 - **Added:** Mastra Evals for runtime quality checks
-- **Added:** Helicone for LLM observability
+- **Added:** Langfuse for LLM observability
 
 #### 7. **Core Value Clarification (Critical)**
 - **Problem Identified:** "Why would anyone use Jack vs ChatGPT?"
@@ -70,7 +70,7 @@
    - Added Zod schemas for validation
    - Added eval definitions
    - Added TDD test examples
-   - Added Helicone observability setup
+   - Added Langfuse observability setup
    - Removed trackPerformance (V2)
 
 3. **TONE_GUIDELINES.md**
@@ -125,7 +125,7 @@
 - Evals validate quality at runtime
 
 **Observability:**
-- Helicone tracks all LLM calls
+- Langfuse tracks all LLM calls
 - Easy to debug (no black box orchestration)
 - Performance metrics clear
 
@@ -140,7 +140,7 @@
 - Apify: $5
 - OpenAI: $10
 - Neon: Free
-- Helicone: Free
+- Langfuse: Free
 - Vercel: Free
 
 ### Next Steps
@@ -155,7 +155,7 @@
 - ✅ Full drafts or outlines? → Outlines, user writes
 - ✅ Tool orchestration? → No, explicit API routes
 - ✅ TDD approach? → Yes, all features
-- ✅ Observability? → Helicone
+- ✅ Observability? → Langfuse
 
 ---
 
