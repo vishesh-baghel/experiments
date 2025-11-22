@@ -1,8 +1,9 @@
 /**
- * Tone Config database queries
+ * Tone config database queries
  */
 
 import { prisma } from './client';
+import type { Prisma } from '@prisma/client';
 import type { LearnedPatterns } from '@/lib/mastra/schemas';
 
 /**
@@ -40,7 +41,7 @@ export async function updateLearnedPatterns(
   return prisma.toneConfig.update({
     where: { userId },
     data: {
-      learnedPatterns: patterns as unknown as Record<string, unknown>, // Prisma Json type
+      learnedPatterns: patterns as Prisma.InputJsonValue,
     },
   });
 }

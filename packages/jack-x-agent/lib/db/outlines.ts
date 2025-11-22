@@ -4,6 +4,7 @@
 
 import { prisma } from './client';
 import type { ContentOutline } from '@/lib/mastra/schemas';
+import type { Prisma } from '@prisma/client';
 
 /**
  * Create an outline for a content idea
@@ -16,9 +17,9 @@ export async function createOutline(
     data: {
       contentIdeaId,
       format: outline.format,
-      sections: outline.sections as unknown as Record<string, unknown>, // Prisma Json type
+      sections: outline.sections as Prisma.InputJsonValue,
       estimatedLength: outline.estimatedLength,
-      toneReminders: outline.toneReminders,
+      toneReminders: outline.toneReminders as Prisma.InputJsonValue,
     },
   });
 }

@@ -13,12 +13,12 @@ const RequestSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json();
     const { status } = RequestSchema.parse(body);
-    const { id } = params;
+    const { id } = await params;
 
     const updatedIdea = await updateIdeaStatus(id, status);
 

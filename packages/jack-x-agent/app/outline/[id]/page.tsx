@@ -7,8 +7,8 @@ import { OutlineViewer } from '@/components/outline-viewer';
 import { getOutlineById } from '@/lib/db/outlines';
 import { notFound } from 'next/navigation';
 
-export default async function OutlinePage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default async function OutlinePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   
   // Fetch outline from database
   const outlineData = await getOutlineById(id);
@@ -20,14 +20,16 @@ export default async function OutlinePage({ params }: { params: { id: string } }
   // Parse sections from JSON
   const outline = {
     format: outlineData.format,
-    estimatedLength: outlineData.estimatedLength,
+    estimatedLength: parseInt(outlineData.estimatedLength, 10),
     sections: outlineData.sections as Array<{
       heading: string;
       keyPoints: string[];
       toneGuidance?: string;
       examples?: string[];
     }>,
-    toneReminders: outlineData.toneReminders,
+    toneReminders: Array.isArray(outlineData.toneReminders) 
+      ? outlineData.toneReminders as string[]
+      : [],
   };
 
   return (

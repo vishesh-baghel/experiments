@@ -6,15 +6,16 @@ import type { IdeaContext, OutlineContext, TrendingTopic, ContentIdea } from './
 
 interface UserWithRelations {
   id: string;
-  projects?: Array<{ name: string; description?: string | null; status: string }>;
-  creators?: Array<{ xHandle: string; isActive: boolean }>;
+  projects?: Array<{ name: string; description?: string | null; status: string; [key: string]: unknown }>;
+  creators?: Array<{ xHandle: string; isActive: boolean; [key: string]: unknown }>;
   toneConfig?: {
     lowercase: boolean;
     noEmojis: boolean;
     noHashtags: boolean;
     showFailures: boolean;
     includeNumbers: boolean;
-    learnedPatterns: Record<string, unknown>;
+    learnedPatterns: unknown;
+    [key: string]: unknown;
   } | null;
 }
 
@@ -51,7 +52,14 @@ export async function buildIdeaContext(
   return {
     topics: trendingTopics,
     projects,
-    tone: toneConfig,
+    tone: {
+      lowercase: toneConfig.lowercase,
+      noEmojis: toneConfig.noEmojis,
+      noHashtags: toneConfig.noHashtags,
+      showFailures: toneConfig.showFailures,
+      includeNumbers: toneConfig.includeNumbers,
+      learnedPatterns: (toneConfig.learnedPatterns as Record<string, unknown>) || {},
+    },
     goodPosts: goodPosts.map((p) => ({
       content: p.content,
       contentPillar: p.contentPillar as 'lessons_learned' | 'helpful_content' | 'build_progress' | 'decisions' | 'promotion',
@@ -84,7 +92,14 @@ export async function buildOutlineContext(
       description: p.description || '',
       status: p.status as 'active' | 'paused' | 'completed',
     })),
-    tone: toneConfig,
+    tone: {
+      lowercase: toneConfig.lowercase,
+      noEmojis: toneConfig.noEmojis,
+      noHashtags: toneConfig.noHashtags,
+      showFailures: toneConfig.showFailures,
+      includeNumbers: toneConfig.includeNumbers,
+      learnedPatterns: (toneConfig.learnedPatterns as Record<string, unknown>) || {},
+    },
     goodPosts: goodPosts.map((p) => ({
       content: p.content,
       contentPillar: p.contentPillar as 'lessons_learned' | 'helpful_content' | 'build_progress' | 'decisions' | 'promotion',
