@@ -46,37 +46,42 @@ export async function generateIdeas(
       input: context,
     });
 
-    const result = await jackAgent.generate(IDEA_GENERATION_PROMPT, {
-      schema: z.object({
+    const prompt = `${IDEA_GENERATION_PROMPT}
+
+Topics: ${context.topics.map((t) => `${t.name} (${t.mentions} mentions)`).join(', ')}
+
+Projects:
+${context.projects.map((p) => `${p.name}: ${p.description}`).join('\n')}
+
+Tone Config:
+${JSON.stringify(context.tone, null, 2)}
+
+Learned Patterns:
+${JSON.stringify(context.tone.learnedPatterns, null, 2)}
+
+Good Posts:
+${context.goodPosts.map((p) => `[${p.contentPillar}] ${p.content.substring(0, 100)}...`).join('\n\n')}
+
+Recent Ideas:
+${recentIdeas.map((idea) => `[${idea.status}] ${idea.contentPillar}: ${idea.title}`).join('\n')}
+
+Generate 3-5 content ideas as a JSON array matching the ContentIdea schema.`;
+
+    const result = await jackAgent.generate(prompt, {
+      output: z.object({
         ideas: z.array(ContentIdeaSchema),
       }),
-      context: {
-        topics: context.topics.map((t) => `${t.name} (${t.mentions} mentions)`).join(', '),
-        projects: context.projects.map((p) => `${p.name}: ${p.description}`).join('\n'),
-        toneConfig: JSON.stringify(context.tone, null, 2),
-        learnedPatterns: JSON.stringify(context.tone.learnedPatterns, null, 2),
-        goodPosts: context.goodPosts
-          .map((p) => `[${p.pillar}] ${p.content.substring(0, 100)}...`)
-          .join('\n\n'),
-        recentIdeas: recentIdeas
-          .map((idea) => `[${idea.status}] ${idea.contentPillar}: ${idea.title}`)
-          .join('\n'),
-      },
     });
 
     span.end({
       output: result,
     });
 
-    await trace.finalize();
-
-    return result.object.ideas;
+    return result.object?.ideas || [];
   } catch (error) {
     trace.update({
-      level: 'ERROR',
-      statusMessage: error instanceof Error ? error.message : 'Unknown error',
+      metadata: { error: error instanceof Error ? error.message : 'Unknown error' },
     });
-    await trace.finalize();
     throw error;
   }
 }
@@ -96,33 +101,39 @@ export async function generateOutline(
       input: context,
     });
 
-    const result = await jackAgent.generate(OUTLINE_GENERATION_PROMPT, {
-      schema: ContentOutlineSchema,
-      context: {
-        idea: JSON.stringify(context.idea, null, 2),
-        format: context.idea.suggestedFormat,
-        toneConfig: JSON.stringify(context.tone, null, 2),
-        learnedPatterns: JSON.stringify(context.tone.learnedPatterns, null, 2),
-        goodPosts: context.goodPosts
-          .map((p) => `[${p.pillar}] ${p.content.substring(0, 100)}...`)
-          .join('\n\n'),
-        avgPostLength: String(context.tone.learnedPatterns?.avgPostLength || 180),
-      },
+    const prompt = `${OUTLINE_GENERATION_PROMPT}
+
+Idea:
+${JSON.stringify(context.idea, null, 2)}
+
+Format: ${context.idea.suggestedFormat}
+
+Tone Config:
+${JSON.stringify(context.tone, null, 2)}
+
+Learned Patterns:
+${JSON.stringify(context.tone.learnedPatterns, null, 2)}
+
+Good Posts:
+${context.goodPosts.map((p) => `[${p.contentPillar}] ${p.content.substring(0, 100)}...`).join('\n\n')}
+
+Avg Post Length: ${String(context.tone.learnedPatterns?.avgPostLength || 180)}
+
+Generate a detailed outline as JSON matching the ContentOutline schema.`;
+
+    const result = await jackAgent.generate(prompt, {
+      output: ContentOutlineSchema,
     });
 
     span.end({
       output: result,
     });
 
-    await trace.finalize();
-
-    return result.object;
+    return result.object || { format: 'post' as const, sections: [], estimatedLength: '280', toneReminders: [] };
   } catch (error) {
     trace.update({
-      level: 'ERROR',
-      statusMessage: error instanceof Error ? error.message : 'Unknown error',
+      metadata: { error: error instanceof Error ? error.message : 'Unknown error' },
     });
-    await trace.finalize();
     throw error;
   }
 }

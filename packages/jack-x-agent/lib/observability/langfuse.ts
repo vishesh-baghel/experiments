@@ -27,6 +27,11 @@ export function createIdeaGenerationTrace(userId: string) {
 }
 
 /**
+ * Alias for createIdeaGenerationTrace
+ */
+export const createIdeaTrace = createIdeaGenerationTrace;
+
+/**
  * Create a trace for outline generation
  */
 export function createOutlineGenerationTrace(userId: string, ideaId: string) {
@@ -39,6 +44,13 @@ export function createOutlineGenerationTrace(userId: string, ideaId: string) {
       ideaId,
     },
   });
+}
+
+/**
+ * Alias for createOutlineGenerationTrace
+ */
+export function createOutlineTrace(userId: string, ideaTitle: string) {
+  return createOutlineGenerationTrace(userId, ideaTitle);
 }
 
 /**

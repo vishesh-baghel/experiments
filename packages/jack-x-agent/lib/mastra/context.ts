@@ -36,7 +36,7 @@ export async function buildIdeaContext(
   const projects = (user.projects || []).map((p) => ({
     name: p.name,
     description: p.description || '',
-    status: p.status,
+    status: p.status as 'active' | 'paused' | 'completed',
   }));
 
   const toneConfig = user.toneConfig || {
@@ -54,8 +54,8 @@ export async function buildIdeaContext(
     tone: toneConfig,
     goodPosts: goodPosts.map((p) => ({
       content: p.content,
-      pillar: p.contentPillar,
-      type: p.contentType,
+      contentPillar: p.contentPillar as 'lessons_learned' | 'helpful_content' | 'build_progress' | 'decisions' | 'promotion',
+      format: p.contentType as 'post' | 'thread' | 'long_form',
     })),
   };
 }
@@ -79,11 +79,16 @@ export async function buildOutlineContext(
 
   return {
     idea,
+    projects: (user.projects || []).map((p) => ({
+      name: p.name,
+      description: p.description || '',
+      status: p.status as 'active' | 'paused' | 'completed',
+    })),
     tone: toneConfig,
     goodPosts: goodPosts.map((p) => ({
       content: p.content,
-      pillar: p.contentPillar,
-      type: p.contentType,
+      contentPillar: p.contentPillar as 'lessons_learned' | 'helpful_content' | 'build_progress' | 'decisions' | 'promotion',
+      format: p.contentType as 'post' | 'thread' | 'long_form',
     })),
   };
 }
@@ -99,7 +104,7 @@ export function formatContextForPrompt(context: IdeaContext | OutlineContext): R
       projects: context.projects.map((p) => `${p.name}: ${p.description}`).join('\n'),
       toneConfig: JSON.stringify(context.tone, null, 2),
       learnedPatterns: JSON.stringify(context.tone.learnedPatterns, null, 2),
-      goodPosts: context.goodPosts.map((p) => `[${p.pillar}] ${p.content.substring(0, 100)}...`).join('\n\n'),
+      goodPosts: context.goodPosts.map((p) => `[${p.contentPillar}] ${p.content.substring(0, 100)}...`).join('\n\n'),
       recentIdeas: '', // Will be populated from DB
     };
   } else {
@@ -109,7 +114,7 @@ export function formatContextForPrompt(context: IdeaContext | OutlineContext): R
       format: context.idea.suggestedFormat,
       toneConfig: JSON.stringify(context.tone, null, 2),
       learnedPatterns: JSON.stringify(context.tone.learnedPatterns, null, 2),
-      goodPosts: context.goodPosts.map((p) => `[${p.pillar}] ${p.content.substring(0, 100)}...`).join('\n\n'),
+      goodPosts: context.goodPosts.map((p) => `[${p.contentPillar}] ${p.content.substring(0, 100)}...`).join('\n\n'),
       avgPostLength: String(context.tone.learnedPatterns?.avgPostLength || 180),
     };
   }

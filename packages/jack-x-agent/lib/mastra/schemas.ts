@@ -122,6 +122,7 @@ export type IdeaContext = z.infer<typeof IdeaContextSchema>;
 
 // Context for Outline Generation
 export const OutlineContextSchema = z.object({
+  idea: ContentIdeaSchema,
   projects: z.array(ProjectSchema),
   goodPosts: z.array(GoodPostSchema),
   tone: ToneConfigSchema,

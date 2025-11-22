@@ -133,7 +133,7 @@ export function CreatorsManager({ userId, initialCreators = [] }: CreatorsManage
           <Card key={creator.id}>
             <CardContent className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
-                <div className={`w-2 h-2 rounded-full ${creator.isActive ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <div className={`w-2 h-2 rounded-full ${creator.isActive ? 'bg-green-500' : 'bg-muted-foreground'}`} />
                 <div>
                   <p className="font-medium">{creator.xHandle}</p>
                   <p className="text-xs text-muted-foreground">

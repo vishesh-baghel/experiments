@@ -1,8 +1,3 @@
-/**
- * API Route: Generate Content Ideas
- * POST /api/ideas/generate
- */
-
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { generateIdeas } from '@/lib/mastra/agent';

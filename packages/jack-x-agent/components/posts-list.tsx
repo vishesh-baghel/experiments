@@ -100,7 +100,7 @@ export function PostsList({ initialPosts = [] }: PostsListProps) {
                       {post.contentType}
                     </span>
                     {post.isMarkedGood && (
-                      <Badge variant="secondary" className="bg-green-100 text-green-800">
+                      <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
                         ✓ good
                       </Badge>
                     )}
