@@ -4,7 +4,6 @@
  */
 
 import { Agent } from '@mastra/core';
-import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import {
   JACK_SYSTEM_PROMPT,
@@ -20,14 +19,25 @@ import {
 import { createIdeaTrace, createOutlineTrace } from '@/lib/observability/langfuse';
 
 /**
- * Jack Agent Configuration
+ * Jack Agent Configuration with Vercel AI Gateway
+ * 
+ * Using Mastra's model router with string-based model IDs.
+ * This supports Vercel AI Gateway by using the format: "vercel/provider/model"
+ * 
+ * Examples:
+ * - "vercel/openai/gpt-4o" - OpenAI via Vercel Gateway
+ * - "vercel/alibaba/qwen3-coder-plus" - Alibaba Qwen via Gateway
+ * - "openai/gpt-4o" - Direct OpenAI (no gateway)
+ * 
+ * Set AI_GATEWAY_API_KEY in your .env file
  */
 export const jackAgent = new Agent({
   name: 'jack',
   instructions: JACK_SYSTEM_PROMPT,
-  model: openai('gpt-4o', {
-    structuredOutputs: true,
-  }),
+  // Use Vercel AI Gateway if configured, otherwise fallback to direct OpenAI
+  model: process.env.AI_GATEWAY_API_KEY 
+    ? 'vercel/openai/gpt-4o'
+    : 'openai/gpt-4o',
 });
 
 /**

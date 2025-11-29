@@ -54,9 +54,9 @@ export function PostsList({ initialPosts = [] }: PostsListProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">my posts</h1>
+          <h1 className="text-3xl font-bold">my drafts</h1>
           <p className="text-muted-foreground">
-            mark your best posts so jack learns your voice
+            saved drafts from your outlines - mark your best ones so jack learns your voice
           </p>
         </div>
       </div>
@@ -71,7 +71,7 @@ export function PostsList({ initialPosts = [] }: PostsListProps) {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          all posts ({posts.length})
+          all drafts ({posts.length})
         </button>
         <button
           onClick={() => setFilter('good')}
@@ -81,7 +81,7 @@ export function PostsList({ initialPosts = [] }: PostsListProps) {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          good posts ({posts.filter(p => p.isMarkedGood).length})
+          good drafts ({posts.filter(p => p.isMarkedGood).length})
         </button>
       </div>
 
@@ -132,11 +132,11 @@ export function PostsList({ initialPosts = [] }: PostsListProps) {
 
       {filteredPosts.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
-          <p>no {filter === 'good' ? 'good ' : ''}posts yet</p>
+          <p>no {filter === 'good' ? 'good ' : ''}drafts yet</p>
           <p className="text-sm mt-2">
             {filter === 'good' 
-              ? 'mark your best posts so jack can learn your voice'
-              : 'create your first post to get started'
+              ? 'mark your best drafts so jack can learn your voice'
+              : 'create an outline and save a draft to get started'
             }
           </p>
         </div>

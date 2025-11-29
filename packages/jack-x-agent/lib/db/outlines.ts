@@ -11,12 +11,13 @@ import type { Prisma } from '@prisma/client';
  */
 export async function createOutline(
   contentIdeaId: string,
-  outline: ContentOutline
+  outline: ContentOutline,
+  fallbackFormat?: string
 ) {
   return prisma.outline.create({
     data: {
       contentIdeaId,
-      format: outline.format,
+      format: outline.format || fallbackFormat || 'post',
       sections: outline.sections as Prisma.InputJsonValue,
       estimatedLength: outline.estimatedLength,
       toneReminders: outline.toneReminders as Prisma.InputJsonValue,

@@ -12,6 +12,10 @@ export const ContentPillarSchema = z.enum([
   'build_progress',
   'decisions',
   'promotion',
+  'side-projects',
+  'engineering',
+  'productivity',
+  'learning',
 ]);
 
 export type ContentPillar = z.infer<typeof ContentPillarSchema>;
@@ -50,20 +54,22 @@ export const OutlineSectionSchema = z.object({
   heading: z.string().min(1, 'Heading is required'),
   keyPoints: z
     .array(z.string())
-    .min(3, 'Must have at least 3 key points')
-    .max(5, 'Must have at most 5 key points'),
+    .min(1, 'Must have at least 1 key point')
+    .max(10, 'Must have at most 10 key points'),
   toneGuidance: z.string(),
   examples: z
     .array(z.string())
-    .min(1, 'Must have at least 1 example')
-    .max(2, 'Must have at most 2 examples'),
+    .min(0, 'Examples are optional')
+    .max(5, 'Must have at most 5 examples')
+    .optional()
+    .default([]),
 });
 
 export type OutlineSection = z.infer<typeof OutlineSectionSchema>;
 
 // Content Outline
 export const ContentOutlineSchema = z.object({
-  format: ContentFormatSchema,
+  format: ContentFormatSchema.optional(),
   sections: z.array(OutlineSectionSchema).min(1, 'Must have at least 1 section'),
   estimatedLength: z.string(),
   toneReminders: z.array(z.string()),

@@ -3,7 +3,7 @@
  * View and write content from outline
  */
 
-import { OutlineViewer } from '@/components/outline-viewer';
+import { OutlinePageClient } from './page-client';
 import { getOutlineById } from '@/lib/db/outlines';
 import { notFound } from 'next/navigation';
 
@@ -34,7 +34,8 @@ export default async function OutlinePage({ params }: { params: Promise<{ id: st
 
   return (
     <main className="container mx-auto px-4 py-8">
-      <OutlineViewer
+      <OutlinePageClient
+        outlineId={id}
         outline={outline}
         ideaTitle={outlineData.contentIdea.title}
         contentPillar={outlineData.contentIdea.contentPillar}

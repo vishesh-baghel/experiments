@@ -581,12 +581,12 @@ FROM users WHERE email = 'vishesh@example.com';
 ### Backup Strategy
 
 ```typescript
-// Daily backup (Neon provides automatic backups)
-// Manual backup command:
-pg_dump $DATABASE_URL > backup_$(date +%Y%m%d).sql
+// Daily backup (Prisma Postgres provides automatic backups)
+// Manual backup command using direct connection:
+pg_dump $POSTGRES_URL > backup_$(date +%Y%m%d).sql
 
 // Restore:
-psql $DATABASE_URL < backup_20251114.sql
+psql $POSTGRES_URL < backup_20251114.sql
 ```
 
 ---

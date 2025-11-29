@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
     // Generate outline using agent
     const outline = await generateOutline(userId, context);
 
-    // Save outline to database
-    const savedOutline = await createOutline(contentIdeaId, outline);
+    // Save outline to database (use idea's suggestedFormat as fallback)
+    const savedOutline = await createOutline(contentIdeaId, outline, idea.suggestedFormat);
 
     // Update idea status to 'used'
     await updateIdeaStatus(contentIdeaId, 'used');

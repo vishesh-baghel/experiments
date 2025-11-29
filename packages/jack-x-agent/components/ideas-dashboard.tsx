@@ -49,7 +49,12 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
       if (!response.ok) throw new Error('Failed to generate ideas');
 
       const data = await response.json();
+      
+      // Add new ideas to local state
       setIdeas([...data.ideas, ...ideas]);
+      
+      // Refresh server data to ensure consistency
+      router.refresh();
     } catch (error) {
       console.error('Error generating ideas:', error);
     } finally {
@@ -67,9 +72,13 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
 
       if (!response.ok) throw new Error('Failed to update idea');
 
+      // Update local state immediately for better UX
       setIdeas(ideas.map(idea => 
         idea.id === ideaId ? { ...idea, status } : idea
       ));
+      
+      // Refresh server data to ensure consistency
+      router.refresh();
     } catch (error) {
       console.error('Error updating idea:', error);
     }

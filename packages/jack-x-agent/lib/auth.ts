@@ -1,32 +1,77 @@
 /**
  * Authentication utilities
- * TODO: Replace with NextAuth or your preferred auth solution
+ * Simple localStorage-based auth for demo purposes
  */
 
+import { cookies } from 'next/headers';
+
 /**
- * Get current user ID
- * For now returns demo user, replace with actual auth
+ * Get current user ID from cookies (server-side)
+ * Note: In Next.js 15+, this must be async
  */
-export function getCurrentUserId(): string {
-  // TODO: Implement actual authentication
-  // Example with NextAuth:
-  // const session = await getServerSession(authOptions);
-  // return session?.user?.id || 'demo-user';
+export async function getCurrentUserId(): Promise<string> {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('userId')?.value;
   
-  return 'demo-user';
+  if (!userId) {
+    // Return a placeholder that will trigger client-side redirect
+    return '';
+  }
+  
+  return userId;
 }
 
 /**
  * Get current user ID (async version for server components)
  */
 export async function getCurrentUserIdAsync(): Promise<string> {
-  // TODO: Implement actual authentication
-  // Example with NextAuth:
-  // const session = await getServerSession(authOptions);
-  // if (!session?.user?.id) {
-  //   redirect('/login');
-  // }
-  // return session.user.id;
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('userId')?.value;
   
-  return 'demo-user';
+  if (!userId) {
+    return '';
+  }
+  
+  return userId;
+}
+
+/**
+ * Set user session (client-side helper)
+ */
+export function setUserSession(userId: string, email: string) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('userId', userId);
+    localStorage.setItem('userEmail', email);
+    
+    // Also set cookie for server-side access
+    document.cookie = `userId=${userId}; path=/; max-age=2592000`; // 30 days
+    document.cookie = `userEmail=${email}; path=/; max-age=2592000`;
+  }
+}
+
+/**
+ * Clear user session
+ */
+export function clearUserSession() {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userEmail');
+    
+    // Clear cookies
+    document.cookie = 'userId=; path=/; max-age=0';
+    document.cookie = 'userEmail=; path=/; max-age=0';
+  }
+}
+
+/**
+ * Get user session (client-side)
+ */
+export function getUserSession() {
+  if (typeof window !== 'undefined') {
+    return {
+      userId: localStorage.getItem('userId'),
+      userEmail: localStorage.getItem('userEmail'),
+    };
+  }
+  return { userId: null, userEmail: null };
 }

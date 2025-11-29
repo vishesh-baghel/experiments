@@ -255,7 +255,8 @@
 4. Add:
    - APIFY_API_TOKEN
    - OPENAI_API_KEY
-   - DATABASE_URL (Neon Postgres)
+   - PRISMA_DATABASE_URL (Prisma Postgres with Accelerate)
+   - POSTGRES_URL (Direct Postgres connection)
 5. Run: pnpm install
 6. Run: pnpm db:migrate (create tables)
 7. Run: pnpm dev

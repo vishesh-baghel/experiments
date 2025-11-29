@@ -189,7 +189,7 @@ pnpm install
 
 # Setup environment
 cp .env.example .env
-# Add: APIFY_API_TOKEN, OPENAI_API_KEY, DATABASE_URL
+# Add: APIFY_API_TOKEN, OPENAI_API_KEY, PRISMA_DATABASE_URL, POSTGRES_URL
 
 # Create database tables
 pnpm db:migrate

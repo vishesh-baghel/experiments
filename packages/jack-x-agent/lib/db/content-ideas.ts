@@ -70,3 +70,13 @@ export async function getRecentIdeas(userId: string) {
     take: 10,
   });
 }
+
+/**
+ * Get all ideas for a user
+ */
+export async function getAllIdeas(userId: string) {
+  return prisma.contentIdea.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+  });
+}
