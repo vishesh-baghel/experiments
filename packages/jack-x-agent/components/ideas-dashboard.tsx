@@ -11,6 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { formatRelativeTime, getPillarColor, getEngagementColor } from '@/lib/utils';
 
+interface Outline {
+  id: string;
+}
+
 interface ContentIdea {
   id: string;
   title: string;
@@ -21,6 +25,7 @@ interface ContentIdea {
   estimatedEngagement: 'low' | 'medium' | 'high';
   status: 'suggested' | 'accepted' | 'rejected' | 'used';
   createdAt: Date;
+  outlines?: Outline[];
 }
 
 interface IdeasDashboardProps {
@@ -199,13 +204,30 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
                   </>
                 )}
                 {idea.status === 'accepted' && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="w-full"
+                      onClick={() => handleGenerateOutline(idea)}
+                    >
+                      get outline
+                    </Button>
+                    {idea.outlines && idea.outlines.length > 0 && (
+                      <p className="text-xs text-muted-foreground text-center mt-2">
+                        outline already exists - check &quot;used&quot; tab
+                      </p>
+                    )}
+                  </>
+                )}
+                {idea.status === 'used' && idea.outlines && idea.outlines.length > 0 && (
                   <Button
                     size="sm"
-                    variant="default"
+                    variant="outline"
                     className="w-full"
-                    onClick={() => handleGenerateOutline(idea)}
+                    onClick={() => router.push(`/outline/${idea.outlines![0].id}`)}
                   >
-                    get outline
+                    view outline
                   </Button>
                 )}
               </div>
@@ -223,6 +245,9 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
           <p>no {selectedStatus} ideas yet</p>
           {selectedStatus === 'suggested' && (
             <p className="text-sm mt-2">click &quot;generate ideas&quot; to get started</p>
+          )}
+          {selectedStatus === 'accepted' && (
+            <p className="text-sm mt-2">already generated an outline? check the &quot;used&quot; tab</p>
           )}
         </div>
       )}

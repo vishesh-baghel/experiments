@@ -13,6 +13,8 @@ import { formatRelativeTime, getPillarColor } from '@/lib/utils';
 
 interface Post {
   id: string;
+  draftId: string;
+  hasPost: boolean;
   content: string;
   contentType: string;
   contentPillar: string;
@@ -26,22 +28,67 @@ interface PostsListProps {
   initialPosts?: Post[];
 }
 
-export function PostsList({ initialPosts = [] }: PostsListProps) {
+export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
   const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [filter, setFilter] = useState<'all' | 'good'>('all');
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleMarkAsGood = async (postId: string) => {
+  const handleMarkAsGood = async (post: Post) => {
+    setLoadingId(post.draftId);
+    setError(null);
+    
     try {
-      const response = await fetch(`/api/posts/${postId}/mark-good`, {
+      // If no post record exists yet, create one first
+      if (!post.hasPost) {
+        const createResponse = await fetch('/api/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            draftId: post.draftId,
+            content: post.content,
+            contentType: post.contentType,
+            contentPillar: post.contentPillar,
+          }),
+        });
+
+        if (!createResponse.ok) {
+          const data = await createResponse.json();
+          throw new Error(data.error || 'Failed to create post record');
+        }
+
+        const { post: newPost } = await createResponse.json();
+        // Update local state with the new post ID
+        setPosts(posts.map(p => 
+          p.draftId === post.draftId 
+            ? { ...p, id: newPost.id, hasPost: true } 
+            : p
+        ));
+        post = { ...post, id: newPost.id, hasPost: true };
+      }
+
+      // Now mark as good
+      const response = await fetch(`/api/posts/${post.id}/mark-good`, {
         method: 'PATCH',
       });
 
-      if (!response.ok) throw new Error('Failed to mark post');
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to mark post as good');
+      }
 
-      const { post } = await response.json();
-      setPosts(posts.map(p => p.id === postId ? { ...p, isMarkedGood: true, markedGoodAt: new Date(post.markedGoodAt) } : p));
-    } catch (error) {
-      console.error('Error marking post:', error);
+      const { post: updatedPost } = await response.json();
+      setPosts(posts.map(p => 
+        p.draftId === post.draftId 
+          ? { ...p, id: updatedPost.id, hasPost: true, isMarkedGood: true, markedGoodAt: new Date(updatedPost.markedGoodAt) } 
+          : p
+      ));
+    } catch (err) {
+      console.error('Error marking post:', err);
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setLoadingId(null);
     }
   };
 
@@ -61,24 +108,37 @@ export function PostsList({ initialPosts = [] }: PostsListProps) {
         </div>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="p-4 bg-destructive/10 text-destructive rounded-md text-sm">
+          {error}
+          <button 
+            onClick={() => setError(null)} 
+            className="ml-2 underline cursor-pointer"
+          >
+            dismiss
+          </button>
+        </div>
+      )}
+
       {/* Filter Tabs */}
-      <div className="flex gap-2 border-b">
+      <div className="flex gap-1 p-1 bg-muted/50 rounded-lg w-fit">
         <button
           onClick={() => setFilter('all')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${
             filter === 'all'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
           }`}
         >
           all drafts ({posts.length})
         </button>
         <button
           onClick={() => setFilter('good')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${
             filter === 'good'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
           }`}
         >
           good drafts ({posts.filter(p => p.isMarkedGood).length})
@@ -114,9 +174,10 @@ export function PostsList({ initialPosts = [] }: PostsListProps) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleMarkAsGood(post.id)}
+                    onClick={() => handleMarkAsGood(post)}
+                    disabled={loadingId === post.draftId}
                   >
-                    mark as good
+                    {loadingId === post.draftId ? 'saving...' : 'mark as good'}
                   </Button>
                 )}
               </div>

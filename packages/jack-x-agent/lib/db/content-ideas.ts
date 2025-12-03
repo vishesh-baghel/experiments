@@ -78,5 +78,8 @@ export async function getAllIdeas(userId: string) {
   return prisma.contentIdea.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
+    include: {
+      outlines: true,
+    },
   });
 }

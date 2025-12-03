@@ -18,8 +18,11 @@ export default async function PostsPage() {
   const drafts = await getDraftsForUser(userId);
 
   // Transform drafts to match the PostsList interface
+  // Use post.id if exists, otherwise use draft.id with a prefix to identify it needs post creation
   const posts = drafts.map(draft => ({
-    id: draft.id,
+    id: draft.post?.id || draft.id,
+    draftId: draft.id,
+    hasPost: !!draft.post,
     content: draft.content,
     contentType: draft.outline.format,
     contentPillar: draft.outline.contentIdea.contentPillar,

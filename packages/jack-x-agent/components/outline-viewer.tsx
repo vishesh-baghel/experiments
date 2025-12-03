@@ -52,9 +52,9 @@ export function OutlineViewer({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="h-[calc(100vh-120px)] overflow-hidden flex flex-col">
       {/* Header */}
-      <div>
+      <div className="flex-shrink-0 pb-4">
         <div className="flex items-center gap-2 mb-2">
           <h1 className="text-3xl font-bold">{ideaTitle}</h1>
           <Badge>{contentPillar}</Badge>
@@ -64,10 +64,10 @@ export function OutlineViewer({
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Outline Panel */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">outline</h2>
+      <div className="grid gap-6 lg:grid-cols-2 flex-1 min-h-0">
+        {/* Outline Panel - Scrollable */}
+        <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+          <h2 className="text-xl font-semibold sticky top-0 bg-background py-2 z-10">outline</h2>
 
           {/* Tone Reminders */}
           {outline.toneReminders.length > 0 && (
@@ -123,7 +123,7 @@ export function OutlineViewer({
         </div>
 
         {/* Writing Panel */}
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4 overflow-hidden">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">write your content</h2>
             <span className="text-sm text-muted-foreground">
@@ -131,13 +131,13 @@ export function OutlineViewer({
             </span>
           </div>
 
-          <Card>
-            <CardContent className="pt-6">
+          <Card className="flex-1 min-h-0 flex flex-col">
+            <CardContent className="pt-6 flex-1 min-h-0 flex flex-col">
               <Textarea
                 placeholder="start writing in your authentic voice..."
                 value={draftContent}
                 onChange={(e) => setDraftContent(e.target.value)}
-                className="min-h-[500px] font-mono text-sm"
+                className="flex-1 min-h-[300px] font-mono text-sm resize-none custom-scrollbar"
               />
             </CardContent>
           </Card>
@@ -158,20 +158,6 @@ export function OutlineViewer({
               clear
             </Button>
           </div>
-
-          {/* Tips */}
-          <Card className="bg-muted/50">
-            <CardContent className="pt-6">
-              <p className="text-sm font-medium mb-2">writing tips:</p>
-              <ul className="space-y-1 text-sm text-muted-foreground">
-                <li>• use the outline as a guide, not a script</li>
-                <li>• write in your natural voice</li>
-                <li>• include specific numbers and examples</li>
-                <li>• show the struggle, not just the win</li>
-                <li>• keep it lowercase (except proper nouns)</li>
-              </ul>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
