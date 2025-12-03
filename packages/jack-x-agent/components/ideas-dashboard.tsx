@@ -133,15 +133,15 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
       </div>
 
       {/* Status Tabs */}
-      <div className="flex gap-2 border-b">
+      <div className="flex gap-1 p-1 bg-muted/50 rounded-lg w-fit">
         {(['suggested', 'accepted', 'rejected', 'used'] as const).map((status) => (
           <button
             key={status}
             onClick={() => setSelectedStatus(status)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${
               selectedStatus === status
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
             }`}
           >
             {status}
@@ -164,20 +164,20 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
                 {idea.description}
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex-1 space-y-4">
+            <CardContent className="flex-1 flex flex-col">
               <div className="text-sm text-muted-foreground">
                 <p className="font-medium">why this works:</p>
                 <p className="line-clamp-3">{idea.rationale}</p>
               </div>
               
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mt-4">
                 <span>{idea.suggestedFormat}</span>
                 <span className={getEngagementColor(idea.estimatedEngagement)}>
                   {idea.estimatedEngagement} engagement
                 </span>
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-2 mt-auto">
                 {idea.status === 'suggested' && (
                   <>
                     <Button
@@ -210,7 +210,7 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
                 )}
               </div>
 
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground mt-3">
                 {formatRelativeTime(new Date(idea.createdAt))}
               </p>
             </CardContent>

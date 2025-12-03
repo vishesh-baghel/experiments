@@ -65,7 +65,7 @@ export function PostsList({ initialPosts = [] }: PostsListProps) {
       <div className="flex gap-2 border-b">
         <button
           onClick={() => setFilter('all')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
             filter === 'all'
               ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -75,7 +75,7 @@ export function PostsList({ initialPosts = [] }: PostsListProps) {
         </button>
         <button
           onClick={() => setFilter('good')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
             filter === 'good'
               ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground'

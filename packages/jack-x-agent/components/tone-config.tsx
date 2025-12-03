@@ -132,7 +132,7 @@ export function ToneConfigComponent({ userId, initialConfig }: ToneConfigProps) 
                   <button
                     id={key}
                     onClick={() => handleToggle(key)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
                       config[key] ? 'bg-primary' : 'bg-muted'
                     }`}
                   >

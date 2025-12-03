@@ -3,7 +3,7 @@
  * View and write content from outline
  */
 
-import { OutlinePageClient } from './page-client';
+import { OutlinePageClient } from '@/app/outline/[id]/page-client';
 import { getOutlineById } from '@/lib/db/outlines';
 import { notFound } from 'next/navigation';
 
