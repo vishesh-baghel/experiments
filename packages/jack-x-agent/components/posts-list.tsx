@@ -6,9 +6,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { formatRelativeTime, getPillarColor } from '@/lib/utils';
 
 interface Post {
@@ -20,6 +21,8 @@ interface Post {
   contentPillar: string;
   isMarkedGood: boolean;
   markedGoodAt: Date | null;
+  isPosted: boolean;
+  postedAt: Date | null;
   createdAt: Date;
 }
 
@@ -30,9 +33,12 @@ interface PostsListProps {
 
 export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
   const [posts, setPosts] = useState<Post[]>(initialPosts);
-  const [filter, setFilter] = useState<'all' | 'good'>('all');
+  const [filter, setFilter] = useState<'all' | 'good' | 'posted'>('all');
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState<string>('');
 
   const handleMarkAsGood = async (post: Post) => {
     setLoadingId(post.draftId);
@@ -92,9 +98,110 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
     }
   };
 
-  const filteredPosts = filter === 'good' 
-    ? posts.filter(p => p.isMarkedGood)
-    : posts;
+  const handleDelete = async (post: Post) => {
+    if (!confirm('Are you sure you want to delete this draft?')) return;
+    
+    setLoadingAction(`delete-${post.draftId}`);
+    setError(null);
+    
+    try {
+      const response = await fetch(`/api/drafts/${post.draftId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete draft');
+      }
+
+      setPosts(posts.filter(p => p.draftId !== post.draftId));
+    } catch (err) {
+      console.error('Error deleting draft:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete draft');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleStartEdit = (post: Post) => {
+    setEditingId(post.draftId);
+    setEditContent(post.content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditContent('');
+  };
+
+  const handleSaveEdit = async (post: Post) => {
+    if (!editContent.trim()) {
+      setError('Content cannot be empty');
+      return;
+    }
+
+    setLoadingAction(`edit-${post.draftId}`);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/drafts/${post.draftId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: editContent }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update draft');
+      }
+
+      setPosts(posts.map(p => 
+        p.draftId === post.draftId 
+          ? { ...p, content: editContent } 
+          : p
+      ));
+      setEditingId(null);
+      setEditContent('');
+    } catch (err) {
+      console.error('Error updating draft:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update draft');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handlePostToX = async (post: Post) => {
+    setLoadingAction(`post-${post.draftId}`);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/drafts/${post.draftId}/post`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to post to X');
+      }
+
+      const { draft } = await response.json();
+      setPosts(posts.map(p => 
+        p.draftId === post.draftId 
+          ? { ...p, isPosted: true, postedAt: new Date(draft.postedAt) } 
+          : p
+      ));
+    } catch (err) {
+      console.error('Error posting to X:', err);
+      setError(err instanceof Error ? err.message : 'Failed to post to X');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const filteredPosts = filter === 'all' 
+    ? posts
+    : filter === 'good'
+      ? posts.filter(p => p.isMarkedGood)
+      : posts.filter(p => p.isPosted);
 
   return (
     <div className="space-y-6">
@@ -131,7 +238,7 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
               : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
           }`}
         >
-          all drafts ({posts.length})
+          all ({posts.length})
         </button>
         <button
           onClick={() => setFilter('good')}
@@ -141,14 +248,24 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
               : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
           }`}
         >
-          good drafts ({posts.filter(p => p.isMarkedGood).length})
+          good ({posts.filter(p => p.isMarkedGood).length})
+        </button>
+        <button
+          onClick={() => setFilter('posted')}
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${
+            filter === 'posted'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+          }`}
+        >
+          posted ({posts.filter(p => p.isPosted).length})
         </button>
       </div>
 
       {/* Posts List */}
       <div className="space-y-4">
         {filteredPosts.map((post) => (
-          <Card key={post.id}>
+          <Card key={post.draftId}>
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
@@ -161,43 +278,116 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
                     </span>
                     {post.isMarkedGood && (
                       <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
-                        ✓ good
+                        good
+                      </Badge>
+                    )}
+                    {post.isPosted && (
+                      <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                        posted
                       </Badge>
                     )}
                   </div>
                   <CardDescription className="text-xs">
                     {formatRelativeTime(new Date(post.createdAt))}
                     {post.markedGoodAt && ` • marked good ${formatRelativeTime(new Date(post.markedGoodAt))}`}
+                    {post.postedAt && ` • posted ${formatRelativeTime(new Date(post.postedAt))}`}
                   </CardDescription>
                 </div>
-                {!post.isMarkedGood && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleMarkAsGood(post)}
-                    disabled={loadingId === post.draftId}
-                  >
-                    {loadingId === post.draftId ? 'saving...' : 'mark as good'}
-                  </Button>
-                )}
               </div>
             </CardHeader>
             <CardContent>
-              <div className="whitespace-pre-wrap text-sm font-mono bg-muted/50 p-4 rounded-md">
-                {post.content}
-              </div>
+              {editingId === post.draftId ? (
+                <div className="space-y-3">
+                  <Textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="min-h-[200px] font-mono text-sm"
+                    placeholder="Edit your draft..."
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleCancelEdit}
+                    >
+                      cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleSaveEdit(post)}
+                      disabled={loadingAction === `edit-${post.draftId}`}
+                    >
+                      {loadingAction === `edit-${post.draftId}` ? 'saving...' : 'save'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="whitespace-pre-wrap text-sm font-mono bg-muted/50 p-4 rounded-md">
+                  {post.content}
+                </div>
+              )}
             </CardContent>
+            {editingId !== post.draftId && (
+              <CardFooter className="flex justify-between gap-2 pt-0">
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleStartEdit(post)}
+                    disabled={post.isPosted}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleDelete(post)}
+                    disabled={loadingAction === `delete-${post.draftId}`}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    {loadingAction === `delete-${post.draftId}` ? 'deleting...' : 'delete'}
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  {!post.isMarkedGood && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleMarkAsGood(post)}
+                      disabled={loadingId === post.draftId}
+                    >
+                      {loadingId === post.draftId ? 'saving...' : 'mark as good'}
+                    </Button>
+                  )}
+                  {!post.isPosted && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => handlePostToX(post)}
+                      disabled={loadingAction === `post-${post.draftId}`}
+                    >
+                      {loadingAction === `post-${post.draftId}` ? 'posting...' : 'post to X'}
+                    </Button>
+                  )}
+                </div>
+              </CardFooter>
+            )}
           </Card>
         ))}
       </div>
 
       {filteredPosts.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
-          <p>no {filter === 'good' ? 'good ' : ''}drafts yet</p>
+          <p>
+            no {filter === 'good' ? 'good ' : filter === 'posted' ? 'posted ' : ''}drafts yet
+          </p>
           <p className="text-sm mt-2">
             {filter === 'good' 
               ? 'mark your best drafts so jack can learn your voice'
-              : 'create an outline and save a draft to get started'
+              : filter === 'posted'
+                ? 'post your drafts to X to see them here'
+                : 'create an outline and save a draft to get started'
             }
           </p>
         </div>

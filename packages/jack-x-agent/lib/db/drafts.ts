@@ -65,3 +65,16 @@ export async function deleteDraft(draftId: string) {
     where: { id: draftId },
   });
 }
+
+/**
+ * Mark draft as posted to X
+ */
+export async function markDraftAsPosted(draftId: string) {
+  return prisma.draft.update({
+    where: { id: draftId },
+    data: {
+      isPosted: true,
+      postedAt: new Date(),
+    },
+  });
+}

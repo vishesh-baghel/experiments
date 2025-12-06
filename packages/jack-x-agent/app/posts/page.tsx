@@ -28,6 +28,8 @@ export default async function PostsPage() {
     contentPillar: draft.outline.contentIdea.contentPillar,
     isMarkedGood: draft.post?.isMarkedGood || false,
     markedGoodAt: draft.post?.markedGoodAt || null,
+    isPosted: draft.isPosted,
+    postedAt: draft.postedAt,
     createdAt: draft.createdAt,
   }));
 
