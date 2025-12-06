@@ -18,7 +18,7 @@
 
 ### Page 1: Ideas Dashboard (`/`)
 
-**Purpose:** Main landing, shows today's 5 content ideas
+**Purpose:** Main landing, shows content ideas with filtering
 
 **Layout:**
 ```
@@ -26,9 +26,12 @@
 │  Jack              vishesh@example.com  [⚙️]   │
 ├────────────────────────────────────────────────┤
 │                                                │
-│  Today's Content Ideas          [🔄 Refresh]   │
-│  Generated 2 hours ago · Based on 87 creators  │
-│  ⭐ Learned from 5 good posts                  │
+│  content ideas                  [generate ideas]│
+│  ai-generated ideas based on your voice        │
+│                                                │
+│  ┌───────────────────────────────┐ [Past 7 days ▾]
+│  │suggested│accepted│rejected│used│             │
+│  └───────────────────────────────┘              │
 │                                                │
 │  ┌──────────────────────────────────────────┐ │
 │  │ 💡 MCP Server Debugging Patterns         │ │
@@ -294,64 +297,71 @@
 
 ---
 
-### Page 4: My Drafts (`/drafts`)
+### Page 4: My Drafts (`/posts`)
 
-**Purpose:** View saved drafts and mark successful posts as "good" for learning
+**Purpose:** View saved drafts, manage content, and mark successful posts as "good" for learning
 
 **Layout:**
 ```
 ┌────────────────────────────────────────────────┐
-│  ← Back                                        │
+│  Jack              vishesh@example.com  [⚙️]   │
 ├────────────────────────────────────────────────┤
 │                                                │
-│  My Drafts                                     │
+│  my drafts                                     │
+│  saved drafts from your outlines               │
 │                                                │
-│  Filter: [All ▾]  [Lessons Learned] [Helpful] │
+│  ┌─────────────────────────┐  [Past 7 days ▾] │
+│  │ all │ good │ posted     │                   │
+│  └─────────────────────────┘                   │
 │                                                │
 │  ┌────────────────────────────────────────┐   │
-│  │ MCP Server Debugging Patterns          │   │
-│  │ Thread · Lessons Learned               │   │
+│  │ [lessons_learned]  thread              │   │
+│  │ 2 hours ago                            │   │
 │  │                                        │   │
-│  │ spent 6 hours debugging my mcp         │   │
-│  │ server. turns out console.info()...    │   │
+│  │ ┌────────────────────────────────────┐ │   │
+│  │ │ spent 6 hours debugging my mcp     │ │   │
+│  │ │ server. turns out console.info()...│ │   │
+│  │ └────────────────────────────────────┘ │   │
 │  │                                        │   │
-│  │ Created 2 hours ago                    │   │
-│  │ ✅ Posted to X                         │   │
-│  │                                        │   │
-│  │ [⭐ Mark as Good]  [View Outline]      │   │
+│  │ [edit] [delete]     [mark as good] [post to X] │
 │  └────────────────────────────────────────┘   │
 │                                                │
 │  ┌────────────────────────────────────────┐   │
-│  │ Postgres Performance Tips              │   │
-│  │ Post · Helpful Content                 │   │
+│  │ [helpful_content]  post  [good] [posted]│   │
+│  │ yesterday · marked good 1 hour ago     │   │
+│  │ · posted 2 hours ago                   │   │
 │  │                                        │   │
-│  │ postgres indexes saved me 2 seconds... │   │
+│  │ ┌────────────────────────────────────┐ │   │
+│  │ │ postgres indexes saved me 2 secs...│ │   │
+│  │ └────────────────────────────────────┘ │   │
 │  │                                        │   │
-│  │ Created yesterday                      │   │
-│  │ ⭐ Marked as good                      │   │
-│  │                                        │   │
-│  │ [View Outline]                         │   │
-│  └────────────────────────────────────────┘   │
-│                                                │
-│  ┌────────────────────────────────────────┐   │
-│  │ Building Jack Agent                    │   │
-│  │ Thread · Build Progress                │   │
-│  │                                        │   │
-│  │ started building jack yesterday...     │   │
-│  │                                        │   │
-│  │ Created 3 days ago                     │   │
-│  │ 📝 Draft (not posted yet)              │   │
-│  │                                        │   │
-│  │ [Edit]  [Copy]                         │   │
+│  │ [edit] [delete]                        │   │
 │  └────────────────────────────────────────┘   │
 │                                                │
 └────────────────────────────────────────────────┘
 ```
 
-**States:**
-- **Draft:** Not posted yet, can edit/copy
-- **Posted:** Posted to X, can mark as good
-- **Marked as good:** Used for learning, shows ⭐
+**Filter Tabs:**
+- **all:** Show all drafts
+- **good:** Show only drafts marked as good
+- **posted:** Show only posted drafts
+
+**Date Range Filter:**
+- Dropdown on right side of tabs
+- Options: Past 7 days (default), Past 15 days, Past month, Custom range
+- Custom range shows date pickers
+- Persists across page navigation via localStorage
+
+**Draft Card Actions:**
+- **edit:** Opens inline textarea for editing (disabled if posted)
+- **delete:** Removes draft with confirmation
+- **mark as good:** Marks for learning (only if not already marked)
+- **post to X:** Changes status to posted (future: actual X integration)
+
+**States & Badges:**
+- **Draft:** No badges, all actions available
+- **Posted:** Shows "posted" badge, edit disabled
+- **Marked as good:** Shows "good" badge
 
 **"Mark as Good" Criteria:**
 - User manually decides after posting

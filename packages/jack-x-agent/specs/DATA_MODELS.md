@@ -139,11 +139,14 @@ CREATE TABLE drafts (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   idea_id UUID REFERENCES content_ideas(id) ON DELETE SET NULL,
+  outline_id UUID REFERENCES outlines(id) ON DELETE SET NULL,
   content TEXT NOT NULL,
   content_type TEXT NOT NULL, -- post, thread, long_form
   tweet_count INTEGER, -- For threads
   version INTEGER DEFAULT 1, -- Track revisions
   is_final BOOLEAN DEFAULT false,
+  is_posted BOOLEAN DEFAULT false, -- Track if posted to X
+  posted_at TIMESTAMP, -- When posted to X
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -325,11 +328,14 @@ export type Draft = {
   id: string;
   userId: string;
   ideaId: string | null;
+  outlineId: string | null;
   content: string;
   contentType: 'post' | 'thread' | 'long_form';
   tweetCount: number | null;
   version: number;
   isFinal: boolean;
+  isPosted: boolean;
+  postedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -418,6 +424,43 @@ export type AnalyticsResponse = {
     avgEngagement: number;
   }>;
 };
+```
+
+### API Routes
+
+```typescript
+// Ideas
+GET    /api/ideas              - Get all ideas for user (with status filter)
+POST   /api/ideas/generate     - Generate new ideas
+PATCH  /api/ideas/[id]         - Update idea status (accept/reject)
+
+// Outlines
+POST   /api/outlines/generate  - Generate outline for an idea
+
+// Drafts
+GET    /api/drafts             - Get all drafts for user
+POST   /api/drafts             - Create a new draft
+PATCH  /api/drafts/[id]        - Update draft content
+DELETE /api/drafts/[id]        - Delete a draft
+POST   /api/drafts/[id]/post   - Mark draft as posted to X
+
+// Posts (for learning)
+GET    /api/posts              - Get all posts for user
+POST   /api/posts              - Create a post record from draft
+PATCH  /api/posts/[id]/mark-good - Mark post as good for learning
+
+// Creators
+GET    /api/creators           - Get all tracked creators
+POST   /api/creators           - Add a new creator
+PATCH  /api/creators/[id]/toggle - Toggle creator active status
+
+// Tone Config
+GET    /api/tone-config        - Get user's tone configuration
+PATCH  /api/tone-config        - Update tone configuration
+
+// Auth
+POST   /api/auth/signup        - Create new user
+POST   /api/auth/login         - Login user
 ```
 
 ### Zod Schemas (for validation)

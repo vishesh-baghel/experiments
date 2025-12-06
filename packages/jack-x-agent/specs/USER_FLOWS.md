@@ -64,13 +64,13 @@
 17. Click "Save Draft"
 ```
 
-**5:20 PM - Post to X (Manual)**
+**5:20 PM - Post to X**
 ```
-18. Open x.com in new tab
-19. Paste written content
-20. Review, make final tweaks
-21. Click "Post all"
-22. Mark draft as "Posted to X" in Jack
+18. Click "Post to X" button on draft card
+19. Draft status changes to "posted"
+20. Badge shows "posted" with timestamp
+21. (Future: Will actually post via X API)
+22. Alternatively: Copy content, paste on x.com manually
 ```
 
 **5:22 PM - Repeat for Post #2**
@@ -152,11 +152,13 @@
 ```
 1. Notice MCP debugging thread got 1.2K likes on X (great!)
 2. Open Jack
-3. Navigate to "My Drafts"
-4. Find the post: "MCP Server Debugging Patterns"
-5. Status shows: "✅ Posted to X"
-6. Click "⭐ Mark as Good" button
-7. Confirmation: "Marked as good. Jack will learn from this."
+3. Navigate to "My Drafts" (/posts)
+4. Use date filter to find the post (default: past 7 days)
+5. Find the post: "MCP Server Debugging Patterns"
+6. Status shows: "posted" badge with timestamp
+7. Click "mark as good" button
+8. Badge updates to show "good" status
+9. Confirmation: Post is now used for learning
 ```
 
 **Background Processing (Automatic)**
@@ -360,7 +362,58 @@
 
 ---
 
-## Flow 7: Idea Rejected (Skip)
+## Flow 7: Draft Management (Edit, Delete, Post)
+
+**Actor:** Vishesh  
+**Goal:** Manage drafts - edit content, delete unwanted, post to X  
+**Time:** 1-2 minutes per action
+
+### Steps
+
+**Edit a Draft**
+```
+1. Navigate to "My Drafts" (/posts)
+2. Find draft to edit
+3. Click "edit" button on draft card
+4. Textarea appears with current content
+5. Make changes to content
+6. Click "save" to update
+7. Or click "cancel" to discard changes
+```
+
+**Delete a Draft**
+```
+1. Navigate to "My Drafts" (/posts)
+2. Find draft to delete
+3. Click "delete" button
+4. Confirmation dialog appears
+5. Confirm deletion
+6. Draft is removed from list
+```
+
+**Post to X**
+```
+1. Navigate to "My Drafts" (/posts)
+2. Find draft to post
+3. Click "post to X" button
+4. Draft status changes to "posted"
+5. "posted" badge appears with timestamp
+6. Edit button becomes disabled
+7. (Future: Will integrate with X API)
+```
+
+**Filter Drafts by Date**
+```
+1. Click date filter dropdown (right of tabs)
+2. Options: Past 7 days (default), 15 days, Past month, Custom
+3. Select desired range
+4. List filters to show only drafts in that range
+5. Filter persists across page navigation (localStorage)
+```
+
+---
+
+## Flow 8: Idea Rejected (Skip)
 
 **Actor:** Vishesh  
 **Goal:** Skip irrelevant idea  
@@ -382,7 +435,7 @@
 
 ---
 
-## Flow 8: Batch Outline Creation (Weekend Planning)
+## Flow 9: Batch Outline Creation (Weekend Planning)
 
 **Actor:** Vishesh  
 **Goal:** Get outlines for entire week of content  
@@ -428,7 +481,7 @@
 
 ---
 
-## Flow 9: Analytics & Learning Progress (V2 Feature - Not MVP)
+## Flow 10: Analytics & Learning Progress (V2 Feature - Not MVP)
 
 **Purpose:** Track performance metrics and see learning progress
 
@@ -549,10 +602,17 @@ Response:
 
 **Supporting Flows:**
 6. Error Handling (no ideas generated)
-7. Skip Irrelevant Ideas (feedback)
-8. Batch Outline Creation (optional workflow)
+7. **Draft Management (edit, delete, post to X)**
+8. Skip Irrelevant Ideas (feedback)
+9. Batch Outline Creation (optional workflow)
 
 **V2 Flows (Deferred):**
-9. Performance Analytics (metrics dashboard)
+10. Performance Analytics (metrics dashboard)
 
 **Core Value:** The learning loop (Flow 3) makes Jack unique vs ChatGPT. Ideas improve from 50% → 80% relevance over 4 weeks.
+
+**New Features (Recent):**
+- Date range filters on Ideas and Drafts pages (7d, 15d, 30d, custom)
+- Draft edit/delete/post actions
+- Posted state tracking for drafts
+- Filter persistence via localStorage
