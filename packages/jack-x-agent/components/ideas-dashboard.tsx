@@ -9,6 +9,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { DateRangeFilter } from '@/components/date-range-filter';
+import { useDateRangeFilter } from '@/hooks/use-date-range-filter';
 import { formatRelativeTime, getPillarColor, getEngagementColor } from '@/lib/utils';
 
 interface Outline {
@@ -38,6 +40,15 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
   const [ideas, setIdeas] = useState<ContentIdea[]>(initialIdeas);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<'suggested' | 'accepted' | 'rejected' | 'used'>('suggested');
+  
+  const { 
+    dateRange, 
+    customStartDate, 
+    customEndDate, 
+    handleDateRangeChange,
+    getStartDate,
+    getEndDate 
+  } = useDateRangeFilter();
 
   const handleGenerateIdeas = async () => {
     setIsGenerating(true);
@@ -117,7 +128,16 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
     }
   };
 
-  const filteredIdeas = ideas.filter(idea => idea.status === selectedStatus);
+  // Filter by status and date range
+  const filteredIdeas = ideas.filter(idea => {
+    if (idea.status !== selectedStatus) return false;
+    
+    const ideaDate = new Date(idea.createdAt);
+    const startDate = getStartDate();
+    const endDate = getEndDate();
+    
+    return ideaDate >= startDate && ideaDate <= endDate;
+  });
 
   return (
     <div className="space-y-6">
@@ -137,21 +157,29 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
         </Button>
       </div>
 
-      {/* Status Tabs */}
-      <div className="flex gap-1 p-1 bg-muted/50 rounded-lg w-fit">
-        {(['suggested', 'accepted', 'rejected', 'used'] as const).map((status) => (
-          <button
-            key={status}
-            onClick={() => setSelectedStatus(status)}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${
-              selectedStatus === status
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-            }`}
-          >
-            {status}
-          </button>
-        ))}
+      {/* Status Tabs and Date Filter */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex gap-1 p-1 bg-muted/50 rounded-lg w-fit">
+          {(['suggested', 'accepted', 'rejected', 'used'] as const).map((status) => (
+            <button
+              key={status}
+              onClick={() => setSelectedStatus(status)}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${
+                selectedStatus === status
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+              }`}
+            >
+              {status}
+            </button>
+          ))}
+        </div>
+        <DateRangeFilter
+          value={dateRange}
+          onChange={handleDateRangeChange}
+          customStartDate={customStartDate}
+          customEndDate={customEndDate}
+        />
       </div>
 
       {/* Ideas Grid */}

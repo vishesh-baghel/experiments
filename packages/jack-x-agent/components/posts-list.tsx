@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardFooter } from '@/co
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { DateRangeFilter } from '@/components/date-range-filter';
+import { useDateRangeFilter } from '@/hooks/use-date-range-filter';
 import { formatRelativeTime, getPillarColor } from '@/lib/utils';
 
 interface Post {
@@ -39,6 +41,15 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState<string>('');
+  
+  const { 
+    dateRange, 
+    customStartDate, 
+    customEndDate, 
+    handleDateRangeChange,
+    getStartDate,
+    getEndDate 
+  } = useDateRangeFilter();
 
   const handleMarkAsGood = async (post: Post) => {
     setLoadingId(post.draftId);
@@ -197,11 +208,19 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
     }
   };
 
-  const filteredPosts = filter === 'all' 
-    ? posts
-    : filter === 'good'
-      ? posts.filter(p => p.isMarkedGood)
-      : posts.filter(p => p.isPosted);
+  // Filter by status and date range
+  const filteredPosts = posts.filter(post => {
+    // Status filter
+    if (filter === 'good' && !post.isMarkedGood) return false;
+    if (filter === 'posted' && !post.isPosted) return false;
+    
+    // Date range filter
+    const postDate = new Date(post.createdAt);
+    const startDate = getStartDate();
+    const endDate = getEndDate();
+    
+    return postDate >= startDate && postDate <= endDate;
+  });
 
   return (
     <div className="space-y-6">
@@ -228,38 +247,46 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
         </div>
       )}
 
-      {/* Filter Tabs */}
-      <div className="flex gap-1 p-1 bg-muted/50 rounded-lg w-fit">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${
-            filter === 'all'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-          }`}
-        >
-          all ({posts.length})
-        </button>
-        <button
-          onClick={() => setFilter('good')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${
-            filter === 'good'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-          }`}
-        >
-          good ({posts.filter(p => p.isMarkedGood).length})
-        </button>
-        <button
-          onClick={() => setFilter('posted')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${
-            filter === 'posted'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-          }`}
-        >
-          posted ({posts.filter(p => p.isPosted).length})
-        </button>
+      {/* Filter Tabs and Date Filter */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex gap-1 p-1 bg-muted/50 rounded-lg w-fit">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${
+              filter === 'all'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+            }`}
+          >
+            all ({posts.length})
+          </button>
+          <button
+            onClick={() => setFilter('good')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${
+              filter === 'good'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+            }`}
+          >
+            good ({posts.filter(p => p.isMarkedGood).length})
+          </button>
+          <button
+            onClick={() => setFilter('posted')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${
+              filter === 'posted'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+            }`}
+          >
+            posted ({posts.filter(p => p.isPosted).length})
+          </button>
+        </div>
+        <DateRangeFilter
+          value={dateRange}
+          onChange={handleDateRangeChange}
+          customStartDate={customStartDate}
+          customEndDate={customEndDate}
+        />
       </div>
 
       {/* Posts List */}
