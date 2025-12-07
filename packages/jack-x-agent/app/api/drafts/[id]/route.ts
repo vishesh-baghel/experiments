@@ -6,11 +6,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { updateDraft, deleteDraft, getDraftById } from '@/lib/db/drafts';
+import { blockGuestWrite } from '@/lib/auth';
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Block guest write operations
+  const guestBlock = await blockGuestWrite();
+  if (guestBlock) return guestBlock;
+
   try {
     const { id } = await params;
 
@@ -56,6 +61,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Block guest write operations
+  const guestBlock = await blockGuestWrite();
+  if (guestBlock) return guestBlock;
+
   try {
     const { id } = await params;
 

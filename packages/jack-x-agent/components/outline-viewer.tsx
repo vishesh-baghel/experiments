@@ -5,11 +5,13 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { GuestTooltipButton } from '@/components/guest-tooltip-button';
+import { getUserSession } from '@/lib/auth-client';
 
 interface OutlineSection {
   heading: string;
@@ -40,6 +42,12 @@ export function OutlineViewer({
 }: OutlineViewerProps) {
   const [draftContent, setDraftContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
+
+  useEffect(() => {
+    const session = getUserSession();
+    setIsGuest(session.isGuest);
+  }, []);
 
   const handleSave = async () => {
     if (!onSaveDraft) return;
@@ -143,13 +151,14 @@ export function OutlineViewer({
           </Card>
 
           <div className="flex gap-2">
-            <Button
+            <GuestTooltipButton
               onClick={handleSave}
               disabled={!draftContent.trim() || isSaving}
+              isGuest={isGuest}
               className="flex-1"
             >
               {isSaving ? 'saving...' : 'save draft'}
-            </Button>
+            </GuestTooltipButton>
             <Button
               variant="outline"
               onClick={() => setDraftContent('')}

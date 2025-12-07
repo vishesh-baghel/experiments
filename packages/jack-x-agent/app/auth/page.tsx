@@ -1,21 +1,24 @@
 /**
  * Auth Page
- * Simple login/signup interface
+ * Simple login/signup interface with guest access
  */
 
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { setUserSession } from '@/lib/auth-client';
 
 export default function AuthPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -94,6 +97,37 @@ export default function AuthPage() {
       console.error('Signup error:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setIsGuestLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/auth/guest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Guest login failed');
+        return;
+      }
+
+      // Store guest session
+      setUserSession(data.user.id, data.user.email, true, data.demoUserId);
+      
+      // Redirect to home
+      router.push('/');
+      router.refresh();
+    } catch (err) {
+      setError('Failed to login as guest. Please try again.');
+      console.error('Guest login error:', err);
+    } finally {
+      setIsGuestLoading(false);
     }
   };
 
@@ -176,6 +210,30 @@ export default function AuthPage() {
               </form>
             </TabsContent>
           </Tabs>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">or</span>
+            </div>
+          </div>
+
+          {/* Guest Login */}
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleGuestLogin}
+            disabled={isGuestLoading || isLoading}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            {isGuestLoading ? 'Loading...' : 'Continue as Guest'}
+          </Button>
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            Browse in read-only mode to see how Jack works
+          </p>
         </CardContent>
       </Card>
     </div>

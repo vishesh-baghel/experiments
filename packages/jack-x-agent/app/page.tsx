@@ -4,7 +4,7 @@
 
 import { redirect } from 'next/navigation';
 import { IdeasDashboard } from '@/components/ideas-dashboard';
-import { getCurrentUserId } from '@/lib/auth';
+import { getCurrentUserId, getDataUserId } from '@/lib/auth';
 import { getAllIdeas } from '@/lib/db/content-ideas';
 
 export default async function Home() {
@@ -15,8 +15,11 @@ export default async function Home() {
     redirect('/auth');
   }
 
+  // Use demo user's data for guests, own data for regular users
+  const dataUserId = await getDataUserId();
+
   // Fetch all ideas from database
-  const dbIdeas = await getAllIdeas(userId);
+  const dbIdeas = await getAllIdeas(dataUserId);
   
   // Transform database ideas to match component interface
   const ideas = dbIdeas.map(idea => ({

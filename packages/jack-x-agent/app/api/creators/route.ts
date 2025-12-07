@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getActiveCreators, addCreator } from '@/lib/db/creators';
+import { blockGuestWrite } from '@/lib/auth';
 
 const CreateRequestSchema = z.object({
   userId: z.string(),
@@ -41,6 +42,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Block guest write operations
+  const guestBlock = await blockGuestWrite();
+  if (guestBlock) return guestBlock;
+
   try {
     const body = await request.json();
     const { userId, xHandle } = CreateRequestSchema.parse(body);

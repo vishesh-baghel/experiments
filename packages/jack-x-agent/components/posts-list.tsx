@@ -5,14 +5,16 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { GuestTooltipButton } from '@/components/guest-tooltip-button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { DateRangeFilter } from '@/components/date-range-filter';
 import { useDateRangeFilter } from '@/hooks/use-date-range-filter';
 import { formatRelativeTime, getPillarColor } from '@/lib/utils';
+import { getUserSession } from '@/lib/auth-client';
 
 interface Post {
   id: string;
@@ -41,6 +43,7 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState<string>('');
+  const [isGuest, setIsGuest] = useState(false);
   
   const { 
     dateRange, 
@@ -50,6 +53,11 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
     getStartDate,
     getEndDate 
   } = useDateRangeFilter();
+
+  useEffect(() => {
+    const session = getUserSession();
+    setIsGuest(session.isGuest);
+  }, []);
 
   const handleMarkAsGood = async (post: Post) => {
     setLoadingId(post.draftId);
@@ -357,45 +365,49 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
             {editingId !== post.draftId && (
               <CardFooter className="flex justify-between gap-2 pt-0">
                 <div className="flex gap-2">
-                  <Button
+                  <GuestTooltipButton
                     size="sm"
                     variant="ghost"
                     onClick={() => handleStartEdit(post)}
                     disabled={post.isPosted}
+                    isGuest={isGuest}
                     className="text-muted-foreground hover:text-foreground"
                   >
                     edit
-                  </Button>
-                  <Button
+                  </GuestTooltipButton>
+                  <GuestTooltipButton
                     size="sm"
                     variant="ghost"
                     onClick={() => handleDelete(post)}
                     disabled={loadingAction === `delete-${post.draftId}`}
+                    isGuest={isGuest}
                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
                     {loadingAction === `delete-${post.draftId}` ? 'deleting...' : 'delete'}
-                  </Button>
+                  </GuestTooltipButton>
                 </div>
                 <div className="flex gap-2">
                   {!post.isMarkedGood && (
-                    <Button
+                    <GuestTooltipButton
                       size="sm"
                       variant="outline"
                       onClick={() => handleMarkAsGood(post)}
                       disabled={loadingId === post.draftId}
+                      isGuest={isGuest}
                     >
                       {loadingId === post.draftId ? 'saving...' : 'mark as good'}
-                    </Button>
+                    </GuestTooltipButton>
                   )}
                   {!post.isPosted && (
-                    <Button
+                    <GuestTooltipButton
                       size="sm"
                       variant="default"
                       onClick={() => handlePostToX(post)}
                       disabled={loadingAction === `post-${post.draftId}`}
+                      isGuest={isGuest}
                     >
                       {loadingAction === `post-${post.draftId}` ? 'posting...' : 'post to X'}
-                    </Button>
+                    </GuestTooltipButton>
                   )}
                 </div>
               </CardFooter>

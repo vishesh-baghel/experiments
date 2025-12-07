@@ -4,7 +4,7 @@
 
 import { redirect } from 'next/navigation';
 import { PostsList } from '@/components/posts-list';
-import { getCurrentUserId } from '@/lib/auth';
+import { getCurrentUserId, getDataUserId } from '@/lib/auth';
 import { getDraftsForUser } from '@/lib/db/drafts';
 
 export default async function PostsPage() {
@@ -14,8 +14,11 @@ export default async function PostsPage() {
     redirect('/auth');
   }
 
+  // Use demo user's data for guests, own data for regular users
+  const dataUserId = await getDataUserId();
+
   // Fetch all drafts for the user
-  const drafts = await getDraftsForUser(userId);
+  const drafts = await getDraftsForUser(dataUserId);
 
   // Transform drafts to match the PostsList interface
   // Use post.id if exists, otherwise use draft.id with a prefix to identify it needs post creation

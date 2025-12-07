@@ -5,13 +5,15 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { GuestTooltipButton } from '@/components/guest-tooltip-button';
 import { DateRangeFilter } from '@/components/date-range-filter';
 import { useDateRangeFilter } from '@/hooks/use-date-range-filter';
 import { formatRelativeTime, getPillarColor, getEngagementColor } from '@/lib/utils';
+import { getUserSession } from '@/lib/auth-client';
 
 interface Outline {
   id: string;
@@ -40,6 +42,7 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
   const [ideas, setIdeas] = useState<ContentIdea[]>(initialIdeas);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<'suggested' | 'accepted' | 'rejected' | 'used'>('suggested');
+  const [isGuest, setIsGuest] = useState(false);
   
   const { 
     dateRange, 
@@ -49,6 +52,11 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
     getStartDate,
     getEndDate 
   } = useDateRangeFilter();
+
+  useEffect(() => {
+    const session = getUserSession();
+    setIsGuest(session.isGuest);
+  }, []);
 
   const handleGenerateIdeas = async () => {
     setIsGenerating(true);
@@ -149,12 +157,13 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
             ai-generated ideas based on your voice and trending topics
           </p>
         </div>
-        <Button 
+        <GuestTooltipButton
           onClick={handleGenerateIdeas}
           disabled={isGenerating}
+          isGuest={isGuest}
         >
           {isGenerating ? 'generating...' : 'generate ideas'}
-        </Button>
+        </GuestTooltipButton>
       </div>
 
       {/* Status Tabs and Date Filter */}
@@ -213,34 +222,37 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
               <div className="flex gap-2 pt-2 mt-auto">
                 {idea.status === 'suggested' && (
                   <>
-                    <Button
+                    <GuestTooltipButton
                       size="sm"
                       variant="default"
                       onClick={() => handleUpdateStatus(idea.id, 'accepted')}
                       className="flex-1"
+                      isGuest={isGuest}
                     >
                       accept
-                    </Button>
-                    <Button
+                    </GuestTooltipButton>
+                    <GuestTooltipButton
                       size="sm"
                       variant="outline"
                       onClick={() => handleUpdateStatus(idea.id, 'rejected')}
                       className="flex-1"
+                      isGuest={isGuest}
                     >
                       reject
-                    </Button>
+                    </GuestTooltipButton>
                   </>
                 )}
                 {idea.status === 'accepted' && (
                   <>
-                    <Button
+                    <GuestTooltipButton
                       size="sm"
                       variant="default"
                       className="w-full"
                       onClick={() => handleGenerateOutline(idea)}
+                      isGuest={isGuest}
                     >
                       get outline
-                    </Button>
+                    </GuestTooltipButton>
                     {idea.outlines && idea.outlines.length > 0 && (
                       <p className="text-xs text-muted-foreground text-center mt-2">
                         outline already exists - check &quot;used&quot; tab

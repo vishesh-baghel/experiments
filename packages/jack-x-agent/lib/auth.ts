@@ -1,9 +1,12 @@
 /**
- * Authentication utilities
- * Simple localStorage-based auth for demo purposes
+ * Server-side authentication utilities
+ * Only import this in server components and API routes
  */
 
 import { cookies } from 'next/headers';
+
+// Re-export client constants for convenience in server code
+export { GUEST_USER_EMAIL, DEMO_USER_EMAIL } from './auth-client';
 
 /**
  * Get current user ID from cookies (server-side)
@@ -22,6 +25,31 @@ export async function getCurrentUserId(): Promise<string> {
 }
 
 /**
+ * Check if current user is a guest (server-side)
+ */
+export async function isGuestUser(): Promise<boolean> {
+  const cookieStore = await cookies();
+  return cookieStore.get('isGuest')?.value === 'true';
+}
+
+/**
+ * Get the user ID to use for data queries
+ * Guests see the demo user's content, regular users see their own
+ */
+export async function getDataUserId(): Promise<string> {
+  const cookieStore = await cookies();
+  const isGuest = cookieStore.get('isGuest')?.value === 'true';
+  const demoUserId = cookieStore.get('demoUserId')?.value;
+  const userId = cookieStore.get('userId')?.value;
+  
+  if (isGuest && demoUserId) {
+    return demoUserId;
+  }
+  
+  return userId || '';
+}
+
+/**
  * Get current user ID (async version for server components)
  */
 export async function getCurrentUserIdAsync(): Promise<string> {
@@ -36,42 +64,16 @@ export async function getCurrentUserIdAsync(): Promise<string> {
 }
 
 /**
- * Set user session (client-side helper)
+ * Check if a write operation should be blocked (for guest users)
+ * Returns an error response if guest, null if allowed
  */
-export function setUserSession(userId: string, email: string) {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('userId', userId);
-    localStorage.setItem('userEmail', email);
-    
-    // Also set cookie for server-side access
-    document.cookie = `userId=${userId}; path=/; max-age=2592000`; // 30 days
-    document.cookie = `userEmail=${email}; path=/; max-age=2592000`;
+export async function blockGuestWrite(): Promise<Response | null> {
+  const isGuest = await isGuestUser();
+  if (isGuest) {
+    return new Response(
+      JSON.stringify({ error: 'Write operations are not allowed in guest mode' }),
+      { status: 403, headers: { 'Content-Type': 'application/json' } }
+    );
   }
-}
-
-/**
- * Clear user session
- */
-export function clearUserSession() {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('userId');
-    localStorage.removeItem('userEmail');
-    
-    // Clear cookies
-    document.cookie = 'userId=; path=/; max-age=0';
-    document.cookie = 'userEmail=; path=/; max-age=0';
-  }
-}
-
-/**
- * Get user session (client-side)
- */
-export function getUserSession() {
-  if (typeof window !== 'undefined') {
-    return {
-      userId: localStorage.getItem('userId'),
-      userEmail: localStorage.getItem('userEmail'),
-    };
-  }
-  return { userId: null, userEmail: null };
+  return null;
 }

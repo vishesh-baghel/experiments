@@ -5,11 +5,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { markDraftAsPosted, getDraftById } from '@/lib/db/drafts';
+import { blockGuestWrite } from '@/lib/auth';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Block guest write operations
+  const guestBlock = await blockGuestWrite();
+  if (guestBlock) return guestBlock;
+
   try {
     const { id } = await params;
 

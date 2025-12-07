@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserPosts, createPost } from '@/lib/db/posts';
+import { blockGuestWrite } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,6 +36,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Block guest write operations
+  const guestBlock = await blockGuestWrite();
+  if (guestBlock) return guestBlock;
+
   try {
     const body = await request.json();
     const { userId, draftId, content, contentType, contentPillar } = body;

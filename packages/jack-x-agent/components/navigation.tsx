@@ -5,10 +5,13 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Lightbulb, FileText, Users, Settings } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Lightbulb, FileText, Users, Settings, LogOut, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { getUserSession, clearUserSession } from '@/lib/auth-client';
 
 const navItems = [
   { href: '/', label: 'ideas', icon: Lightbulb },
@@ -19,16 +22,60 @@ const navItems = [
 
 export function Navigation() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [isGuest, setIsGuest] = useState<boolean | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  useEffect(() => {
+    const checkGuestStatus = () => {
+      const session = getUserSession();
+      setIsGuest(session.isGuest);
+    };
+    
+    checkGuestStatus();
+    
+    // Also listen for storage changes (in case of login/logout in another tab)
+    window.addEventListener('storage', checkGuestStatus);
+    return () => window.removeEventListener('storage', checkGuestStatus);
+  }, []);
+
+  // Don't show navigation on auth page
+  if (pathname === '/auth') {
+    return null;
+  }
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      clearUserSession();
+      router.push('/auth');
+      router.refresh();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl font-bold">jack</span>
-            <span className="text-xs text-muted-foreground">x content agent</span>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-2">
+              <span className="text-2xl font-bold">jack</span>
+              <span className="text-xs text-muted-foreground">x content agent</span>
+            </Link>
+            {/* Guest Mode Indicator */}
+            {isGuest && (
+              <div className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-500 bg-amber-500/10 rounded-full border border-amber-500/20">
+                <Eye className="h-3 w-3" />
+                guest mode
+              </div>
+            )}
+          </div>
 
           {/* Nav Links */}
           <div className="flex items-center gap-1">
@@ -51,6 +98,18 @@ export function Navigation() {
                 </Link>
               );
             })}
+
+            {/* Logout Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="ml-2 text-muted-foreground hover:text-foreground"
+              aria-label="Logout"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>

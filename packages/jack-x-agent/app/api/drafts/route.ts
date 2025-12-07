@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db/client';
+import { blockGuestWrite } from '@/lib/auth';
 
 const CreateDraftSchema = z.object({
   outlineId: z.string(),
@@ -13,6 +14,10 @@ const CreateDraftSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Block guest write operations
+  const guestBlock = await blockGuestWrite();
+  if (guestBlock) return guestBlock;
+
   try {
     const body = await request.json();
     const { outlineId, content } = CreateDraftSchema.parse(body);

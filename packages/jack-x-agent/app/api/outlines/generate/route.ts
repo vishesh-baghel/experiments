@@ -12,6 +12,7 @@ import { getGoodPostsForLearning } from '@/lib/db/posts';
 import { createOutline } from '@/lib/db/outlines';
 import { updateIdeaStatus } from '@/lib/db/content-ideas';
 import { ContentIdeaSchema } from '@/lib/mastra/schemas';
+import { blockGuestWrite } from '@/lib/auth';
 
 const RequestSchema = z.object({
   userId: z.string(),
@@ -20,6 +21,10 @@ const RequestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Block guest write operations
+  const guestBlock = await blockGuestWrite();
+  if (guestBlock) return guestBlock;
+
   try {
     const body = await request.json();
     const { userId, contentIdeaId, idea } = RequestSchema.parse(body);

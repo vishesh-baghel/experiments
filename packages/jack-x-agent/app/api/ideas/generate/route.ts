@@ -5,6 +5,7 @@ import { buildIdeaContext } from '@/lib/mastra/context';
 import { getUserWithRelations } from '@/lib/db/users';
 import { getGoodPostsForLearning } from '@/lib/db/posts';
 import { createContentIdea, getRecentIdeas } from '@/lib/db/content-ideas';
+import { blockGuestWrite } from '@/lib/auth';
 
 const RequestSchema = z.object({
   userId: z.string(),
@@ -17,6 +18,10 @@ const RequestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Block guest write operations
+  const guestBlock = await blockGuestWrite();
+  if (guestBlock) return guestBlock;
+
   try {
     const body = await request.json();
     const { userId, trendingTopics } = RequestSchema.parse(body);

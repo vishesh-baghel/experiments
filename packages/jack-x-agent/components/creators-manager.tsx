@@ -5,12 +5,13 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { GuestTooltipButton } from '@/components/guest-tooltip-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatRelativeTime } from '@/lib/utils';
+import { getUserSession } from '@/lib/auth-client';
 
 interface Creator {
   id: string;
@@ -28,6 +29,12 @@ export function CreatorsManager({ userId, initialCreators = [] }: CreatorsManage
   const [creators, setCreators] = useState<Creator[]>(initialCreators);
   const [newHandle, setNewHandle] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
+
+  useEffect(() => {
+    const session = getUserSession();
+    setIsGuest(session.isGuest);
+  }, []);
 
   const handleAddCreator = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,12 +107,16 @@ export function CreatorsManager({ userId, initialCreators = [] }: CreatorsManage
                 placeholder="@username"
                 value={newHandle}
                 onChange={(e) => setNewHandle(e.target.value)}
-                disabled={isAdding}
+                disabled={isAdding || isGuest}
               />
             </div>
-            <Button type="submit" disabled={!newHandle.trim() || isAdding}>
+            <GuestTooltipButton 
+              type="submit" 
+              disabled={!newHandle.trim() || isAdding}
+              isGuest={isGuest}
+            >
               {isAdding ? 'adding...' : 'add'}
-            </Button>
+            </GuestTooltipButton>
           </form>
         </CardContent>
       </Card>
@@ -141,13 +152,14 @@ export function CreatorsManager({ userId, initialCreators = [] }: CreatorsManage
                   </p>
                 </div>
               </div>
-              <Button
+              <GuestTooltipButton
                 size="sm"
                 variant={creator.isActive ? 'outline' : 'default'}
                 onClick={() => handleToggleCreator(creator.id)}
+                isGuest={isGuest}
               >
                 {creator.isActive ? 'pause' : 'activate'}
-              </Button>
+              </GuestTooltipButton>
             </CardContent>
           </Card>
         ))}

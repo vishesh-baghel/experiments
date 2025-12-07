@@ -5,11 +5,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { markPostAsGood } from '@/lib/db/posts';
+import { blockGuestWrite } from '@/lib/auth';
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Block guest write operations
+  const guestBlock = await blockGuestWrite();
+  if (guestBlock) return guestBlock;
+
   try {
     const { id } = await params;
 
