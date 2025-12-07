@@ -402,3 +402,31 @@ Before generating any content, Jack should verify:
 - [ ] Sounds like a human, not AI?
 
 **If any checklist item fails, regenerate the content.**
+
+---
+
+## Frontend Copy vs Generated Content
+
+> **Important:** This document primarily covers **generated content** (posts, outlines, ideas). For **UI copy** (buttons, empty states, tooltips, error messages), see `PERSONALITY.md`.
+
+### The Split
+
+| aspect | generated content | UI copy |
+|--------|------------------|---------|
+| tone | user's authentic voice | jack's grind bro personality |
+| memes | never | always |
+| emojis | never | sparingly (in badges only) |
+| humor | subtle, self-deprecating | full spicy, rage-bait energy |
+| goal | sound like vishesh | make the app fun to use |
+
+### Why the Split?
+
+1. **Generated content** goes on X under Vishesh's name - must be authentic
+2. **UI copy** is jack's personality - makes the tool memorable and fun
+3. Users interact with jack's personality while creating their own voice
+
+### Cross-Reference
+
+- For UI copy guidelines: see `PERSONALITY.md`
+- For generated content tone: this document
+- For agent system prompt: see `MASTRA_AGENT.md`

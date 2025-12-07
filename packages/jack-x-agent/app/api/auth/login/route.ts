@@ -1,24 +1,68 @@
 /**
  * Login API Route
- * Authenticates user by email
+ * Single-user passphrase authentication
+ * Rate limited to prevent brute force attacks
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/client';
 import { z } from 'zod';
+import { 
+  checkRateLimit, 
+  getClientIp, 
+  getRandomRateLimitMessage 
+} from '@/lib/rate-limit';
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  passphrase: z.string().min(1, 'passphrase is required'),
 });
+
+// Spicy auth error messages
+const AUTH_ERROR_MESSAGES = [
+  "nice try, but you're not vishesh",
+  "wrong passphrase. skill issue detected",
+  "that's not the magic word",
+  "access denied. the grind requires the right key",
+  "nope. try again (or don't, you're probably not supposed to be here)",
+  "authentication failed. are you sure you're the owner?",
+  "wrong passphrase. the algorithm is judging you",
+];
+
+const getRandomAuthError = (): string => {
+  return AUTH_ERROR_MESSAGES[Math.floor(Math.random() * AUTH_ERROR_MESSAGES.length)];
+};
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { email } = loginSchema.parse(body);
+    // Rate limiting
+    const clientIp = getClientIp(request);
+    const rateLimitResult = checkRateLimit(`auth:${clientIp}`, {
+      windowMs: 60 * 1000, // 1 minute
+      maxAttempts: 5, // 5 attempts per minute
+    });
 
-    // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email },
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: getRandomRateLimitMessage(rateLimitResult.resetIn) },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.resetIn),
+            'X-RateLimit-Remaining': '0',
+          }
+        }
+      );
+    }
+
+    const body = await request.json();
+    const { passphrase } = loginSchema.parse(body);
+
+    // Find owner user with matching passphrase
+    const user = await prisma.user.findFirst({
+      where: { 
+        isOwner: true,
+        passphrase: passphrase,
+      },
       select: {
         id: true,
         email: true,
@@ -29,8 +73,13 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'User not found. Please sign up first.' },
-        { status: 404 }
+        { error: getRandomAuthError() },
+        { 
+          status: 401,
+          headers: {
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          }
+        }
       );
     }
 
@@ -47,13 +96,13 @@ export async function POST(request: NextRequest) {
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid email format', details: error.errors },
+        { error: 'passphrase is required' },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to login' },
+      { error: 'something broke. probably not your fault (probably)' },
       { status: 500 }
     );
   }

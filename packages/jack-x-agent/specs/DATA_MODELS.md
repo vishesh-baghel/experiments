@@ -31,16 +31,22 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Users table (single-user MVP, multi-user ready)
+-- Users table (single-user model)
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email TEXT NOT NULL UNIQUE,
   name TEXT,
   x_handle TEXT,
-  password_hash TEXT, -- Simple password for MVP
+  passphrase TEXT, -- For owner auth - manually set in DB
+  is_guest BOOLEAN DEFAULT false,
+  is_owner BOOLEAN DEFAULT false, -- True for the main user (you)
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Note: This is a single-user tool, not SaaS
+-- Owner creates their account manually in DB with passphrase
+-- Guests use read-only lurk mode
 
 -- Tone configuration (1 per user)
 CREATE TABLE tone_config (

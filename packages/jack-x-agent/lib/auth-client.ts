@@ -26,6 +26,9 @@ export function setUserSession(userId: string, email: string, isGuest: boolean =
     if (demoUserId) {
       document.cookie = `demoUserId=${demoUserId}; path=/; max-age=2592000`;
     }
+    
+    // Dispatch custom event so components can react immediately
+    window.dispatchEvent(new CustomEvent('session-changed'));
   }
 }
 

@@ -616,3 +616,142 @@ Response:
 - Draft edit/delete/post actions
 - Posted state tracking for drafts
 - Filter persistence via localStorage
+- Visitor mode (read-only access for followers to see content process)
+- Single-user passphrase authentication
+
+---
+
+## Flow 10: Visitor Mode Experience
+
+**Actor:** Follower, potential client, or curious visitor  
+**Goal:** See behind the scenes of Vishesh's content creation process  
+**Time:** 2-5 minutes
+
+### Purpose
+
+Visitor mode exists to:
+- **Show authenticity** - followers can see the raw content process
+- **Build trust** - transparency about how content is created
+- **Demonstrate the tool** - potential users can see Jack in action
+- **Portfolio showcase** - proof of building in public
+
+### Steps
+
+**Landing on Auth Page**
+```
+1. Navigate to jack.visheshbaghel.com
+2. See auth page with passphrase field
+3. Notice "see what i'm cooking" button
+4. Click to enter visitor mode
+```
+
+**Exploring as Visitor**
+```
+5. Redirected to Ideas Dashboard
+6. See "visitor mode" badge in navigation
+7. Browse Vishesh's actual content ideas
+8. Can view all pages: ideas, drafts, creators, settings
+9. All data shown is real content in progress
+```
+
+**Understanding Restrictions**
+```
+10. Hover over "cook up ideas" button
+11. See tooltip: "visitor mode - this is my personal agent. want your own?"
+12. See link: "deploy your own jack" → GitHub repo
+13. Understand this is read-only, can deploy their own
+```
+
+### Visitor Mode Restrictions
+
+| action | allowed | tooltip |
+|--------|---------|---------|
+| view ideas | yes | - |
+| view drafts | yes | - |
+| view creators | yes | - |
+| view settings | yes | - |
+| all write actions | no | "this is my personal agent. want your own? → deploy your own jack" |
+
+All restricted actions show the same simple tooltip with a link to the GitHub repo.
+
+### Success Metrics
+
+- **Engagement:** Visitors view 2+ pages
+- **Time on site:** 1-3 minutes average
+- **Purpose fulfilled:** Visitors understand the content creation process
+
+---
+
+## Flow 11: Authentication (Single-User Model)
+
+**Actor:** Owner (Vishesh) or visitor  
+**Goal:** Access Jack instance
+
+### Why Single-User?
+
+Jack is a **personal tool**, not a SaaS product. The auth model reflects this:
+- One owner (you) with full access via passphrase
+- Guests can explore via lurk mode (read-only)
+- No signup flow - you manually create your user in the DB
+
+### Owner Login Flow
+
+```
+1. Navigate to jack.visheshbaghel.com
+2. See auth page with passphrase field
+3. Enter passphrase (stored in DB, not env var)
+4. Click "let me in"
+5. If passphrase matches: logged in, full access
+6. If wrong: spicy error message (e.g., "nice try, but you're not vishesh")
+```
+
+### Rate Limiting
+
+Auth endpoint is rate limited to prevent brute force:
+- 5 attempts per minute per IP
+- After limit: "slow down speedrunner. try again in Xs"
+- Resets after 60 seconds
+
+### Logout Flow
+
+```
+1. Click logout icon in navigation
+2. Session cleared (cookies + localStorage)
+3. Redirected to auth page
+```
+
+### Session Management
+
+- Sessions stored in cookies (30-day expiry)
+- Guest sessions marked with `isGuest: true`
+- Demo user ID stored for guest data access
+- Cross-tab sync via localStorage events
+
+### Database Setup (One-Time)
+
+To set up your owner account:
+
+```sql
+-- Create owner user with passphrase
+INSERT INTO users (email, name, passphrase, is_owner)
+VALUES ('your@email.com', 'Your Name', 'your-secret-passphrase', true);
+```
+
+Or via Prisma:
+
+```typescript
+await prisma.user.create({
+  data: {
+    email: 'vishesh@example.com',
+    name: 'Vishesh',
+    passphrase: 'your-secret-passphrase-here',
+    isOwner: true,
+  }
+});
+```
+
+**Security notes:**
+- Use a strong passphrase (20+ characters)
+- Passphrase is stored in plain text (acceptable for single-user)
+- Rate limiting protects against brute force
+- Never expose passphrase in logs or client code

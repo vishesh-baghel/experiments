@@ -23,7 +23,7 @@ const navItems = [
 export function Navigation() {
   const pathname = usePathname();
   const router = useRouter();
-  const [isGuest, setIsGuest] = useState<boolean | null>(null);
+  const [isGuest, setIsGuest] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
@@ -32,12 +32,19 @@ export function Navigation() {
       setIsGuest(session.isGuest);
     };
     
+    // Check on mount and whenever pathname changes (handles navigation)
     checkGuestStatus();
     
+    // Listen for session changes (custom event from setUserSession)
+    window.addEventListener('session-changed', checkGuestStatus);
     // Also listen for storage changes (in case of login/logout in another tab)
     window.addEventListener('storage', checkGuestStatus);
-    return () => window.removeEventListener('storage', checkGuestStatus);
-  }, []);
+    
+    return () => {
+      window.removeEventListener('session-changed', checkGuestStatus);
+      window.removeEventListener('storage', checkGuestStatus);
+    };
+  }, [pathname]);
 
   // Don't show navigation on auth page
   if (pathname === '/auth') {
@@ -66,13 +73,13 @@ export function Navigation() {
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2">
               <span className="text-2xl font-bold">jack</span>
-              <span className="text-xs text-muted-foreground">x content agent</span>
+              <span className="text-xs text-muted-foreground">your ai ghostwriter</span>
             </Link>
-            {/* Guest Mode Indicator */}
+            {/* Visitor Mode Indicator */}
             {isGuest && (
               <div className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-500 bg-amber-500/10 rounded-full border border-amber-500/20">
                 <Eye className="h-3 w-3" />
-                guest mode
+                visitor mode
               </div>
             )}
           </div>

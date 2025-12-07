@@ -1,9 +1,15 @@
 # Jack - X Content Agent Specification
 
+> "because writer's block is for normies"
+
 **Version:** 0.1.0 (MVP)  
 **Author:** Vishesh Baghel  
-**Last Updated:** Nov 15, 2025  
+**Last Updated:** Dec 7, 2025  
 **Status:** Draft - Pre-Implementation (Architecture Revised)
+
+### Why "Jack"?
+
+Named after **Jack Dorsey**, founder of Twitter (now X). The name pays homage to the platform's origins while embodying the spirit of a creator who ships content relentlessly.
 
 ---
 
@@ -24,6 +30,7 @@
 - [UI Design](./specs/UI_DESIGN.md)
 - [User Flows](./specs/USER_FLOWS.md)
 - [Tone Guidelines](./specs/TONE_GUIDELINES.md)
+- [Personality](./specs/PERSONALITY.md) - Jack's grind bro persona and UI copy guidelines
 
 ---
 
@@ -96,6 +103,12 @@ Jack is an AI agent that reduces content creation time from 50 min to **20 min p
 - Simple web UI (no calendar, no complexity)
 - Save drafts for editing
 - Manual posting (no X API integration)
+
+**Authentication (Single-User Model)**
+- Passphrase-based auth for owner (you)
+- Guest mode for portfolio visitors (read-only)
+- No signup flow - single user tool, not SaaS
+- Rate limiting on auth endpoint (5 attempts/minute)
 
 ### V2 (Post-MVP)
 

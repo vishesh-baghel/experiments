@@ -107,16 +107,16 @@ export function ToneConfigComponent({ userId, initialConfig }: ToneConfigProps) 
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">tone & voice</h1>
+        <h1 className="text-3xl font-bold">settings</h1>
         <p className="text-muted-foreground">
-          configure your authentic writing style
+          see how i&apos;ve configured my writing style and voice
         </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Preferences */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">preferences</h2>
+          <h2 className="text-xl font-semibold">your voice settings</h2>
           <Card>
             <CardContent className="pt-6 space-y-4">
               {toggleOptions.map(({ key, label, description }) => (
@@ -148,18 +148,18 @@ export function ToneConfigComponent({ userId, initialConfig }: ToneConfigProps) 
           </Card>
 
           <Button onClick={handleSave} disabled={isSaving} className="w-full">
-            {isSaving ? 'saving...' : 'save preferences'}
+            {isSaving ? 'locking it in...' : 'lock it in'}
           </Button>
         </div>
 
         {/* Learned Patterns */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">learned patterns</h2>
+          <h2 className="text-xl font-semibold">what jack learned</h2>
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">from your good posts</CardTitle>
+              <CardTitle className="text-base">from your bangers</CardTitle>
               <CardDescription>
-                jack learns these patterns from posts you mark as good
+                jack studies your best posts and learns your secret sauce
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -205,8 +205,8 @@ export function ToneConfigComponent({ userId, initialConfig }: ToneConfigProps) 
               {!config.learnedPatterns.avgPostLength && 
                (!config.learnedPatterns.commonPhrases || config.learnedPatterns.commonPhrases.length === 0) && (
                 <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-sm">no patterns learned yet</p>
-                  <p className="text-xs mt-1">mark posts as good to help jack learn your voice</p>
+                  <p className="text-sm">jack is still learning</p>
+                  <p className="text-xs mt-1">mark your bangers so jack can study your style</p>
                 </div>
               )}
             </CardContent>

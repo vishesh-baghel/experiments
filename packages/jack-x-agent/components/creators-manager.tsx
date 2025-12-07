@@ -86,16 +86,19 @@ export function CreatorsManager({ userId, initialCreators = [] }: CreatorsManage
       <div>
         <h1 className="text-3xl font-bold">tracked creators</h1>
         <p className="text-muted-foreground">
-          follow creators you admire for content inspiration
+          {isGuest 
+            ? "see who inspires my content - the creators i learn from"
+            : "stalk the greats (ethically). jack learns from their energy"
+          }
         </p>
       </div>
 
       {/* Add Creator Form */}
       <Card>
         <CardHeader>
-          <CardTitle>add creator</CardTitle>
+          <CardTitle>add to the watchlist</CardTitle>
           <CardDescription>
-            enter an X handle to track their content style
+            drop an X handle. jack will study their posting patterns
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -115,7 +118,7 @@ export function CreatorsManager({ userId, initialCreators = [] }: CreatorsManage
               disabled={!newHandle.trim() || isAdding}
               isGuest={isGuest}
             >
-              {isAdding ? 'adding...' : 'add'}
+              {isAdding ? 'stalking...' : 'track'}
             </GuestTooltipButton>
           </form>
         </CardContent>
@@ -125,13 +128,13 @@ export function CreatorsManager({ userId, initialCreators = [] }: CreatorsManage
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>active creators</CardDescription>
+            <CardDescription>actively stalking</CardDescription>
             <CardTitle className="text-4xl">{activeCreators.length}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>total tracked</CardDescription>
+            <CardDescription>on the watchlist</CardDescription>
             <CardTitle className="text-4xl">{creators.length}</CardTitle>
           </CardHeader>
         </Card>
@@ -139,7 +142,7 @@ export function CreatorsManager({ userId, initialCreators = [] }: CreatorsManage
 
       {/* Creators List */}
       <div className="space-y-3">
-        <h2 className="text-lg font-semibold">all creators</h2>
+        <h2 className="text-lg font-semibold">the watchlist</h2>
         {creators.map((creator) => (
           <Card key={creator.id}>
             <CardContent className="flex items-center justify-between p-4">
@@ -158,7 +161,7 @@ export function CreatorsManager({ userId, initialCreators = [] }: CreatorsManage
                 onClick={() => handleToggleCreator(creator.id)}
                 isGuest={isGuest}
               >
-                {creator.isActive ? 'pause' : 'activate'}
+                {creator.isActive ? 'chill' : 'resume stalking'}
               </GuestTooltipButton>
             </CardContent>
           </Card>
@@ -167,8 +170,8 @@ export function CreatorsManager({ userId, initialCreators = [] }: CreatorsManage
 
       {creators.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
-          <p>no creators tracked yet</p>
-          <p className="text-sm mt-2">add creators to get inspired by their content style</p>
+          <p>watchlist is empty</p>
+          <p className="text-sm mt-2">add some creators to study. learn from the best, become the best</p>
         </div>
       )}
     </div>

@@ -237,7 +237,10 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
         <div>
           <h1 className="text-3xl font-bold">my drafts</h1>
           <p className="text-muted-foreground">
-            saved drafts from your outlines - mark your best ones so jack learns your voice
+            {isGuest 
+              ? "browse my content drafts - the raw ideas before they ship"
+              : "your content vault. mark the bangers so jack learns your voice"
+            }
           </p>
         </div>
       </div>
@@ -276,7 +279,7 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
                 : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
             }`}
           >
-            good ({posts.filter(p => p.isMarkedGood).length})
+            bangers ({posts.filter(p => p.isMarkedGood).length})
           </button>
           <button
             onClick={() => setFilter('posted')}
@@ -286,7 +289,7 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
                 : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
             }`}
           >
-            posted ({posts.filter(p => p.isPosted).length})
+            shipped ({posts.filter(p => p.isPosted).length})
           </button>
         </div>
         <DateRangeFilter
@@ -313,12 +316,12 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
                     </span>
                     {post.isMarkedGood && (
                       <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
-                        good
+                        banger
                       </Badge>
                     )}
                     {post.isPosted && (
                       <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                        posted
+                        shipped
                       </Badge>
                     )}
                   </div>
@@ -373,7 +376,7 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
                     isGuest={isGuest}
                     className="text-muted-foreground hover:text-foreground"
                   >
-                    edit
+                    fix it
                   </GuestTooltipButton>
                   <GuestTooltipButton
                     size="sm"
@@ -383,7 +386,7 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
                     isGuest={isGuest}
                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
-                    {loadingAction === `delete-${post.draftId}` ? 'deleting...' : 'delete'}
+                    {loadingAction === `delete-${post.draftId}` ? 'yeeting...' : 'yeet'}
                   </GuestTooltipButton>
                 </div>
                 <div className="flex gap-2">
@@ -395,7 +398,7 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
                       disabled={loadingId === post.draftId}
                       isGuest={isGuest}
                     >
-                      {loadingId === post.draftId ? 'saving...' : 'mark as good'}
+                      {loadingId === post.draftId ? 'noting...' : 'this one hits'}
                     </GuestTooltipButton>
                   )}
                   {!post.isPosted && (
@@ -406,7 +409,7 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
                       disabled={loadingAction === `post-${post.draftId}`}
                       isGuest={isGuest}
                     >
-                      {loadingAction === `post-${post.draftId}` ? 'posting...' : 'post to X'}
+                      {loadingAction === `post-${post.draftId}` ? 'shipping...' : 'ship it'}
                     </GuestTooltipButton>
                   )}
                 </div>
@@ -419,14 +422,14 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
       {filteredPosts.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
           <p>
-            no {filter === 'good' ? 'good ' : filter === 'posted' ? 'posted ' : ''}drafts yet
+            no {filter === 'good' ? 'bangers ' : filter === 'posted' ? 'shipped content ' : ''}yet
           </p>
           <p className="text-sm mt-2">
             {filter === 'good' 
-              ? 'mark your best drafts so jack can learn your voice'
+              ? 'be honest with yourself - which ones actually slap?'
               : filter === 'posted'
-                ? 'post your drafts to X to see them here'
-                : 'create an outline and save a draft to get started'
+                ? 'the timeline is waiting. your audience is starving'
+                : 'generate an outline and save something. we believe in you'
             }
           </p>
         </div>

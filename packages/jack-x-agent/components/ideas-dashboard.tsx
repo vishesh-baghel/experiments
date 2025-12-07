@@ -154,7 +154,10 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
         <div>
           <h1 className="text-3xl font-bold">content ideas</h1>
           <p className="text-muted-foreground">
-            ai-generated ideas based on your voice and trending topics
+            {isGuest 
+              ? "see what ideas i'm working with before they hit the timeline"
+              : "ai-generated bangers based on your voice. the algorithm will thank you"
+            }
           </p>
         </div>
         <GuestTooltipButton
@@ -162,7 +165,7 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
           disabled={isGenerating}
           isGuest={isGuest}
         >
-          {isGenerating ? 'generating...' : 'generate ideas'}
+          {isGenerating ? 'cooking...' : 'cook up ideas'}
         </GuestTooltipButton>
       </div>
 
@@ -208,7 +211,7 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
             </CardHeader>
             <CardContent className="flex-1 flex flex-col">
               <div className="text-sm text-muted-foreground">
-                <p className="font-medium">why this works:</p>
+                <p className="font-medium">why this hits:</p>
                 <p className="line-clamp-3">{idea.rationale}</p>
               </div>
               
@@ -229,7 +232,7 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
                       className="flex-1"
                       isGuest={isGuest}
                     >
-                      accept
+                      this hits
                     </GuestTooltipButton>
                     <GuestTooltipButton
                       size="sm"
@@ -238,7 +241,7 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
                       className="flex-1"
                       isGuest={isGuest}
                     >
-                      reject
+                      mid
                     </GuestTooltipButton>
                   </>
                 )}
@@ -251,11 +254,11 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
                       onClick={() => handleGenerateOutline(idea)}
                       isGuest={isGuest}
                     >
-                      get outline
+                      make it make sense
                     </GuestTooltipButton>
                     {idea.outlines && idea.outlines.length > 0 && (
                       <p className="text-xs text-muted-foreground text-center mt-2">
-                        outline already exists - check &quot;used&quot; tab
+                        outline already exists - check the &quot;used&quot; tab
                       </p>
                     )}
                   </>
@@ -284,10 +287,16 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
         <div className="text-center py-12 text-muted-foreground">
           <p>no {selectedStatus} ideas yet</p>
           {selectedStatus === 'suggested' && (
-            <p className="text-sm mt-2">click &quot;generate ideas&quot; to get started</p>
+            <p className="text-sm mt-2">hit that &quot;cook up ideas&quot; button and let&apos;s get this bread</p>
           )}
           {selectedStatus === 'accepted' && (
-            <p className="text-sm mt-2">already generated an outline? check the &quot;used&quot; tab</p>
+            <p className="text-sm mt-2">nothing accepted. your standards are either too high or you haven&apos;t looked yet</p>
+          )}
+          {selectedStatus === 'rejected' && (
+            <p className="text-sm mt-2">empty rejection pile. either you love everything or you&apos;re not being picky enough</p>
+          )}
+          {selectedStatus === 'used' && (
+            <p className="text-sm mt-2">no used ideas. time to stop hoarding and start shipping</p>
           )}
         </div>
       )}
