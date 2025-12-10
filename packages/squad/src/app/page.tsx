@@ -2,8 +2,6 @@ import { Header } from "@/components/sections/header";
 import { Footer } from "@/components/sections/footer";
 import { AgentCard } from "@/components/agent-card";
 import { agents } from "@/config/agents";
-import { siteConfig } from "@/config/site";
-import Link from "next/link";
 
 const HomePage = () => {
   return (
@@ -15,57 +13,48 @@ const HomePage = () => {
           {/* Hero Section */}
           <section className="py-6">
             <h1 className="text-2xl sm:text-3xl font-bold mb-4">
-              hyper personalised agents i built, deploy them for yourself and
-              let them do your boring work
+              personal agents i built and use daily
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground">
-              these are tools i use daily. open source, but you can deploy your
-              own instance in 2 minutes.
+              a collection of ai agents from my workflow. open source, so you
+              can see how they work, learn from them, or build your own.
             </p>
+          </section>
+
+          {/* Why Section - moved before agents */}
+          <section className="py-6">
+            <h2 className="text-base sm:text-lg font-bold mb-4 mt-0">
+              why i built these
+            </h2>
+            <div className="space-y-4 text-sm sm:text-base">
+              <p>
+                i believe software should be personal - shaped by how you think
+                and work, not built for the masses. these agents started as
+                tools for myself, and i&apos;m sharing them so others can learn
+                from the approach.
+              </p>
+              <p>
+                everything is open source. you can read the code, understand the
+                architecture, and adapt the ideas for your own projects. no
+                black boxes.
+              </p>
+              <p>
+                if you want to run your own instance, you can deploy it to your
+                infrastructure. you own the data, pay only for what you use, and
+                can modify anything.
+              </p>
+            </div>
           </section>
 
           {/* Agents Section */}
           <section className="py-6">
-            <h2 className="text-base sm:text-lg font-bold mb-6 mt-0">agents</h2>
+            <h2 className="text-base sm:text-lg font-bold mb-6 mt-0">
+              the agents
+            </h2>
             <div className="space-y-4">
               {agents.map((agent) => (
                 <AgentCard key={agent.id} agent={agent} />
               ))}
-            </div>
-          </section>
-
-          {/* Why Section */}
-          <section className="py-6">
-            <h2 className="text-base sm:text-lg font-bold mb-4 mt-0">
-              why this exists
-            </h2>
-            <p className="text-sm sm:text-base mb-4">
-              i build these agents for myself. they help me ship faster and stay
-              consistent. the code is open source - you can read it, fork it, or
-              deploy your own instance here.
-            </p>
-            <div className="flex flex-wrap gap-4 text-sm">
-              <Link
-                href={siteConfig.links.portfolio}
-                target="_blank"
-                rel="noreferrer"
-              >
-                portfolio
-              </Link>
-              <Link
-                href={siteConfig.links.github}
-                target="_blank"
-                rel="noreferrer"
-              >
-                github
-              </Link>
-              <Link
-                href={siteConfig.links.calendar}
-                target="_blank"
-                rel="noreferrer"
-              >
-                book a call
-              </Link>
             </div>
           </section>
         </main>

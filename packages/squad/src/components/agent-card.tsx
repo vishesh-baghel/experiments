@@ -9,14 +9,14 @@ interface AgentCardProps {
 export const AgentCard = ({ agent }: AgentCardProps) => {
   const isComingSoon = agent.status === "coming-soon";
 
-  return (
-    <div className="border border-border p-6 hover:border-muted-foreground transition-colors">
+  const CardContent = () => (
+    <>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-baseline gap-3 mb-2">
             <h3 className="text-lg font-bold">{agent.name}</h3>
             {isComingSoon && (
-              <span className="text-xs px-2 py-1 bg-secondary text-muted-foreground">
+              <span className="text-xs px-2 py-0.5 bg-secondary text-muted-foreground leading-none">
                 coming soon
               </span>
             )}
@@ -36,15 +36,29 @@ export const AgentCard = ({ agent }: AgentCardProps) => {
 
       {!isComingSoon && (
         <div className="mt-6 flex justify-end">
-          <Link
-            href={`/${agent.id}`}
-            className="inline-flex items-center gap-2 text-sm text-foreground no-underline hover:text-accent-red"
-          >
+          <span className="inline-flex items-center gap-2 text-sm text-foreground group-hover:text-accent-red transition-colors">
             learn more
             <ArrowRight className="h-4 w-4" />
-          </Link>
+          </span>
         </div>
       )}
-    </div>
+    </>
+  );
+
+  if (isComingSoon) {
+    return (
+      <div className="border border-border p-6">
+        <CardContent />
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={`/${agent.id}`}
+      className="block border border-border p-6 hover:border-muted-foreground transition-colors no-underline text-foreground group"
+    >
+      <CardContent />
+    </Link>
   );
 };

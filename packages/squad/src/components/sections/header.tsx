@@ -16,7 +16,7 @@ export const Header = () => {
           {isHomePage ? (
             <Link
               href="/"
-              className="text-base font-bold text-foreground no-underline hover:no-underline"
+              className="text-xl font-bold text-foreground no-underline hover:no-underline"
             >
               squad
             </Link>
@@ -26,7 +26,7 @@ export const Header = () => {
               className="inline-flex items-center gap-2 text-sm text-foreground no-underline hover:text-muted-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
-              squad
+              back
             </Link>
           )}
         </div>

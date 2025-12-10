@@ -4,7 +4,7 @@ import { Header } from "@/components/sections/header";
 import { Footer } from "@/components/sections/footer";
 import { Button } from "@/components/ui/button";
 import { agents, getAgentById } from "@/config/agents";
-import { Check, ExternalLink } from "lucide-react";
+import { Check } from "lucide-react";
 
 interface AgentPageProps {
   params: Promise<{
@@ -43,6 +43,7 @@ const AgentPage = async ({ params }: AgentPageProps) => {
   }
 
   const isComingSoon = agent.status === "coming-soon";
+  const isJack = agent.id === "jack";
 
   return (
     <div className="min-h-screen font-mono">
@@ -52,12 +53,34 @@ const AgentPage = async ({ params }: AgentPageProps) => {
         <main>
           {/* Hero */}
           <section className="py-6">
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-baseline gap-3 mb-2 flex-wrap">
               <h1 className="text-2xl sm:text-3xl font-bold">{agent.name}</h1>
               {isComingSoon && (
-                <span className="text-xs px-2 py-1 bg-secondary text-muted-foreground">
+                <span className="text-xs px-2 py-0.5 bg-secondary text-muted-foreground leading-none">
                   coming soon
                 </span>
+              )}
+              {!isComingSoon && (
+                <div className="flex gap-3 text-sm">
+                  {agent.demoUrl && (
+                    <Link
+                      href={agent.demoUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      live
+                    </Link>
+                  )}
+                  {agent.specUrl && (
+                    <Link
+                      href={agent.specUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      spec
+                    </Link>
+                  )}
+                </div>
               )}
             </div>
             <p className="text-base text-muted-foreground mb-4 italic">
@@ -65,6 +88,58 @@ const AgentPage = async ({ params }: AgentPageProps) => {
             </p>
             <p className="text-sm sm:text-base">{agent.description}</p>
           </section>
+
+          {/* Jack-specific: Authenticity Section */}
+          {isJack && (
+            <section className="py-6">
+              <h2 className="text-base sm:text-lg font-bold mb-4 mt-0">
+                staying authentic in the age of ai
+              </h2>
+              <div className="space-y-4 text-sm sm:text-base">
+                <p>
+                  generating posts is easy now. anyone can ask chatgpt to write
+                  a thread. but that&apos;s exactly why authenticity matters
+                  more than ever.
+                </p>
+                <p>
+                  jack doesn&apos;t write for you - it helps you think. it
+                  tracks what&apos;s trending, generates ideas, and creates
+                  outlines. but the words? those are yours.
+                </p>
+                <p>
+                  i want people to see how i actually create content. the messy
+                  drafts that never made it. the ideas that seemed good at 2am.
+                  the process of finding my voice, not just the polished output.
+                </p>
+              </div>
+            </section>
+          )}
+
+          {/* Jack-specific: Core Ideas Section */}
+          {isJack && (
+            <section className="py-6">
+              <h2 className="text-base sm:text-lg font-bold mb-4 mt-0">
+                the idea behind this
+              </h2>
+              <div className="space-y-4 text-sm sm:text-base">
+                <p>
+                  i share everything i do - how i use ai tools to create, learn,
+                  and explore tech. not to show off, but because i believe in
+                  learning in public.
+                </p>
+                <p>
+                  when you deploy jack, you get the same system i use. watch how
+                  it learns your voice over time. see the ideas it generates.
+                  understand the process, not just the result.
+                </p>
+                <p>
+                  that&apos;s the point - to help you build your own authentic
+                  presence, using ai as a thinking partner rather than a
+                  ghostwriter.
+                </p>
+              </div>
+            </section>
+          )}
 
           {/* Features */}
           <section className="py-6">
@@ -172,33 +247,6 @@ const AgentPage = async ({ params }: AgentPageProps) => {
             </section>
           )}
 
-          {/* Links */}
-          <section className="py-6">
-            <div className="flex flex-wrap gap-4 text-sm">
-              {agent.demoUrl && (
-                <Link
-                  href={agent.demoUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1"
-                >
-                  see it live (demo)
-                  <ExternalLink className="h-3 w-3" />
-                </Link>
-              )}
-              {agent.specUrl && (
-                <Link
-                  href={agent.specUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1"
-                >
-                  read the spec
-                  <ExternalLink className="h-3 w-3" />
-                </Link>
-              )}
-            </div>
-          </section>
         </main>
 
         <Footer />

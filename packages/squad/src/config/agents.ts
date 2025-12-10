@@ -54,7 +54,7 @@ export const jackAgent: AgentConfig = {
   name: "jack",
   tagline: "because writer's block is for normies",
   description:
-    "x content agent that learns your voice. named after jack dorsey. tracks creators you follow, generates ideas from trending topics, and improves from 50% to 80% relevance in 4 weeks.",
+    "x content agent that learns your voice. named after jack dorsey. tracks creators you follow, generates ideas from trending topics and gives you outline to write the actual content",
   features: [
     {
       title: "creator tracking",
