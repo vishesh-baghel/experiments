@@ -2,7 +2,7 @@
 
 > hyper personalised agents i built, deploy them for yourself and let them do your boring work
 
-Squad is a deployment service that lets anyone deploy my personal AI agents to their own infrastructure with one click.
+Squad is a deployment service that lets anyone deploy my personal AI agents to their own infrastructure with one click
 
 ## Features
 
