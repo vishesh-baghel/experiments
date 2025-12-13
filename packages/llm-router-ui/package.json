@@ -21,7 +21,7 @@
     "clsx": "^2.1.1",
     "llm-router": "file:../llm-router",
     "lucide-react": "^0.460.0",
-    "next": "16.0.1",
+    "next": "16.0.10",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "redis": "^5.9.0",
