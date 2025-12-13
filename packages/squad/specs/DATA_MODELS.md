@@ -1,16 +1,153 @@
 # Squad - Data Models
 
-**Version:** 0.1.0  
-**Last Updated:** Dec 10, 2025
+**Version:** 0.2.0  
+**Last Updated:** Dec 13, 2025
 
 ---
 
 ## Overview
 
-Squad V1 is designed as a stateless application. There's no database - all data is either:
-1. **Static config** - Agent definitions in code
-2. **Session state** - OAuth tokens during deploy flow (cookies/memory)
-3. **External state** - Created in user's Vercel/GitHub accounts
+Squad uses a Neon Postgres database for user management and deployment tracking:
+
+1. **Database tables** - Users, sessions, accounts, deployments (via Better Auth + custom)
+2. **Static config** - Agent definitions in code
+3. **Session state** - OAuth tokens during deploy flow (temporary, discarded after use)
+4. **External state** - Created in user's Vercel/GitHub accounts
+
+---
+
+## Database Schema
+
+### Better Auth Tables (Managed)
+
+Better Auth manages these tables automatically:
+
+```sql
+-- Users table (extended with custom fields)
+CREATE TABLE users (
+  id            TEXT PRIMARY KEY,
+  name          TEXT,
+  email         TEXT UNIQUE,
+  email_verified BOOLEAN DEFAULT FALSE,
+  image         TEXT,
+  created_at    TIMESTAMP DEFAULT NOW(),
+  updated_at    TIMESTAMP DEFAULT NOW(),
+  
+  -- Custom fields
+  forked_repo   TEXT,              -- e.g., "username/experiments"
+  forked_at     TIMESTAMP
+);
+
+-- Sessions table
+CREATE TABLE sessions (
+  id            TEXT PRIMARY KEY,
+  user_id       TEXT REFERENCES users(id),
+  token         TEXT UNIQUE NOT NULL,
+  expires_at    TIMESTAMP NOT NULL,
+  ip_address    TEXT,
+  user_agent    TEXT,
+  created_at    TIMESTAMP DEFAULT NOW(),
+  updated_at    TIMESTAMP DEFAULT NOW()
+);
+
+-- OAuth accounts table
+CREATE TABLE accounts (
+  id                TEXT PRIMARY KEY,
+  user_id           TEXT REFERENCES users(id),
+  account_id        TEXT NOT NULL,
+  provider_id       TEXT NOT NULL,        -- 'github', 'google'
+  access_token      TEXT,
+  refresh_token     TEXT,
+  access_token_expires_at TIMESTAMP,
+  refresh_token_expires_at TIMESTAMP,
+  scope             TEXT,
+  id_token          TEXT,
+  created_at        TIMESTAMP DEFAULT NOW(),
+  updated_at        TIMESTAMP DEFAULT NOW(),
+  
+  UNIQUE(provider_id, account_id)
+);
+```
+
+### Custom Tables
+
+```sql
+-- Deployed agents per user
+CREATE TABLE deployments (
+  id              TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         TEXT REFERENCES users(id) NOT NULL,
+  agent_id        TEXT NOT NULL,           -- 'jack', 'sensie', etc.
+  
+  -- Vercel deployment info
+  vercel_project_id   TEXT,
+  vercel_project_name TEXT,
+  deployment_url      TEXT,
+  
+  -- Status
+  status          TEXT DEFAULT 'pending',  -- 'pending', 'deployed', 'failed'
+  error_message   TEXT,
+  
+  -- Timestamps
+  created_at      TIMESTAMP DEFAULT NOW(),
+  deployed_at     TIMESTAMP,
+  
+  -- Prevent duplicate deployments
+  UNIQUE(user_id, agent_id)
+);
+
+-- Index for fast lookups
+CREATE INDEX idx_deployments_user_id ON deployments(user_id);
+CREATE INDEX idx_deployments_agent_id ON deployments(agent_id);
+```
+
+### TypeScript Types (Drizzle)
+
+```typescript
+// src/db/schema.ts
+import { pgTable, text, timestamp, boolean, index, unique } from 'drizzle-orm/pg-core';
+
+// Users table (Better Auth + custom fields)
+export const users = pgTable('users', {
+  id: text('id').primaryKey(),
+  name: text('name'),
+  email: text('email').unique(),
+  emailVerified: boolean('email_verified').default(false),
+  image: text('image'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  
+  // Custom fields
+  forkedRepo: text('forked_repo'),
+  forkedAt: timestamp('forked_at'),
+});
+
+// Deployments table
+export const deployments = pgTable('deployments', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').references(() => users.id).notNull(),
+  agentId: text('agent_id').notNull(),
+  
+  vercelProjectId: text('vercel_project_id'),
+  vercelProjectName: text('vercel_project_name'),
+  deploymentUrl: text('deployment_url'),
+  
+  status: text('status').default('pending'),
+  errorMessage: text('error_message'),
+  
+  createdAt: timestamp('created_at').defaultNow(),
+  deployedAt: timestamp('deployed_at'),
+}, (table) => ({
+  userIdIdx: index('idx_deployments_user_id').on(table.userId),
+  agentIdIdx: index('idx_deployments_agent_id').on(table.agentId),
+  uniqueUserAgent: unique('unique_user_agent').on(table.userId, table.agentId),
+}));
+
+// Type exports
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type Deployment = typeof deployments.$inferSelect;
+export type NewDeployment = typeof deployments.$inferInsert;
+```
 
 ---
 
