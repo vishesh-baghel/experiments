@@ -7,8 +7,8 @@
 // Deploy Steps
 
 export type DeployStepId =
-  | "vercel-auth"
   | "github-auth"
+  | "vercel-auth"
   | "provisioning"
   | "deploying";
 
@@ -118,10 +118,10 @@ export const createInitialDeploySession = (agentId: string): DeploySession => {
 
   return {
     agentId,
-    currentStep: "vercel-auth",
+    currentStep: "github-auth",
     steps: [
-      { id: "vercel-auth", status: "pending" },
       { id: "github-auth", status: "pending" },
+      { id: "vercel-auth", status: "pending" },
       { id: "provisioning", status: "pending" },
       { id: "deploying", status: "pending" },
     ],
@@ -132,8 +132,8 @@ export const createInitialDeploySession = (agentId: string): DeploySession => {
 
 export const getStepIndex = (stepId: DeployStepId): number => {
   const order: DeployStepId[] = [
-    "vercel-auth",
     "github-auth",
+    "vercel-auth",
     "provisioning",
     "deploying",
   ];
@@ -142,8 +142,8 @@ export const getStepIndex = (stepId: DeployStepId): number => {
 
 export const getNextStep = (currentStep: DeployStepId): DeployStepId | null => {
   const order: DeployStepId[] = [
-    "vercel-auth",
     "github-auth",
+    "vercel-auth",
     "provisioning",
     "deploying",
   ];

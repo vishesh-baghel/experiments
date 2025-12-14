@@ -18,9 +18,9 @@ describe("createInitialDeploySession", () => {
     expect(session.agentId).toBe("jack");
   });
 
-  it("should start at vercel-auth step", () => {
+  it("should start at github-auth step", () => {
     const session = createInitialDeploySession("jack");
-    expect(session.currentStep).toBe("vercel-auth");
+    expect(session.currentStep).toBe("github-auth");
   });
 
   it("should have all steps in pending status", () => {
@@ -35,8 +35,8 @@ describe("createInitialDeploySession", () => {
     const session = createInitialDeploySession("jack");
     const stepIds = session.steps.map((s) => s.id);
     expect(stepIds).toEqual([
-      "vercel-auth",
       "github-auth",
+      "vercel-auth",
       "provisioning",
       "deploying",
     ]);
@@ -63,12 +63,12 @@ describe("createInitialDeploySession", () => {
 });
 
 describe("getStepIndex", () => {
-  it("should return 0 for vercel-auth", () => {
-    expect(getStepIndex("vercel-auth")).toBe(0);
+  it("should return 0 for github-auth", () => {
+    expect(getStepIndex("github-auth")).toBe(0);
   });
 
-  it("should return 1 for github-auth", () => {
-    expect(getStepIndex("github-auth")).toBe(1);
+  it("should return 1 for vercel-auth", () => {
+    expect(getStepIndex("vercel-auth")).toBe(1);
   });
 
   it("should return 2 for provisioning", () => {
@@ -81,12 +81,12 @@ describe("getStepIndex", () => {
 });
 
 describe("getNextStep", () => {
-  it("should return github-auth after vercel-auth", () => {
-    expect(getNextStep("vercel-auth")).toBe("github-auth");
+  it("should return vercel-auth after github-auth", () => {
+    expect(getNextStep("github-auth")).toBe("vercel-auth");
   });
 
-  it("should return provisioning after github-auth", () => {
-    expect(getNextStep("github-auth")).toBe("provisioning");
+  it("should return provisioning after vercel-auth", () => {
+    expect(getNextStep("vercel-auth")).toBe("provisioning");
   });
 
   it("should return deploying after provisioning", () => {

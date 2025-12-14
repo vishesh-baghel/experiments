@@ -102,7 +102,7 @@ export const GET = async (request: NextRequest) => {
 
     // Update step status
     await updateStepStatus("vercel-auth", "completed");
-    await updateStepStatus("github-auth", "in-progress");
+    await updateStepStatus("provisioning", "in-progress");
 
     // Redirect back to deploy page
     return NextResponse.redirect(

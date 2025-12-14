@@ -38,11 +38,11 @@ export const GET = async (request: NextRequest) => {
     );
   }
 
-  // Verify we have a deploy session with Vercel auth
+  // Verify we have a deploy session
   const session = await getDeploySession();
-  if (!session || !session.vercel?.accessToken) {
+  if (!session) {
     return NextResponse.redirect(
-      new URL(`/deploy/${agentId}?error=missing_vercel_auth`, request.url)
+      new URL(`/deploy/${agentId}?error=missing_session`, request.url)
     );
   }
 

@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createDeploySession, getDeploySession, updateStepStatus } from "@/lib/deploy/session";
+import { getDeploySession, updateStepStatus } from "@/lib/deploy/session";
 
 
 const VERCEL_OAUTH_URL = "https://vercel.com/oauth/authorize";
@@ -38,10 +38,12 @@ export const GET = async (request: NextRequest) => {
     );
   }
 
-  // Get or create deploy session
-  let session = await getDeploySession();
-  if (!session || session.agentId !== agentId) {
-    session = await createDeploySession(agentId);
+  // Verify we have a deploy session with GitHub auth (step 1 must be complete)
+  const session = await getDeploySession();
+  if (!session || !session.github?.accessToken) {
+    return NextResponse.redirect(
+      new URL(`/deploy/${agentId}?error=missing_github_auth`, request.url)
+    );
   }
 
   // Update step status

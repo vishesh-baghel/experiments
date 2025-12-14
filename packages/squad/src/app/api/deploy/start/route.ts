@@ -34,7 +34,10 @@ export const POST = async (request: NextRequest) => {
     // Get existing session or create new one
     let session = await getDeploySession();
 
-    if (!session || session.agentId !== agentId) {
+    // Force new session if agentId changed or step order is outdated
+    const isStaleSession = session && session.steps[0]?.id !== "github-auth";
+    
+    if (!session || session.agentId !== agentId || isStaleSession) {
       session = await createDeploySession(agentId);
     }
 

@@ -136,10 +136,10 @@ export const GET = async (request: NextRequest) => {
 
     // Update step status
     await updateStepStatus("github-auth", "completed");
-    await updateStepStatus("provisioning", "in-progress");
+    await updateStepStatus("vercel-auth", "in-progress");
 
-    // Update current step to provisioning
-    await updateDeploySession({ currentStep: "provisioning" });
+    // Update current step to vercel-auth (step 2)
+    await updateDeploySession({ currentStep: "vercel-auth" });
 
     // Redirect back to deploy page
     return NextResponse.redirect(

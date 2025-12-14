@@ -9,9 +9,15 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { DeployProgress, OAuthButton } from "@/components/deploy";
+import { DeployProgress, OAuthButton, DeployError } from "@/components/deploy";
 import { AgentConfig } from "@/config/agents";
 import { DeploySession } from "@/lib/deploy/types";
+import {
+  trackDeployStart,
+  trackDeployStep,
+  trackDeploySuccess,
+  trackDeployFailure,
+} from "@/lib/analytics";
 import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 
 interface DeployFlowProps {
@@ -56,8 +62,14 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
           },
         };
       });
+
+      trackDeployStep({ agentId: agent.id, step: "deploying", success: true });
+      trackDeploySuccess(agent.id, data.deploymentUrl);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Deployment failed");
+      const errorMsg = err instanceof Error ? err.message : "Deployment failed";
+      setError(errorMsg);
+      trackDeployStep({ agentId: agent.id, step: "deploying", success: false, error: errorMsg });
+      trackDeployFailure(agent.id, "deploying", errorMsg);
       setSession((prev) => {
         if (!prev) return prev;
         return {
@@ -109,10 +121,14 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
         };
       });
 
+      trackDeployStep({ agentId: agent.id, step: "provisioning", success: true });
+
       // Auto-start deployment
       handleDeploy(data.vercelProjectId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Provisioning failed");
+      const errorMsg = err instanceof Error ? err.message : "Provisioning failed";
+      setError(errorMsg);
+      trackDeployStep({ agentId: agent.id, step: "provisioning", success: false, error: errorMsg });
       setSession((prev) => {
         if (!prev) return prev;
         return {
@@ -146,8 +162,11 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
         }
 
         setSession(data.session);
+        trackDeployStart(agent.id);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to initialize");
+        const errorMsg = err instanceof Error ? err.message : "Failed to initialize";
+        setError(errorMsg);
+        trackDeployFailure(agent.id, "init", errorMsg);
       } finally {
         setIsInitializing(false);
       }
@@ -164,7 +183,7 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
     const hasGitHub = !!session.github?.accessToken;
     const currentStep = session.currentStep;
 
-    if (hasVercel && hasGitHub && currentStep === "github-auth") {
+    if (hasVercel && hasGitHub && currentStep === "vercel-auth") {
       handleProvision();
     }
   }, [session, handleProvision]);
@@ -182,10 +201,12 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
   // Show error if initialization failed
   if (!session) {
     return (
-      <div className="border border-border p-6">
-        <p className="text-sm text-red-600 mb-4">{error || "Failed to initialize deploy session"}</p>
-        <Button onClick={() => window.location.reload()}>retry</Button>
-      </div>
+      <DeployError
+        type="unknown"
+        message={error || "Failed to initialize deploy session"}
+        agentId={agent.id}
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 
@@ -213,26 +234,26 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
 
       {/* Current Step Content */}
       <div className="border border-border p-6">
-        {/* Step 1: Vercel Auth */}
-        {currentStep === "vercel-auth" && !hasVercel && (
+        {/* Step 1: GitHub Auth */}
+        {currentStep === "github-auth" && !hasGitHub && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">step 1: connect vercel</h2>
+            <h2 className="text-lg font-semibold">step 1: connect github</h2>
+            <p className="text-sm text-muted-foreground">
+              we need access to fork the repository to your github account.
+            </p>
+            <OAuthButton provider="github" agentId={agent.id} />
+          </div>
+        )}
+
+        {/* Step 2: Vercel Auth */}
+        {currentStep === "vercel-auth" && hasGitHub && !hasVercel && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">step 2: connect vercel</h2>
             <p className="text-sm text-muted-foreground">
               we need access to your vercel account to create the project and
               provision integrations.
             </p>
             <OAuthButton provider="vercel" agentId={agent.id} />
-          </div>
-        )}
-
-        {/* Step 2: GitHub Auth */}
-        {currentStep === "github-auth" && hasVercel && !hasGitHub && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">step 2: connect github</h2>
-            <p className="text-sm text-muted-foreground">
-              we need access to fork the repository to your github account.
-            </p>
-            <OAuthButton provider="github" agentId={agent.id} />
           </div>
         )}
 
@@ -246,10 +267,12 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
                 setting up your infrastructure...
               </div>
             ) : error ? (
-              <div className="space-y-4">
-                <p className="text-sm text-red-600">{error}</p>
-                <Button onClick={handleRetry}>retry</Button>
-              </div>
+              <DeployError
+                type="provision"
+                message={error}
+                agentId={agent.id}
+                onRetry={handleRetry}
+              />
             ) : null}
           </div>
         )}
@@ -264,10 +287,12 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
                 deploying to production...
               </div>
             ) : error ? (
-              <div className="space-y-4">
-                <p className="text-sm text-red-600">{error}</p>
-                <Button onClick={handleRetry}>retry</Button>
-              </div>
+              <DeployError
+                type="deploy"
+                message={error}
+                agentId={agent.id}
+                onRetry={handleRetry}
+              />
             ) : null}
           </div>
         )}
