@@ -226,8 +226,8 @@ const AgentPage = async ({ params }: AgentPageProps) => {
           {!isComingSoon && (
             <section className="py-6">
               <div className="border border-border p-6">
-                <Button className="w-full" size="lg">
-                  deploy your own
+                <Button className="w-full" size="lg" asChild>
+                  <Link href={`/deploy/${agent.id}`}>deploy your own</Link>
                 </Button>
                 <p className="text-xs text-center text-muted-foreground mt-3">
                   takes ~2 minutes. you&apos;ll own the code and data.
