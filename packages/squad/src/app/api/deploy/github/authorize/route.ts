@@ -7,9 +7,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDeploySession, updateStepStatus } from "@/lib/deploy/session";
 
-// =============================================================================
-// Configuration
-// =============================================================================
 
 const GITHUB_OAUTH_URL = "https://github.com/login/oauth/authorize";
 
@@ -18,9 +15,7 @@ const getConfig = () => ({
   redirectUri: `${process.env.NEXT_PUBLIC_APP_URL}/api/deploy/github/callback`,
 });
 
-// =============================================================================
 // GET Handler
-// =============================================================================
 
 export const GET = async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);

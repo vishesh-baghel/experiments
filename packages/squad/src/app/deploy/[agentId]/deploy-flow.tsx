@@ -14,17 +14,9 @@ import { AgentConfig } from "@/config/agents";
 import { DeploySession } from "@/lib/deploy/types";
 import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 
-// =============================================================================
-// Types
-// =============================================================================
-
 interface DeployFlowProps {
   agent: AgentConfig;
 }
-
-// =============================================================================
-// Component
-// =============================================================================
 
 export const DeployFlow = ({ agent }: DeployFlowProps) => {
   const [session, setSession] = useState<DeploySession | null>(null);
@@ -32,10 +24,6 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
   const [isProvisioning, setIsProvisioning] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // =============================================================================
-  // Handlers (defined with useCallback before effects that use them)
-  // =============================================================================
 
   const handleDeploy = useCallback(async (projectId: string) => {
     setIsDeploying(true);
@@ -141,10 +129,6 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
     }
   }, [agent.id, handleDeploy]);
 
-  // =============================================================================
-  // Effects (all hooks must be called unconditionally)
-  // =============================================================================
-
   // Initialize session on mount
   useEffect(() => {
     const initSession = async () => {
@@ -185,10 +169,6 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
     }
   }, [session, handleProvision]);
 
-  // =============================================================================
-  // Derived state and early returns
-  // =============================================================================
-
   // Show loading state while initializing
   if (isInitializing) {
     return (
@@ -223,10 +203,6 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
       handleDeploy(session.provisioning.vercelProjectId);
     }
   };
-
-  // =============================================================================
-  // Render
-  // =============================================================================
 
   return (
     <div className="space-y-8">

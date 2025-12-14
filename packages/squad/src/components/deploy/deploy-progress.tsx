@@ -10,18 +10,13 @@ import { Check, Circle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DeployStepState, DeployStepId, getStepIndex } from "@/lib/deploy/types";
 
-// =============================================================================
-// Types
-// =============================================================================
 
 interface DeployProgressProps {
   steps: DeployStepState[];
   currentStep: DeployStepId;
 }
 
-// =============================================================================
 // Step Labels
-// =============================================================================
 
 const STEP_LABELS: Record<DeployStepId, string> = {
   "vercel-auth": "connect vercel",
@@ -30,9 +25,6 @@ const STEP_LABELS: Record<DeployStepId, string> = {
   deploying: "deploy",
 };
 
-// =============================================================================
-// Component
-// =============================================================================
 
 export const DeployProgress = ({ steps, currentStep }: DeployProgressProps) => {
   const currentIndex = getStepIndex(currentStep);

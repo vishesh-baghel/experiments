@@ -4,9 +4,7 @@
  * Type definitions for the agent deployment flow.
  */
 
-// =============================================================================
 // Deploy Steps
-// =============================================================================
 
 export type DeployStepId =
   | "vercel-auth"
@@ -22,9 +20,7 @@ export interface DeployStepState {
   error?: string;
 }
 
-// =============================================================================
 // Deploy Session
-// =============================================================================
 
 export interface DeploySession {
   /** Agent being deployed */
@@ -69,9 +65,7 @@ export interface DeploySession {
   expiresAt: number;
 }
 
-// =============================================================================
 // Deploy Result
-// =============================================================================
 
 export interface DeployResult {
   success: boolean;
@@ -81,9 +75,7 @@ export interface DeployResult {
   error?: string;
 }
 
-// =============================================================================
 // API Response Types
-// =============================================================================
 
 export interface DeployStartResponse {
   success: boolean;
@@ -118,9 +110,7 @@ export interface DeployStatusResponse {
   error?: string;
 }
 
-// =============================================================================
 // Helper Functions
-// =============================================================================
 
 export const createInitialDeploySession = (agentId: string): DeploySession => {
   const now = Date.now();

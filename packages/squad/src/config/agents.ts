@@ -45,9 +45,7 @@ export interface AgentConfig {
   specUrl?: string;
 }
 
-// =============================================================================
 // Agent Definitions
-// =============================================================================
 
 export const jackAgent: AgentConfig = {
   id: "jack",
@@ -198,9 +196,6 @@ export const sensieAgent: AgentConfig = {
   estimatedMonthlyCost: "~$5/month",
 };
 
-// =============================================================================
-// Exports
-// =============================================================================
 
 export const agents: AgentConfig[] = [jackAgent, sensieAgent];
 

@@ -16,15 +16,9 @@ import {
 } from "@/lib/deploy/session";
 import { getAgentById } from "@/config/agents";
 
-// =============================================================================
-// Configuration
-// =============================================================================
 
 const VERCEL_API_URL = "https://api.vercel.com";
 
-// =============================================================================
-// Types
-// =============================================================================
 
 interface DeployCreateRequest {
   agentId: string;
@@ -37,9 +31,7 @@ interface VercelDeploymentResponse {
   readyState: string;
 }
 
-// =============================================================================
 // Helper Functions
-// =============================================================================
 
 const setEnvironmentVariables = async (
   vercelToken: string,
@@ -168,9 +160,7 @@ const generatePassphrase = (): string => {
   return passphrase;
 };
 
-// =============================================================================
 // POST Handler
-// =============================================================================
 
 export const POST = async (request: NextRequest) => {
   try {

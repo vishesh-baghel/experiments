@@ -6,9 +6,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/deploy/provision/route";
 
-// =============================================================================
-// Mocks
-// =============================================================================
 
 // Mock the deploy session module
 vi.mock("@/lib/deploy/session", () => ({
@@ -30,9 +27,7 @@ import {
   hasRequiredTokens,
 } from "@/lib/deploy/session";
 
-// =============================================================================
 // Test Setup
-// =============================================================================
 
 const createMockSession = () => ({
   agentId: "jack",
@@ -65,9 +60,6 @@ const createRequest = (body: object) => {
   });
 };
 
-// =============================================================================
-// Tests
-// =============================================================================
 
 describe("POST /api/deploy/provision", () => {
   beforeEach(() => {

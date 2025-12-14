@@ -4,9 +4,6 @@ import { Footer } from "@/components/sections/footer";
 import { getAgentById } from "@/config/agents";
 import { DeployFlow } from "./deploy-flow";
 
-// =============================================================================
-// Types
-// =============================================================================
 
 interface DeployPageProps {
   params: Promise<{
@@ -14,9 +11,6 @@ interface DeployPageProps {
   }>;
 }
 
-// =============================================================================
-// Metadata
-// =============================================================================
 
 export const generateMetadata = async ({ params }: DeployPageProps) => {
   const { agentId } = await params;
@@ -32,9 +26,7 @@ export const generateMetadata = async ({ params }: DeployPageProps) => {
   };
 };
 
-// =============================================================================
 // Page Component
-// =============================================================================
 
 const DeployPage = async ({ params }: DeployPageProps) => {
   const { agentId } = await params;

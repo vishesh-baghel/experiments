@@ -17,9 +17,6 @@ import {
 } from "@/lib/deploy/session";
 import { getAgentById } from "@/config/agents";
 
-// =============================================================================
-// Configuration
-// =============================================================================
 
 const GITHUB_API_URL = "https://api.github.com";
 const VERCEL_API_URL = "https://api.vercel.com";
@@ -29,9 +26,6 @@ const getSourceRepo = () => ({
   name: process.env.SOURCE_REPO_NAME || "experiments",
 });
 
-// =============================================================================
-// Types
-// =============================================================================
 
 interface ProvisionRequest {
   agentId: string;
@@ -51,9 +45,7 @@ interface VercelProjectResponse {
   };
 }
 
-// =============================================================================
 // Helper Functions
-// =============================================================================
 
 const forkRepository = async (
   githubToken: string,
@@ -149,9 +141,7 @@ const createVercelProject = async (
   return response.json();
 };
 
-// =============================================================================
 // POST Handler
-// =============================================================================
 
 export const POST = async (request: NextRequest) => {
   try {

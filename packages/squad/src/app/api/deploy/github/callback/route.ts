@@ -13,9 +13,6 @@ import {
   updateDeploySession,
 } from "@/lib/deploy/session";
 
-// =============================================================================
-// Configuration
-// =============================================================================
 
 const GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token";
 const GITHUB_USER_URL = "https://api.github.com/user";
@@ -26,9 +23,6 @@ const getConfig = () => ({
   redirectUri: `${process.env.NEXT_PUBLIC_APP_URL}/api/deploy/github/callback`,
 });
 
-// =============================================================================
-// Types
-// =============================================================================
 
 interface GitHubTokenResponse {
   access_token: string;
@@ -45,9 +39,7 @@ interface StatePayload {
   agentId: string;
 }
 
-// =============================================================================
 // GET Handler
-// =============================================================================
 
 export const GET = async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);

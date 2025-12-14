@@ -7,9 +7,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createDeploySession, getDeploySession, updateStepStatus } from "@/lib/deploy/session";
 
-// =============================================================================
-// Configuration
-// =============================================================================
 
 const VERCEL_OAUTH_URL = "https://vercel.com/oauth/authorize";
 
@@ -18,9 +15,7 @@ const getConfig = () => ({
   redirectUri: `${process.env.NEXT_PUBLIC_APP_URL}/api/deploy/vercel/callback`,
 });
 
-// =============================================================================
 // GET Handler
-// =============================================================================
 
 export const GET = async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);

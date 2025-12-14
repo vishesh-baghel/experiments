@@ -12,9 +12,6 @@ import {
   updateStepStatus,
 } from "@/lib/deploy/session";
 
-// =============================================================================
-// Configuration
-// =============================================================================
 
 const VERCEL_TOKEN_URL = "https://api.vercel.com/v2/oauth/access_token";
 
@@ -24,9 +21,6 @@ const getConfig = () => ({
   redirectUri: `${process.env.NEXT_PUBLIC_APP_URL}/api/deploy/vercel/callback`,
 });
 
-// =============================================================================
-// Types
-// =============================================================================
 
 interface VercelTokenResponse {
   access_token: string;
@@ -38,9 +32,7 @@ interface StatePayload {
   agentId: string;
 }
 
-// =============================================================================
 // GET Handler
-// =============================================================================
 
 export const GET = async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);

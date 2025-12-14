@@ -9,9 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDeploySession, createDeploySession } from "@/lib/deploy/session";
 import { getAgentById } from "@/config/agents";
 
-// =============================================================================
 // POST Handler
-// =============================================================================
 
 export const POST = async (request: NextRequest) => {
   try {

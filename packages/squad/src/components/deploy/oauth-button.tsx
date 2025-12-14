@@ -10,9 +10,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
-// =============================================================================
-// Types
-// =============================================================================
 
 type OAuthProvider = "vercel" | "github";
 
@@ -23,9 +20,7 @@ interface OAuthButtonProps {
   onStart?: () => void;
 }
 
-// =============================================================================
 // Provider Config
-// =============================================================================
 
 const PROVIDER_CONFIG: Record<
   OAuthProvider,
@@ -41,9 +36,6 @@ const PROVIDER_CONFIG: Record<
   },
 };
 
-// =============================================================================
-// Component
-// =============================================================================
 
 export const OAuthButton = ({
   provider,
