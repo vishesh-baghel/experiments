@@ -1,19 +1,16 @@
 /**
- * Vercel OAuth Authorization Endpoint
+ * Vercel Deploy Button Redirect
  *
- * Redirects user to Vercel OAuth consent screen.
+ * Redirects user to Vercel's Deploy Button flow to create a new project.
+ * Vercel handles repo cloning - no GitHub OAuth required.
+ *
+ * @see https://vercel.com/docs/deploy-button
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getDeploySession, updateStepStatus } from "@/lib/deploy/session";
+import { getAgentById } from "@/config/agents";
 
-
-const VERCEL_OAUTH_URL = "https://vercel.com/oauth/authorize";
-
-const getConfig = () => ({
-  clientId: process.env.VERCEL_CLIENT_ID,
-  redirectUri: `${process.env.NEXT_PUBLIC_APP_URL}/api/deploy/vercel/callback`,
-});
 
 // GET Handler
 
@@ -28,36 +25,40 @@ export const GET = async (request: NextRequest) => {
     );
   }
 
-  const config = getConfig();
-
-  // Validate configuration
-  if (!config.clientId) {
-    console.error("Missing VERCEL_CLIENT_ID");
+  // Get agent config for source repo and path
+  const agent = getAgentById(agentId);
+  if (!agent) {
     return NextResponse.redirect(
-      new URL(`/${agentId}?error=config_error`, request.url)
+      new URL(`/?error=agent_not_found`, request.url)
     );
   }
 
-  // Verify we have a deploy session with GitHub auth (step 1 must be complete)
+  // Verify we have a deploy session
   const session = await getDeploySession();
-  if (!session || !session.github?.accessToken) {
+  if (!session) {
     return NextResponse.redirect(
-      new URL(`/deploy/${agentId}?error=missing_github_auth`, request.url)
+      new URL(`/deploy/${agentId}?error=missing_session`, request.url)
     );
   }
 
   // Update step status
-  await updateStepStatus("vercel-auth", "in-progress");
+  await updateStepStatus("vercel-deploy", "in-progress");
 
-  // Generate state parameter (includes agentId for callback)
+  // Build Vercel Deploy Button URL
+  // https://vercel.com/docs/deploy-button
+  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/deploy/vercel/callback`;
   const state = Buffer.from(JSON.stringify({ agentId })).toString("base64url");
 
-  // Build OAuth URL
-  const oauthUrl = new URL(VERCEL_OAUTH_URL);
-  oauthUrl.searchParams.set("client_id", config.clientId);
-  oauthUrl.searchParams.set("redirect_uri", config.redirectUri);
-  oauthUrl.searchParams.set("scope", "user project");
-  oauthUrl.searchParams.set("state", state);
+  const deployUrl = new URL("https://vercel.com/new/clone");
+  deployUrl.searchParams.set("repository-url", agent.sourceRepo);
+  deployUrl.searchParams.set("redirect-url", `${callbackUrl}?state=${state}`);
+  deployUrl.searchParams.set("project-name", `${agentId}-agent`);
+  deployUrl.searchParams.set("repository-name", `experiments`);
+  
+  // Set root directory to the agent's source path (e.g., "packages/jack-x-agent")
+  if (agent.sourcePath) {
+    deployUrl.searchParams.set("root-directory", agent.sourcePath);
+  }
 
-  return NextResponse.redirect(oauthUrl.toString());
+  return NextResponse.redirect(deployUrl.toString());
 };

@@ -28,6 +28,16 @@ export interface FeatureConfig {
   description: string;
 }
 
+export interface DeployInstructionConfig {
+  step: number;
+  title: string;
+  description: string;
+  link?: {
+    text: string;
+    url: string;
+  };
+}
+
 export interface AgentConfig {
   id: string;
   name: string;
@@ -39,6 +49,7 @@ export interface AgentConfig {
   sourcePath: string;
   integrations: IntegrationType[];
   envVars: EnvVarConfig[];
+  deployInstructions: DeployInstructionConfig[];
   status: "available" | "coming-soon";
   estimatedMonthlyCost: string;
   demoUrl?: string;
@@ -128,6 +139,36 @@ export const jackAgent: AgentConfig = {
       required: true,
     },
   ],
+  deployInstructions: [
+    {
+      step: 1,
+      title: "click deploy to vercel",
+      description: "vercel will clone the repository and guide you through project setup. you will need a vercel account (free).",
+    },
+    {
+      step: 2,
+      title: "add neon postgres",
+      description: "during setup, vercel will prompt you to add integrations. add neon postgres for the database (free tier available).",
+      link: {
+        text: "neon docs",
+        url: "https://neon.tech/docs",
+      },
+    },
+    {
+      step: 3,
+      title: "get apify api key",
+      description: "after deployment, add your apify api key in vercel project settings > environment variables. apify is used for x/twitter data scraping.",
+      link: {
+        text: "get apify key",
+        url: "https://console.apify.com/account/integrations",
+      },
+    },
+    {
+      step: 4,
+      title: "set auth passphrase",
+      description: "add AUTH_PASSPHRASE env var with a secret passphrase. this protects your agent's admin endpoints.",
+    },
+  ],
   status: "available",
   estimatedMonthlyCost: "~$15/month",
   demoUrl: "https://jack.visheshbaghel.com",
@@ -190,6 +231,27 @@ export const sensieAgent: AgentConfig = {
       integration: "ai-gateway",
       description: "vercel ai gateway endpoint",
       required: true,
+    },
+  ],
+  deployInstructions: [
+    {
+      step: 1,
+      title: "click deploy to vercel",
+      description: "vercel will clone the repository and guide you through project setup. you will need a vercel account (free).",
+    },
+    {
+      step: 2,
+      title: "add neon postgres",
+      description: "during setup, add neon postgres integration for the database (free tier available).",
+      link: {
+        text: "neon docs",
+        url: "https://neon.tech/docs",
+      },
+    },
+    {
+      step: 3,
+      title: "configure ai gateway",
+      description: "vercel ai gateway will be set up automatically during deployment.",
     },
   ],
   status: "coming-soon",

@@ -4,9 +4,10 @@
  * DeployFlow Component
  *
  * Client-side component that manages the deployment flow state and UI.
+ * Single-step flow: Deploy to Vercel (handles repo cloning automatically)
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DeployProgress, OAuthButton, DeployError } from "@/components/deploy";
@@ -14,7 +15,6 @@ import { AgentConfig } from "@/config/agents";
 import { DeploySession } from "@/lib/deploy/types";
 import {
   trackDeployStart,
-  trackDeployStep,
   trackDeploySuccess,
   trackDeployFailure,
 } from "@/lib/analytics";
@@ -27,123 +27,7 @@ interface DeployFlowProps {
 export const DeployFlow = ({ agent }: DeployFlowProps) => {
   const [session, setSession] = useState<DeploySession | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [isProvisioning, setIsProvisioning] = useState(false);
-  const [isDeploying, setIsDeploying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const handleDeploy = useCallback(async (projectId: string) => {
-    setIsDeploying(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/deploy/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentId: agent.id, projectId }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Deployment failed");
-      }
-
-      setSession((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          steps: prev.steps.map((s) =>
-            s.id === "deploying" ? { ...s, status: "completed" as const } : s
-          ),
-          deployment: {
-            deploymentId: data.deploymentId,
-            deploymentUrl: data.deploymentUrl,
-            status: "ready" as const,
-          },
-        };
-      });
-
-      trackDeployStep({ agentId: agent.id, step: "deploying", success: true });
-      trackDeploySuccess(agent.id, data.deploymentUrl);
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Deployment failed";
-      setError(errorMsg);
-      trackDeployStep({ agentId: agent.id, step: "deploying", success: false, error: errorMsg });
-      trackDeployFailure(agent.id, "deploying", errorMsg);
-      setSession((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          steps: prev.steps.map((s) =>
-            s.id === "deploying" ? { ...s, status: "error" as const, error: "Failed" } : s
-          ),
-        };
-      });
-    } finally {
-      setIsDeploying(false);
-    }
-  }, [agent.id]);
-
-  const handleProvision = useCallback(async () => {
-    setIsProvisioning(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/deploy/provision", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentId: agent.id }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Provisioning failed");
-      }
-
-      setSession((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          currentStep: "deploying" as const,
-          steps: prev.steps.map((s) =>
-            s.id === "provisioning"
-              ? { ...s, status: "completed" as const }
-              : s.id === "deploying"
-              ? { ...s, status: "in-progress" as const }
-              : s
-          ),
-          provisioning: {
-            forkedRepoUrl: data.forkedRepoUrl,
-            vercelProjectId: data.vercelProjectId,
-            vercelProjectUrl: data.vercelProjectUrl,
-          },
-        };
-      });
-
-      trackDeployStep({ agentId: agent.id, step: "provisioning", success: true });
-
-      // Auto-start deployment
-      handleDeploy(data.vercelProjectId);
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Provisioning failed";
-      setError(errorMsg);
-      trackDeployStep({ agentId: agent.id, step: "provisioning", success: false, error: errorMsg });
-      setSession((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          steps: prev.steps.map((s) =>
-            s.id === "provisioning"
-              ? { ...s, status: "error" as const, error: "Failed" }
-              : s
-          ),
-        };
-      });
-    } finally {
-      setIsProvisioning(false);
-    }
-  }, [agent.id, handleDeploy]);
 
   // Initialize session on mount
   useEffect(() => {
@@ -163,6 +47,11 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
 
         setSession(data.session);
         trackDeployStart(agent.id);
+
+        // Check if deployment is already complete (returning from Vercel)
+        if (data.session.vercel?.deploymentUrl) {
+          trackDeploySuccess(agent.id, data.session.vercel.deploymentUrl);
+        }
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : "Failed to initialize";
         setError(errorMsg);
@@ -174,19 +63,6 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
 
     initSession();
   }, [agent.id]);
-
-  // Auto-advance to provisioning when both OAuth complete
-  useEffect(() => {
-    if (!session) return;
-    
-    const hasVercel = !!session.vercel?.accessToken;
-    const hasGitHub = !!session.github?.accessToken;
-    const currentStep = session.currentStep;
-
-    if (hasVercel && hasGitHub && currentStep === "vercel-auth") {
-      handleProvision();
-    }
-  }, [session, handleProvision]);
 
   // Show loading state while initializing
   if (isInitializing) {
@@ -210,20 +86,9 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
     );
   }
 
-  // Now we know session is not null
+  // Session state
   const currentStep = session.currentStep;
-  const hasVercel = !!session.vercel?.accessToken;
-  const hasGitHub = !!session.github?.accessToken;
-  const isComplete = session.deployment?.status === "ready";
-
-  const handleRetry = () => {
-    setError(null);
-    if (currentStep === "provisioning") {
-      handleProvision();
-    } else if (currentStep === "deploying" && session.provisioning?.vercelProjectId) {
-      handleDeploy(session.provisioning.vercelProjectId);
-    }
-  };
+  const isComplete = !!session.vercel?.deploymentUrl;
 
   return (
     <div className="space-y-8">
@@ -234,71 +99,53 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
 
       {/* Current Step Content */}
       <div className="border border-border p-6">
-        {/* Step 1: GitHub Auth */}
-        {currentStep === "github-auth" && !hasGitHub && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">step 1: connect github</h2>
-            <p className="text-sm text-muted-foreground">
-              we need access to fork the repository to your github account.
-            </p>
-            <OAuthButton provider="github" agentId={agent.id} />
-          </div>
-        )}
+        {/* Deploy to Vercel */}
+        {currentStep === "vercel-deploy" && !isComplete && (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold">deploy {agent.name}</h2>
+              <p className="text-sm text-muted-foreground">
+                estimated cost: {agent.estimatedMonthlyCost}
+              </p>
+              <OAuthButton provider="vercel" agentId={agent.id} />
+            </div>
 
-        {/* Step 2: Vercel Auth */}
-        {currentStep === "vercel-auth" && hasGitHub && !hasVercel && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">step 2: connect vercel</h2>
-            <p className="text-sm text-muted-foreground">
-              we need access to your vercel account to create the project and
-              provision integrations.
-            </p>
-            <OAuthButton provider="vercel" agentId={agent.id} />
-          </div>
-        )}
-
-        {/* Step 3: Provisioning */}
-        {currentStep === "provisioning" && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">step 3: provisioning</h2>
-            {isProvisioning ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                setting up your infrastructure...
+            {/* Agent-specific deployment instructions */}
+            {agent.deployInstructions.length > 0 && (
+              <div className="border-t border-border pt-6">
+                <h3 className="text-sm font-semibold mb-4">deployment steps</h3>
+                <ol className="space-y-4">
+                  {agent.deployInstructions.map((instruction) => (
+                    <li key={instruction.step} className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+                        {instruction.step}
+                      </span>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">{instruction.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {instruction.description}
+                        </p>
+                        {instruction.link && (
+                          <a
+                            href={instruction.link.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm underline text-muted-foreground hover:text-foreground"
+                          >
+                            {instruction.link.text}
+                          </a>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
               </div>
-            ) : error ? (
-              <DeployError
-                type="provision"
-                message={error}
-                agentId={agent.id}
-                onRetry={handleRetry}
-              />
-            ) : null}
-          </div>
-        )}
-
-        {/* Step 4: Deploying */}
-        {currentStep === "deploying" && !isComplete && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">step 4: deploying</h2>
-            {isDeploying ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                deploying to production...
-              </div>
-            ) : error ? (
-              <DeployError
-                type="deploy"
-                message={error}
-                agentId={agent.id}
-                onRetry={handleRetry}
-              />
-            ) : null}
+            )}
           </div>
         )}
 
         {/* Success */}
-        {isComplete && session.deployment && (
+        {isComplete && session.vercel && (
           <div className="space-y-6">
             <div>
               <h2 className="text-lg font-semibold text-green-600">
@@ -313,24 +160,37 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
               <div className="text-sm">
                 <span className="text-muted-foreground">deployment url: </span>
                 <a
-                  href={session.deployment.deploymentUrl}
+                  href={session.vercel.deploymentUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="underline"
                 >
-                  {session.deployment.deploymentUrl}
+                  {session.vercel.deploymentUrl}
                 </a>
               </div>
-              {session.provisioning?.forkedRepoUrl && (
+              {session.vercel.projectDashboardUrl && (
                 <div className="text-sm">
-                  <span className="text-muted-foreground">repository: </span>
+                  <span className="text-muted-foreground">vercel project: </span>
                   <a
-                    href={session.provisioning.forkedRepoUrl}
+                    href={session.vercel.projectDashboardUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="underline"
                   >
-                    {session.provisioning.forkedRepoUrl}
+                    {session.vercel.projectName}
+                  </a>
+                </div>
+              )}
+              {session.vercel.repositoryUrl && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground">repository: </span>
+                  <a
+                    href={session.vercel.repositoryUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline"
+                  >
+                    {session.vercel.repositoryUrl}
                   </a>
                 </div>
               )}
@@ -339,7 +199,7 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
             <div className="flex gap-3">
               <Button asChild>
                 <a
-                  href={session.deployment.deploymentUrl}
+                  href={session.vercel.deploymentUrl}
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -372,6 +232,16 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
               </div>
             )}
           </div>
+        )}
+
+        {/* Error state */}
+        {error && (
+          <DeployError
+            type="unknown"
+            message={error}
+            agentId={agent.id}
+            onRetry={() => window.location.reload()}
+          />
         )}
       </div>
 

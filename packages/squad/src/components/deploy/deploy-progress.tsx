@@ -3,7 +3,7 @@
 /**
  * DeployProgress Component
  *
- * Shows the progress through the 4-step deployment flow.
+ * Shows the progress through the 2-step deployment flow.
  */
 
 import { Check, Circle, Loader2 } from "lucide-react";
@@ -19,10 +19,7 @@ interface DeployProgressProps {
 // Step Labels
 
 const STEP_LABELS: Record<DeployStepId, string> = {
-  "vercel-auth": "connect vercel",
-  "github-auth": "connect github",
-  provisioning: "provision services",
-  deploying: "deploy",
+  "vercel-deploy": "deploy to vercel",
 };
 
 

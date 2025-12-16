@@ -1,32 +1,19 @@
 /**
- * Vercel OAuth Callback Endpoint
+ * Vercel Deploy Button Callback
  *
- * Handles the OAuth callback from Vercel, exchanges code for token,
- * and stores the token in the deploy session.
+ * Handles the callback from Vercel's Deploy Button flow.
+ * Receives deployment info and stores it in the session.
+ *
+ * @see https://vercel.com/docs/deploy-button/callback
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import {
   getDeploySession,
-  storeVercelTokens,
+  storeVercelDeployment,
   updateStepStatus,
 } from "@/lib/deploy/session";
 
-
-const VERCEL_TOKEN_URL = "https://api.vercel.com/v2/oauth/access_token";
-
-const getConfig = () => ({
-  clientId: process.env.VERCEL_CLIENT_ID!,
-  clientSecret: process.env.VERCEL_CLIENT_SECRET!,
-  redirectUri: `${process.env.NEXT_PUBLIC_APP_URL}/api/deploy/vercel/callback`,
-});
-
-
-interface VercelTokenResponse {
-  access_token: string;
-  token_type: string;
-  team_id?: string;
-}
 
 interface StatePayload {
   agentId: string;
@@ -36,83 +23,67 @@ interface StatePayload {
 
 export const GET = async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);
-  const code = searchParams.get("code");
+
+  // Deploy Button callback parameters
+  const projectName = searchParams.get("project-name");
+  const projectDashboardUrl = searchParams.get("project-dashboard-url");
+  const deploymentUrl = searchParams.get("deployment-url");
+  const deploymentDashboardUrl = searchParams.get("deployment-dashboard-url");
+  const repositoryUrl = searchParams.get("repository-url");
   const state = searchParams.get("state");
-  const error = searchParams.get("error");
-
-  // Handle OAuth errors
-  if (error) {
-    console.error("Vercel OAuth error:", error);
-    const session = await getDeploySession();
-    const agentId = session?.agentId || "";
-    await updateStepStatus("vercel-auth", "error", "Authorization denied");
-    return NextResponse.redirect(
-      new URL(`/deploy/${agentId}?error=oauth_denied`, request.url)
-    );
-  }
-
-  // Validate code and state
-  if (!code || !state) {
-    return NextResponse.redirect(
-      new URL("/?error=invalid_callback", request.url)
-    );
-  }
 
   // Decode state to get agentId
-  let statePayload: StatePayload;
-  try {
-    statePayload = JSON.parse(Buffer.from(state, "base64url").toString());
-  } catch {
+  let agentId = "";
+  if (state) {
+    try {
+      const statePayload: StatePayload = JSON.parse(
+        Buffer.from(state, "base64url").toString()
+      );
+      agentId = statePayload.agentId;
+    } catch {
+      // Fall back to session
+      const session = await getDeploySession();
+      agentId = session?.agentId || "";
+    }
+  } else {
+    const session = await getDeploySession();
+    agentId = session?.agentId || "";
+  }
+
+  // Validate required parameters
+  if (!deploymentUrl || !projectName) {
+    console.error("Missing required Deploy Button callback params:", {
+      projectName,
+      deploymentUrl,
+    });
+    await updateStepStatus("vercel-deploy", "error", "Missing deployment info");
     return NextResponse.redirect(
-      new URL("/?error=invalid_state", request.url)
+      new URL(`/deploy/${agentId}?error=missing_deployment_info`, request.url)
     );
   }
 
-  const { agentId } = statePayload;
-  const config = getConfig();
-
   try {
-    // Exchange code for access token
-    const tokenResponse = await fetch(VERCEL_TOKEN_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        client_id: config.clientId,
-        client_secret: config.clientSecret,
-        code,
-        redirect_uri: config.redirectUri,
-      }),
+    // Store deployment data in session
+    await storeVercelDeployment({
+      projectName,
+      projectDashboardUrl: projectDashboardUrl || "",
+      deploymentUrl,
+      deploymentDashboardUrl: deploymentDashboardUrl || "",
+      repositoryUrl: repositoryUrl || "",
     });
 
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error("Vercel token exchange failed:", errorText);
-      await updateStepStatus("vercel-auth", "error", "Token exchange failed");
-      return NextResponse.redirect(
-        new URL(`/deploy/${agentId}?error=token_exchange_failed`, request.url)
-      );
-    }
+    // Update step status - deployment is complete!
+    await updateStepStatus("vercel-deploy", "completed");
 
-    const tokenData: VercelTokenResponse = await tokenResponse.json();
-
-    // Store tokens in session
-    await storeVercelTokens(tokenData.access_token, tokenData.team_id);
-
-    // Update step status
-    await updateStepStatus("vercel-auth", "completed");
-    await updateStepStatus("provisioning", "in-progress");
-
-    // Redirect back to deploy page
+    // Redirect back to deploy page with success
     return NextResponse.redirect(
-      new URL(`/deploy/${agentId}`, request.url)
+      new URL(`/deploy/${agentId}?success=true`, request.url)
     );
   } catch (err) {
-    console.error("Vercel OAuth callback error:", err);
-    await updateStepStatus("vercel-auth", "error", "Unexpected error");
+    console.error("Vercel callback error:", err);
+    await updateStepStatus("vercel-deploy", "error", "Failed to store deployment");
     return NextResponse.redirect(
-      new URL(`/deploy/${agentId}?error=unexpected_error`, request.url)
+      new URL(`/deploy/${agentId}?error=callback_failed`, request.url)
     );
   }
 };

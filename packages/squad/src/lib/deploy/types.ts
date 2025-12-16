@@ -6,11 +6,7 @@
 
 // Deploy Steps
 
-export type DeployStepId =
-  | "github-auth"
-  | "vercel-auth"
-  | "provisioning"
-  | "deploying";
+export type DeployStepId = "vercel-deploy";
 
 export type DeployStepStatus = "pending" | "in-progress" | "completed" | "error";
 
@@ -32,26 +28,15 @@ export interface DeploySession {
   /** Step states */
   steps: DeployStepState[];
 
-  /** Vercel OAuth data (temporary, cleared after deployment) */
+  /** Vercel deployment data from Deploy Button callback */
   vercel?: {
-    accessToken: string;
-    teamId?: string;
+    projectName: string;
+    projectDashboardUrl: string;
+    deploymentUrl: string;
+    deploymentDashboardUrl: string;
+    repositoryUrl: string;
   };
 
-  /** GitHub OAuth data (temporary, cleared after deployment) */
-  github?: {
-    accessToken: string;
-    username: string;
-  };
-
-  /** Provisioning results */
-  provisioning?: {
-    forkedRepoUrl?: string;
-    vercelProjectId?: string;
-    vercelProjectUrl?: string;
-    neonDbProvisioned?: boolean;
-    aiGatewayProvisioned?: boolean;
-  };
 
   /** Deployment results */
   deployment?: {
@@ -118,40 +103,19 @@ export const createInitialDeploySession = (agentId: string): DeploySession => {
 
   return {
     agentId,
-    currentStep: "github-auth",
-    steps: [
-      { id: "github-auth", status: "pending" },
-      { id: "vercel-auth", status: "pending" },
-      { id: "provisioning", status: "pending" },
-      { id: "deploying", status: "pending" },
-    ],
+    currentStep: "vercel-deploy",
+    steps: [{ id: "vercel-deploy", status: "pending" }],
     createdAt: now,
     expiresAt: now + thirtyMinutes,
   };
 };
 
 export const getStepIndex = (stepId: DeployStepId): number => {
-  const order: DeployStepId[] = [
-    "github-auth",
-    "vercel-auth",
-    "provisioning",
-    "deploying",
-  ];
-  return order.indexOf(stepId);
+  return stepId === "vercel-deploy" ? 0 : -1;
 };
 
 export const getNextStep = (currentStep: DeployStepId): DeployStepId | null => {
-  const order: DeployStepId[] = [
-    "github-auth",
-    "vercel-auth",
-    "provisioning",
-    "deploying",
-  ];
-  const currentIndex = order.indexOf(currentStep);
-  if (currentIndex === -1 || currentIndex === order.length - 1) {
-    return null;
-  }
-  return order[currentIndex + 1];
+  return null; // Only one step
 };
 
 export const isSessionExpired = (session: DeploySession): boolean => {

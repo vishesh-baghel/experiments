@@ -1,5 +1,8 @@
 /**
  * Deploy Types Tests
+ *
+ * Tests for the single-step deploy flow:
+ * 1. vercel-deploy (via Deploy Button - handles repo cloning)
  */
 
 import { describe, it, expect } from "vitest";
@@ -8,8 +11,6 @@ import {
   getStepIndex,
   getNextStep,
   isSessionExpired,
-  DeploySession,
-  DeployStepId,
 } from "@/lib/deploy/types";
 
 describe("createInitialDeploySession", () => {
@@ -18,28 +19,23 @@ describe("createInitialDeploySession", () => {
     expect(session.agentId).toBe("jack");
   });
 
-  it("should start at github-auth step", () => {
+  it("should start at vercel-deploy step", () => {
     const session = createInitialDeploySession("jack");
-    expect(session.currentStep).toBe("github-auth");
+    expect(session.currentStep).toBe("vercel-deploy");
   });
 
-  it("should have all steps in pending status", () => {
+  it("should have 1 step in pending status", () => {
     const session = createInitialDeploySession("jack");
-    expect(session.steps).toHaveLength(4);
+    expect(session.steps).toHaveLength(1);
     session.steps.forEach((step) => {
       expect(step.status).toBe("pending");
     });
   });
 
-  it("should have correct step order", () => {
+  it("should have correct step", () => {
     const session = createInitialDeploySession("jack");
     const stepIds = session.steps.map((s) => s.id);
-    expect(stepIds).toEqual([
-      "github-auth",
-      "vercel-auth",
-      "provisioning",
-      "deploying",
-    ]);
+    expect(stepIds).toEqual(["vercel-deploy"]);
   });
 
   it("should set expiry to 30 minutes from now", () => {
@@ -63,38 +59,14 @@ describe("createInitialDeploySession", () => {
 });
 
 describe("getStepIndex", () => {
-  it("should return 0 for github-auth", () => {
-    expect(getStepIndex("github-auth")).toBe(0);
-  });
-
-  it("should return 1 for vercel-auth", () => {
-    expect(getStepIndex("vercel-auth")).toBe(1);
-  });
-
-  it("should return 2 for provisioning", () => {
-    expect(getStepIndex("provisioning")).toBe(2);
-  });
-
-  it("should return 3 for deploying", () => {
-    expect(getStepIndex("deploying")).toBe(3);
+  it("should return 0 for vercel-deploy", () => {
+    expect(getStepIndex("vercel-deploy")).toBe(0);
   });
 });
 
 describe("getNextStep", () => {
-  it("should return vercel-auth after github-auth", () => {
-    expect(getNextStep("github-auth")).toBe("vercel-auth");
-  });
-
-  it("should return provisioning after vercel-auth", () => {
-    expect(getNextStep("vercel-auth")).toBe("provisioning");
-  });
-
-  it("should return deploying after provisioning", () => {
-    expect(getNextStep("provisioning")).toBe("deploying");
-  });
-
-  it("should return null after deploying (last step)", () => {
-    expect(getNextStep("deploying")).toBeNull();
+  it("should return null after vercel-deploy (only step)", () => {
+    expect(getNextStep("vercel-deploy")).toBeNull();
   });
 });
 

@@ -135,31 +135,22 @@ export const updateStepStatus = async (
 };
 
 /**
- * Store Vercel OAuth tokens
+ * Store Vercel deployment data from Deploy Button callback
  */
-export const storeVercelTokens = async (
-  accessToken: string,
-  teamId?: string
-): Promise<DeploySession | null> => {
+export const storeVercelDeployment = async (data: {
+  projectName: string;
+  projectDashboardUrl: string;
+  deploymentUrl: string;
+  deploymentDashboardUrl: string;
+  repositoryUrl: string;
+}): Promise<DeploySession | null> => {
   return updateDeploySession({
-    vercel: { accessToken, teamId },
+    vercel: data,
   });
 };
 
 /**
- * Store GitHub OAuth tokens
- */
-export const storeGitHubTokens = async (
-  accessToken: string,
-  username: string
-): Promise<DeploySession | null> => {
-  return updateDeploySession({
-    github: { accessToken, username },
-  });
-};
-
-/**
- * Clear the deploy session
+ * Clear deploy session
  */
 export const clearDeploySession = async (): Promise<void> => {
   const cookieStore = await cookies();
@@ -171,9 +162,3 @@ export const clearDeploySession = async (): Promise<void> => {
   session.destroy();
 };
 
-/**
- * Check if session has required OAuth tokens for provisioning
- */
-export const hasRequiredTokens = (session: DeploySession): boolean => {
-  return !!(session.vercel?.accessToken && session.github?.accessToken);
-};
