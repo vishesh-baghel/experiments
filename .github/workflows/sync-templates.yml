@@ -8,20 +8,10 @@ on:
       - 'packages/jack-x-agent/**'
       # Add more agent paths here as needed
       # - 'packages/sensie/**'
-  workflow_dispatch:
-    inputs:
-      agent:
-        description: 'Agent to sync (leave empty for all)'
-        required: false
-        default: ''
 
 jobs:
   sync-jack-x-agent:
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'workflow_dispatch' && (github.event.inputs.agent == '' || github.event.inputs.agent == 'jack-x-agent') ||
-      github.event_name == 'push' && contains(toJSON(github.event.commits.*.modified), 'packages/jack-x-agent') ||
-      github.event_name == 'push' && contains(toJSON(github.event.commits.*.added), 'packages/jack-x-agent')
     
     steps:
       - name: Checkout monorepo

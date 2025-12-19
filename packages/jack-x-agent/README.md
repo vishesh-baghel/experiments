@@ -389,7 +389,7 @@ We welcome contributions! Areas where help is needed:
 
 ## License
 
-MIT (pending - will be added at open source release)
+MIT (pending - will be added at open source release) 
 
 ---
 
