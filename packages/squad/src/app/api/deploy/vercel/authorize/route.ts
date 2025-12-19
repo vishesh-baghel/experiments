@@ -53,9 +53,9 @@ export const GET = async (request: NextRequest) => {
   deployUrl.searchParams.set("repository-url", agent.sourceRepo);
   deployUrl.searchParams.set("redirect-url", `${callbackUrl}?state=${state}`);
   deployUrl.searchParams.set("project-name", `${agentId}-agent`);
-  deployUrl.searchParams.set("repository-name", `experiments`);
+  deployUrl.searchParams.set("repository-name", `${agentId}-agent`);
   
-  // Set root directory to the agent's source path (e.g., "packages/jack-x-agent")
+  // Set root directory only if agent is in a subdirectory
   if (agent.sourcePath) {
     deployUrl.searchParams.set("root-directory", agent.sourcePath);
   }

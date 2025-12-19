@@ -108,8 +108,8 @@ export const jackAgent: AgentConfig = {
       description: "for x/twitter data scraping",
     },
   ],
-  sourceRepo: "https://github.com/vishesh-baghel/experiments",
-  sourcePath: "packages/jack-x-agent",
+  sourceRepo: "https://github.com/vishesh-baghel/jack",
+  sourcePath: "",
   integrations: ["neon", "ai-gateway"],
   envVars: [
     {
@@ -214,8 +214,8 @@ export const sensieAgent: AgentConfig = {
       description: "for ai-powered insights",
     },
   ],
-  sourceRepo: "https://github.com/vishesh-baghel/experiments",
-  sourcePath: "packages/sensie",
+  sourceRepo: "https://github.com/vishesh-baghel/sensie",
+  sourcePath: "",
   integrations: ["neon", "ai-gateway"],
   envVars: [
     {
