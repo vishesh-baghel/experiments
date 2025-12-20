@@ -18,7 +18,7 @@ import {
   trackDeploySuccess,
   trackDeployFailure,
 } from "@/lib/analytics";
-import { ArrowLeft, ExternalLink, Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 
 interface DeployFlowProps {
   agent: AgentConfig;
@@ -175,17 +175,6 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
             </Link>
           </Button>
         </div>
-      </div>
-
-      {/* Back Link */}
-      <div className="text-center">
-        <Link
-          href={`/${agent.id}`}
-          className="text-sm text-muted-foreground hover:underline inline-flex items-center gap-1"
-        >
-          <ArrowLeft className="h-3 w-3" />
-          back to {agent.name}
-        </Link>
       </div>
     </div>
   );

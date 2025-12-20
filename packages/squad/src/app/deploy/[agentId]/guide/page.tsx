@@ -10,6 +10,8 @@ import Link from "next/link";
 import { getAgentById, agents } from "@/config/agents";
 import { ArrowLeft, ExternalLink, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Header } from "@/components/sections/header";
+import { Footer } from "@/components/sections/footer";
 
 interface GuidePageProps {
   params: Promise<{ agentId: string }>;
@@ -44,22 +46,18 @@ const GuidePage = async ({ params }: GuidePageProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-[800px] mx-auto px-4 py-12">
-        {/* Header */}
-        <div className="mb-8">
-          <Link
-            href={`/deploy/${agent.id}`}
-            className="text-sm text-muted-foreground hover:underline inline-flex items-center gap-1 mb-4"
-          >
-            <ArrowLeft className="h-3 w-3" />
-            back to deploy
-          </Link>
-          <h1 className="text-2xl font-bold">{agent.name} setup guide</h1>
-          <p className="text-muted-foreground mt-2">
-            follow these steps to complete your agent configuration
-          </p>
-        </div>
+    <div className="min-h-screen bg-background font-mono">
+      <div className="max-w-[800px] mx-auto">
+        <Header />
+        
+        <main>
+          {/* Page Header */}
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold">{agent.name} setup guide</h1>
+            <p className="text-muted-foreground mt-2">
+              follow these steps to complete your agent configuration
+            </p>
+          </div>
 
         {/* Steps from config */}
         <div className="space-y-6">
@@ -84,14 +82,13 @@ const GuidePage = async ({ params }: GuidePageProps) => {
                     </div>
                   )}
                   {step.link && (
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="outline" size="sm" className="no-underline" asChild>
                       <a
                         href={step.link.url}
                         target="_blank"
                         rel="noreferrer"
                       >
                         {step.link.text}
-                        <ExternalLink className="ml-2 h-3 w-3" />
                       </a>
                     </Button>
                   )}
@@ -137,6 +134,9 @@ const GuidePage = async ({ params }: GuidePageProps) => {
             </a>
           </p>
         </div>
+        </main>
+        
+        <Footer />
       </div>
     </div>
   );

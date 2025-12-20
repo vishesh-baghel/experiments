@@ -8,6 +8,11 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 export const Header = () => {
   const pathname = usePathname();
   const isHomePage = pathname === "/";
+  
+  // Extract agentId from paths like /deploy/jack or /deploy/jack/guide
+  const deployMatch = pathname.match(/^\/deploy\/([^\/]+)/);
+  const agentId = deployMatch ? deployMatch[1] : null;
+  const backHref = agentId ? `/${agentId}` : "/";
 
   return (
     <header className="sticky top-0 z-40 mb-10 bg-background supports-[backdrop-filter]:bg-background/80 backdrop-blur">
@@ -22,7 +27,7 @@ export const Header = () => {
             </Link>
           ) : (
             <Link
-              href="/"
+              href={backHref}
               className="inline-flex items-center gap-2 text-sm text-foreground no-underline hover:text-muted-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
