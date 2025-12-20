@@ -111,9 +111,6 @@ const GuidePage = async ({ params }: GuidePageProps) => {
                   <Button asChild className="no-underline">
                     <Link href="/">deploy another agent</Link>
                   </Button>
-                  <Button variant="outline" asChild className="no-underline">
-                    <Link href={`/${agent.id}`}>back to {agent.name}</Link>
-                  </Button>
                 </div>
               </div>
             </div>
