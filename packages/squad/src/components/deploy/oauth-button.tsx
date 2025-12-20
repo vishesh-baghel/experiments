@@ -27,7 +27,7 @@ const PROVIDER_CONFIG: Record<
   { label: string; endpoint: string }
 > = {
   vercel: {
-    label: "connect vercel",
+    label: "deploy to vercel",
     endpoint: "/api/deploy/vercel/authorize",
   },
   github: {
@@ -51,10 +51,11 @@ export const OAuthButton = ({
     onStart?.();
 
     try {
-      // Redirect to OAuth authorization endpoint
+      // Open Vercel deploy in new tab so user can browse other agents
       const url = new URL(config.endpoint, window.location.origin);
       url.searchParams.set("agentId", agentId);
-      window.location.href = url.toString();
+      window.open(url.toString(), "_blank");
+      setIsLoading(false);
     } catch (error) {
       console.error(`OAuth ${provider} error:`, error);
       setIsLoading(false);

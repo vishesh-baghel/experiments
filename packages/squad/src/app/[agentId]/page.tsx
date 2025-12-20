@@ -163,62 +163,47 @@ const AgentPage = async ({ params }: AgentPageProps) => {
             <h2 className="text-base sm:text-lg font-bold mb-4 mt-0">
               what you need
             </h2>
-            <div className="space-y-2 text-sm font-mono">
+            <ul className="space-y-2 text-sm">
               {agent.requirements.map((req, index) => (
-                <div key={index} className="flex justify-between">
-                  <span>{req.name}</span>
-                  <span className="text-muted-foreground">{req.cost}</span>
-                </div>
+                <li key={index} className="before:content-none">
+                  <span className="font-medium">{req.name}</span>
+                  <span className="text-muted-foreground"> - {req.description}</span>
+                </li>
               ))}
-              <div className="border-t border-border pt-2 mt-4 flex justify-between font-semibold">
-                <span>estimated total</span>
-                <span>{agent.estimatedMonthlyCost}</span>
-              </div>
-            </div>
+            </ul>
+            <p className="text-xs text-muted-foreground mt-4">
+              this project is free and open source. you only pay for the services
+              you use directly (vercel, neon, openai, etc).
+            </p>
           </section>
 
-          {/* What We Set Up */}
+          {/* What Happens When You Deploy */}
           {!isComingSoon && (
             <section className="py-6">
               <h2 className="text-base sm:text-lg font-bold mb-4 mt-0">
-                what we&apos;ll set up for you
+                how deployment works
               </h2>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2 before:content-none">
                   <Check className="h-4 w-4 text-green-600" />
-                  fork the repo to your github
+                  clone the repo to your github account
                 </li>
                 <li className="flex items-center gap-2 before:content-none">
                   <Check className="h-4 w-4 text-green-600" />
-                  create vercel project
+                  create a vercel project
                 </li>
                 <li className="flex items-center gap-2 before:content-none">
                   <Check className="h-4 w-4 text-green-600" />
-                  provision neon postgres database
-                </li>
-                <li className="flex items-center gap-2 before:content-none">
-                  <Check className="h-4 w-4 text-green-600" />
-                  configure ai gateway
-                </li>
-                <li className="flex items-center gap-2 before:content-none">
-                  <Check className="h-4 w-4 text-green-600" />
-                  set all environment variables
+                  optionally add neon postgres database
                 </li>
                 <li className="flex items-center gap-2 before:content-none">
                   <Check className="h-4 w-4 text-green-600" />
                   deploy to production
                 </li>
               </ul>
-              {agent.envVars.some((v) => v.source === "user") && (
-                <p className="text-xs text-muted-foreground mt-4">
-                  you&apos;ll need to add{" "}
-                  {agent.envVars
-                    .filter((v) => v.source === "user")
-                    .map((v) => v.key)
-                    .join(", ")}{" "}
-                  after deployment.
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground mt-4">
+                after deployment, follow the setup guide to complete configuration.
+              </p>
             </section>
           )}
 

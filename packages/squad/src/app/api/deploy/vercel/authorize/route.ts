@@ -60,5 +60,15 @@ export const GET = async (request: NextRequest) => {
     deployUrl.searchParams.set("root-directory", agent.sourcePath);
   }
 
+  // Add Neon Postgres integration (skippable so user can choose)
+  const neonProduct = {
+    type: "integration",
+    protocol: "storage",
+    productSlug: "neon",
+    integrationSlug: "neon",
+  };
+  deployUrl.searchParams.set("products", JSON.stringify([neonProduct]));
+  deployUrl.searchParams.set("skippable-integrations", "1");
+
   return NextResponse.redirect(deployUrl.toString());
 };
