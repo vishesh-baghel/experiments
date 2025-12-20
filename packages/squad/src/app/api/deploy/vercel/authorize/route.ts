@@ -60,15 +60,34 @@ export const GET = async (request: NextRequest) => {
     deployUrl.searchParams.set("root-directory", agent.sourcePath);
   }
 
-  // Add Neon Postgres integration (skippable so user can choose)
-  const neonProduct = {
+  // Add Prisma Postgres integration
+  const prismaProduct = {
     type: "integration",
     protocol: "storage",
-    productSlug: "neon",
-    integrationSlug: "neon",
+    productSlug: "prisma-postgres",
+    integrationSlug: "prisma",
   };
-  deployUrl.searchParams.set("products", JSON.stringify([neonProduct]));
+  deployUrl.searchParams.set("products", JSON.stringify([prismaProduct]));
   deployUrl.searchParams.set("skippable-integrations", "1");
+
+  // Configure required environment variables
+  const requiredEnvVars = agent.envVars
+    .filter(v => v.required && v.source === "user")
+    .map(v => v.key);
+  
+  if (requiredEnvVars.length > 0) {
+    deployUrl.searchParams.set("env", requiredEnvVars.join(","));
+    
+    // Add environment variable descriptions
+    const envDescriptions = agent.envVars
+      .filter(v => v.required && v.source === "user")
+      .map(v => `${v.key}: ${v.description}`)
+      .join("; ");
+    deployUrl.searchParams.set("envDescription", envDescriptions);
+    
+    // Add link to AI Gateway docs for getting API key
+    deployUrl.searchParams.set("envLink", "https://vercel.com/docs/ai-gateway/authentication");
+  }
 
   return NextResponse.redirect(deployUrl.toString());
 };

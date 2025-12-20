@@ -5,7 +5,7 @@
  * To add a new agent, add a new entry to the `agents` array.
  */
 
-export type IntegrationType = "neon" | "ai-gateway";
+export type IntegrationType = "neon" | "prisma" | "ai-gateway";
 
 export type EnvVarSource = "integration" | "user" | "generated";
 
@@ -104,9 +104,9 @@ export const jackAgent: AgentConfig = {
       description: "for hosting the application",
     },
     {
-      name: "neon postgres",
+      name: "vercel postgres",
       cost: "free tier",
-      description: "database for storing ideas, posts, and learned patterns",
+      description: "database for storing ideas, posts, and learned patterns (prisma-managed)",
     },
     {
       name: "ai gateway",
@@ -121,33 +121,52 @@ export const jackAgent: AgentConfig = {
   ],
   sourceRepo: "https://github.com/vishesh-baghel/jack",
   sourcePath: "",
-  integrations: ["neon", "ai-gateway"],
+  integrations: ["prisma", "ai-gateway"],
   envVars: [
     {
       key: "DATABASE_URL",
       source: "integration",
-      integration: "neon",
-      description: "postgres connection string",
+      integration: "prisma",
+      description: "prisma postgres connection string",
       required: true,
     },
     {
-      key: "AI_GATEWAY_URL",
+      key: "POSTGRES_URL",
       source: "integration",
-      integration: "ai-gateway",
-      description: "vercel ai gateway endpoint",
+      integration: "prisma",
+      description: "postgres connection string (same as DATABASE_URL)",
       required: true,
     },
     {
-      key: "APIFY_API_KEY",
+      key: "PRISMA_DATABASE_URL",
+      source: "integration",
+      integration: "prisma",
+      description: "prisma database connection string (same as DATABASE_URL)",
+      required: true,
+    },
+    {
+      key: "AI_GATEWAY_API_KEY",
       source: "user",
-      description: "your apify api key for x data",
+      description: "vercel ai gateway api key for llm access",
       required: true,
     },
     {
-      key: "AUTH_PASSPHRASE",
-      source: "generated",
-      description: "auto-generated passphrase for owner auth",
-      required: true,
+      key: "LANGFUSE_SECRET_KEY",
+      source: "user",
+      description: "langfuse secret key for observability (optional)",
+      required: false,
+    },
+    {
+      key: "LANGFUSE_PUBLIC_KEY",
+      source: "user",
+      description: "langfuse public key for observability (optional)",
+      required: false,
+    },
+    {
+      key: "LANGFUSE_BASE_URL",
+      source: "user",
+      description: "langfuse base url (default: https://cloud.langfuse.com)",
+      required: false,
     },
   ],
   deployInstructions: [
@@ -158,26 +177,21 @@ export const jackAgent: AgentConfig = {
     },
     {
       step: 2,
-      title: "add neon postgres",
-      description: "during setup, vercel will prompt you to add integrations. add neon postgres for the database (free tier available).",
+      title: "add vercel postgres",
+      description: "during setup, vercel will prompt you to add integrations. add vercel postgres (prisma) for the database (free tier available).",
       link: {
-        text: "neon docs",
-        url: "https://neon.tech/docs",
+        text: "vercel postgres docs",
+        url: "https://vercel.com/docs/storage/vercel-postgres",
       },
     },
     {
       step: 3,
-      title: "get apify api key",
-      description: "after deployment, add your apify api key in vercel project settings > environment variables. apify is used for x/twitter data scraping.",
+      title: "configure environment variables",
+      description: "add required environment variables: AI_GATEWAY_API_KEY (required), and optional langfuse keys for observability.",
       link: {
-        text: "get apify key",
-        url: "https://console.apify.com/account/integrations",
+        text: "ai gateway docs",
+        url: "https://vercel.com/docs/ai-gateway",
       },
-    },
-    {
-      step: 4,
-      title: "set auth passphrase",
-      description: "add AUTH_PASSPHRASE env var with a secret passphrase. this protects your agent's admin endpoints.",
     },
   ],
   guideSteps: [
@@ -191,29 +205,33 @@ export const jackAgent: AgentConfig = {
     },
     {
       title: "database setup",
-      description: "if you added neon postgres during deployment, your database is ready. otherwise, add it now from your vercel project settings.",
+      description: "if you added prisma postgres during deployment, your database is ready with DATABASE_URL configured. otherwise, add it from your vercel project settings.",
       details: [
         "go to your vercel project settings",
         "click \"storage\" tab",
-        "select \"neon\" and create a database",
-        "environment variables will be added automatically",
+        "select \"prisma\" and create a database",
+        "DATABASE_URL will be added automatically",
       ],
       link: {
-        text: "neon + vercel docs",
-        url: "https://neon.tech/docs/guides/vercel",
+        text: "prisma postgres docs",
+        url: "https://www.prisma.io/docs/postgres",
       },
     },
     {
-      title: "add apify api key",
-      description: "add your apify api key in vercel project settings > environment variables. apify is used for x/twitter data scraping.",
+      title: "configure ai gateway",
+      description: "add your AI_GATEWAY_API_KEY in vercel project settings > environment variables. this is required for llm access.",
       link: {
-        text: "get apify key",
-        url: "https://console.apify.com/account/integrations",
+        text: "get ai gateway key",
+        url: "https://vercel.com/docs/ai-gateway/authentication",
       },
     },
     {
-      title: "set auth passphrase",
-      description: "add AUTH_PASSPHRASE env var with a secret passphrase. this protects your agent's admin endpoints. use a strong, unique passphrase.",
+      title: "optional: add langfuse",
+      description: "optionally add langfuse keys (LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY, LANGFUSE_BASE_URL) for observability and monitoring.",
+      link: {
+        text: "langfuse docs",
+        url: "https://langfuse.com/docs",
+      },
     },
     {
       title: "redeploy",
