@@ -38,6 +38,16 @@ export interface DeployInstructionConfig {
   };
 }
 
+export interface GuideStepConfig {
+  title: string;
+  description: string;
+  details?: string[];
+  link?: {
+    text: string;
+    url: string;
+  };
+}
+
 export interface AgentConfig {
   id: string;
   name: string;
@@ -50,6 +60,7 @@ export interface AgentConfig {
   integrations: IntegrationType[];
   envVars: EnvVarConfig[];
   deployInstructions: DeployInstructionConfig[];
+  guideSteps: GuideStepConfig[];
   status: "available" | "coming-soon";
   estimatedMonthlyCost: string;
   demoUrl?: string;
@@ -169,6 +180,46 @@ export const jackAgent: AgentConfig = {
       description: "add AUTH_PASSPHRASE env var with a secret passphrase. this protects your agent's admin endpoints.",
     },
   ],
+  guideSteps: [
+    {
+      title: "verify deployment",
+      description: "make sure your vercel deployment completed successfully. check your vercel dashboard for any build errors.",
+      link: {
+        text: "open vercel dashboard",
+        url: "https://vercel.com/dashboard",
+      },
+    },
+    {
+      title: "database setup",
+      description: "if you added neon postgres during deployment, your database is ready. otherwise, add it now from your vercel project settings.",
+      details: [
+        "go to your vercel project settings",
+        "click \"storage\" tab",
+        "select \"neon\" and create a database",
+        "environment variables will be added automatically",
+      ],
+      link: {
+        text: "neon + vercel docs",
+        url: "https://neon.tech/docs/guides/vercel",
+      },
+    },
+    {
+      title: "add apify api key",
+      description: "add your apify api key in vercel project settings > environment variables. apify is used for x/twitter data scraping.",
+      link: {
+        text: "get apify key",
+        url: "https://console.apify.com/account/integrations",
+      },
+    },
+    {
+      title: "set auth passphrase",
+      description: "add AUTH_PASSPHRASE env var with a secret passphrase. this protects your agent's admin endpoints. use a strong, unique passphrase.",
+    },
+    {
+      title: "redeploy",
+      description: "after adding environment variables, redeploy your project to apply the changes. go to your vercel project and click \"redeploy\".",
+    },
+  ],
   status: "available",
   estimatedMonthlyCost: "~$15/month",
   demoUrl: "https://jack.visheshbaghel.com",
@@ -252,6 +303,34 @@ export const sensieAgent: AgentConfig = {
       step: 3,
       title: "configure ai gateway",
       description: "vercel ai gateway will be set up automatically during deployment.",
+    },
+  ],
+  guideSteps: [
+    {
+      title: "verify deployment",
+      description: "make sure your vercel deployment completed successfully. check your vercel dashboard for any build errors.",
+      link: {
+        text: "open vercel dashboard",
+        url: "https://vercel.com/dashboard",
+      },
+    },
+    {
+      title: "database setup",
+      description: "if you added neon postgres during deployment, your database is ready. otherwise, add it now from your vercel project settings.",
+      details: [
+        "go to your vercel project settings",
+        "click \"storage\" tab",
+        "select \"neon\" and create a database",
+        "environment variables will be added automatically",
+      ],
+      link: {
+        text: "neon + vercel docs",
+        url: "https://neon.tech/docs/guides/vercel",
+      },
+    },
+    {
+      title: "redeploy",
+      description: "after adding environment variables, redeploy your project to apply the changes. go to your vercel project and click \"redeploy\".",
     },
   ],
   status: "coming-soon",

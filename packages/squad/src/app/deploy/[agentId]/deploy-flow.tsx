@@ -18,7 +18,7 @@ import {
   trackDeploySuccess,
   trackDeployFailure,
 } from "@/lib/analytics";
-import { ArrowLeft, ExternalLink, Loader2, BookOpen, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, CheckCircle2 } from "lucide-react";
 
 interface DeployFlowProps {
   agent: AgentConfig;
@@ -114,62 +114,37 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
 
         {/* Success */}
         {isComplete && session.vercel && (
-          <div className="space-y-6">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <h2 className="text-lg font-semibold">deployment successful</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  your {agent.name} agent is now live. follow the setup guide to
-                  complete configuration.
-                </p>
-              </div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="h-[22px] w-[22px] text-green-600 flex-shrink-0" />
+              <h2 className="text-lg font-semibold leading-[22px] m-0">deployment successful</h2>
             </div>
+            <p className="text-sm text-muted-foreground m-2">
+              your {agent.name} agent is now live. follow the setup guide to
+              complete configuration.
+            </p>
 
-            <div className="space-y-2 text-sm">
-              <div>
-                <span className="text-muted-foreground">deployment url: </span>
+            <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
+              <Button asChild className="no-underline">
                 <a
                   href={session.vercel.deploymentUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="underline"
                 >
-                  {session.vercel.deploymentUrl}
+                  see your agent
                 </a>
-              </div>
+              </Button>
               {session.vercel.projectDashboardUrl && (
-                <div>
-                  <span className="text-muted-foreground">vercel project: </span>
+                <Button variant="outline" asChild className="no-underline">
                   <a
                     href={session.vercel.projectDashboardUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="underline"
                   >
-                    {session.vercel.projectName}
+                    vercel project
                   </a>
-                </div>
+                </Button>
               )}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button asChild>
-                <Link href={`/deploy/${agent.id}/guide`}>
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  complete setup
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <a
-                  href={session.vercel.deploymentUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  open your agent
-                  <ExternalLink className="ml-2 h-4 w-4" />
-                </a>
-              </Button>
             </div>
           </div>
         )}
@@ -194,9 +169,8 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
               step-by-step instructions to configure your {agent.name} agent
             </p>
           </div>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" asChild className="no-underline">
             <Link href={`/deploy/${agent.id}/guide`}>
-              <BookOpen className="mr-2 h-4 w-4" />
               view guide
             </Link>
           </Button>
