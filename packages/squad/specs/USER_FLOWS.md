@@ -339,50 +339,6 @@ Deploy flow page (`/deploy/[agentId]`)
 
 ---
 
-## Flow 4: Cancel Deployment
-
-### Trigger
-User clicks "cancel" during deploy flow
-
-### Flow
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                                                             │
-│  User clicks "cancel" during any deploy step                │
-│                                                             │
-│                    │                                        │
-│                    ▼                                        │
-│                                                             │
-│  ┌───────────────────────────────────────────────────────┐ │
-│  │  Confirmation dialog                                  │ │
-│  │  "are you sure? you'll need to start over."          │ │
-│  │  [cancel] [continue deploying]                        │ │
-│  └───────────────────────────────────────────────────────┘ │
-│                                                             │
-│                    │                                        │
-│         ┌─────────┴─────────┐                              │
-│         │                   │                              │
-│         ▼                   ▼                              │
-│                                                             │
-│  Confirm cancel       Continue                             │
-│         │                   │                              │
-│         ▼                   ▼                              │
-│                                                             │
-│  Clear session        Close dialog                         │
-│  Redirect to          Resume flow                          │
-│  agent page                                                │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Technical Notes
-- clear deploy session cookie
-- no cleanup of partial resources (user can delete manually)
-- redirect to agent detail page
-
----
-
 ## Flow 5: Error Recovery
 
 ### Trigger
