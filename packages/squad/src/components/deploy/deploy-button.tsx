@@ -1,9 +1,10 @@
 "use client";
 
 /**
- * OAuthButton Component
+ * DeployButton Component
  *
- * Button that initiates OAuth flow for Vercel or GitHub.
+ * Button that initiates Vercel Deploy Button flow.
+ * Opens Vercel's deploy page in a new tab.
  */
 
 import { useState } from "react";
@@ -11,40 +12,19 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
 
-type OAuthProvider = "vercel" | "github";
-
-interface OAuthButtonProps {
-  provider: OAuthProvider;
+interface DeployButtonProps {
   agentId: string;
   disabled?: boolean;
   onStart?: () => void;
 }
 
-// Provider Config
 
-const PROVIDER_CONFIG: Record<
-  OAuthProvider,
-  { label: string; endpoint: string }
-> = {
-  vercel: {
-    label: "deploy to vercel",
-    endpoint: "/api/deploy/vercel/authorize",
-  },
-  github: {
-    label: "connect github",
-    endpoint: "/api/deploy/github/authorize",
-  },
-};
-
-
-export const OAuthButton = ({
-  provider,
+export const DeployButton = ({
   agentId,
   disabled = false,
   onStart,
-}: OAuthButtonProps) => {
+}: DeployButtonProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const config = PROVIDER_CONFIG[provider];
 
   const handleClick = async () => {
     setIsLoading(true);
@@ -52,12 +32,12 @@ export const OAuthButton = ({
 
     try {
       // Open Vercel deploy in new tab so user can browse other agents
-      const url = new URL(config.endpoint, window.location.origin);
+      const url = new URL("/api/deploy/vercel/deploy", window.location.origin);
       url.searchParams.set("agentId", agentId);
       window.open(url.toString(), "_blank");
       setIsLoading(false);
     } catch (error) {
-      console.error(`OAuth ${provider} error:`, error);
+      console.error("Deploy button error:", error);
       setIsLoading(false);
     }
   };
@@ -68,18 +48,18 @@ export const OAuthButton = ({
       disabled={disabled || isLoading}
       className="w-full"
       size="lg"
-      aria-label={`Connect ${provider} account`}
+      aria-label="Deploy to Vercel"
     >
       {isLoading ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          connecting...
+          redirecting...
         </>
       ) : (
-        config.label
+        "deploy to vercel"
       )}
     </Button>
   );
 };
 
-export default OAuthButton;
+export default DeployButton;

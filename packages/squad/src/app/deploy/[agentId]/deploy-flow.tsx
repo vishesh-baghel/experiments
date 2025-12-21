@@ -10,7 +10,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { OAuthButton, DeployError } from "@/components/deploy";
+import { DeployButton, DeployError } from "@/components/deploy";
 import { AgentConfig } from "@/config/agents";
 import { DeploySession } from "@/lib/deploy/types";
 import {
@@ -102,7 +102,7 @@ export const DeployFlow = ({ agent }: DeployFlowProps) => {
                 click below to deploy your agent. this opens vercel in a new tab
                 where you can set up your project and add a database.
               </p>
-              <OAuthButton provider="vercel" agentId={agent.id} />
+              <DeployButton agentId={agent.id} />
             </div>
 
             <p className="text-xs text-muted-foreground">

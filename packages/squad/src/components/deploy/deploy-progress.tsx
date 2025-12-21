@@ -8,7 +8,7 @@
 
 import { Check, Circle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DeployStepState, DeployStepId, getStepIndex } from "@/lib/deploy/types";
+import { DeployStepState, DeployStepId } from "@/lib/deploy/types";
 
 
 interface DeployProgressProps {
@@ -24,11 +24,9 @@ const STEP_LABELS: Record<DeployStepId, string> = {
 
 
 export const DeployProgress = ({ steps, currentStep }: DeployProgressProps) => {
-  const currentIndex = getStepIndex(currentStep);
-
   return (
     <div className="space-y-3" role="list" aria-label="Deployment progress">
-      {steps.map((step, index) => {
+      {steps.map((step) => {
         const isActive = step.id === currentStep;
         const isCompleted = step.status === "completed";
         const isError = step.status === "error";

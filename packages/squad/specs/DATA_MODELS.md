@@ -1,152 +1,73 @@
 # Squad - Data Models
 
-**Version:** 0.2.0  
-**Last Updated:** Dec 13, 2025
+**Version:** 0.3.0  
+**Last Updated:** Dec 21, 2025
 
 ---
 
 ## Overview
 
-Squad uses a Neon Postgres database for user management and deployment tracking:
+Squad V1 uses a simplified architecture with no persistent database:
 
-1. **Database tables** - Users, sessions, accounts, deployments (via Better Auth + custom)
-2. **Static config** - Agent definitions in code
-3. **Session state** - OAuth tokens during deploy flow (temporary, discarded after use)
-4. **External state** - Created in user's Vercel/GitHub accounts
+1. **Static config** - Agent definitions in code (`src/config/agents.ts`)
+2. **Session state** - Deploy session stored in encrypted cookie (iron-session)
+3. **External state** - Created in user's Vercel account via Deploy Button
+
+**Note:** User authentication and persistent storage are planned for V2.
 
 ---
 
-## Database Schema
+## Session Storage (iron-session)
 
-### Better Auth Tables (Managed)
+Deploy sessions are stored in encrypted HTTP-only cookies. No database required.
 
-Better Auth manages these tables automatically:
-
-```sql
--- Users table (extended with custom fields)
-CREATE TABLE users (
-  id            TEXT PRIMARY KEY,
-  name          TEXT,
-  email         TEXT UNIQUE,
-  email_verified BOOLEAN DEFAULT FALSE,
-  image         TEXT,
-  created_at    TIMESTAMP DEFAULT NOW(),
-  updated_at    TIMESTAMP DEFAULT NOW(),
-  
-  -- Custom fields
-  forked_repo   TEXT,              -- e.g., "username/experiments"
-  forked_at     TIMESTAMP
-);
-
--- Sessions table
-CREATE TABLE sessions (
-  id            TEXT PRIMARY KEY,
-  user_id       TEXT REFERENCES users(id),
-  token         TEXT UNIQUE NOT NULL,
-  expires_at    TIMESTAMP NOT NULL,
-  ip_address    TEXT,
-  user_agent    TEXT,
-  created_at    TIMESTAMP DEFAULT NOW(),
-  updated_at    TIMESTAMP DEFAULT NOW()
-);
-
--- OAuth accounts table
-CREATE TABLE accounts (
-  id                TEXT PRIMARY KEY,
-  user_id           TEXT REFERENCES users(id),
-  account_id        TEXT NOT NULL,
-  provider_id       TEXT NOT NULL,        -- 'github', 'google'
-  access_token      TEXT,
-  refresh_token     TEXT,
-  access_token_expires_at TIMESTAMP,
-  refresh_token_expires_at TIMESTAMP,
-  scope             TEXT,
-  id_token          TEXT,
-  created_at        TIMESTAMP DEFAULT NOW(),
-  updated_at        TIMESTAMP DEFAULT NOW(),
-  
-  UNIQUE(provider_id, account_id)
-);
-```
-
-### Custom Tables
-
-```sql
--- Deployed agents per user
-CREATE TABLE deployments (
-  id              TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id         TEXT REFERENCES users(id) NOT NULL,
-  agent_id        TEXT NOT NULL,           -- 'jack', 'sensie', etc.
-  
-  -- Vercel deployment info
-  vercel_project_id   TEXT,
-  vercel_project_name TEXT,
-  deployment_url      TEXT,
-  
-  -- Status
-  status          TEXT DEFAULT 'pending',  -- 'pending', 'deployed', 'failed'
-  error_message   TEXT,
-  
-  -- Timestamps
-  created_at      TIMESTAMP DEFAULT NOW(),
-  deployed_at     TIMESTAMP,
-  
-  -- Prevent duplicate deployments
-  UNIQUE(user_id, agent_id)
-);
-
--- Index for fast lookups
-CREATE INDEX idx_deployments_user_id ON deployments(user_id);
-CREATE INDEX idx_deployments_agent_id ON deployments(agent_id);
-```
-
-### TypeScript Types (Drizzle)
+### DeploySession Type
 
 ```typescript
-// src/db/schema.ts
-import { pgTable, text, timestamp, boolean, index, unique } from 'drizzle-orm/pg-core';
+// src/lib/deploy/types.ts
 
-// Users table (Better Auth + custom fields)
-export const users = pgTable('users', {
-  id: text('id').primaryKey(),
-  name: text('name'),
-  email: text('email').unique(),
-  emailVerified: boolean('email_verified').default(false),
-  image: text('image'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-  
-  // Custom fields
-  forkedRepo: text('forked_repo'),
-  forkedAt: timestamp('forked_at'),
-});
+export type DeployStepId = "vercel-deploy";
 
-// Deployments table
-export const deployments = pgTable('deployments', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  userId: text('user_id').references(() => users.id).notNull(),
-  agentId: text('agent_id').notNull(),
-  
-  vercelProjectId: text('vercel_project_id'),
-  vercelProjectName: text('vercel_project_name'),
-  deploymentUrl: text('deployment_url'),
-  
-  status: text('status').default('pending'),
-  errorMessage: text('error_message'),
-  
-  createdAt: timestamp('created_at').defaultNow(),
-  deployedAt: timestamp('deployed_at'),
-}, (table) => ({
-  userIdIdx: index('idx_deployments_user_id').on(table.userId),
-  agentIdIdx: index('idx_deployments_agent_id').on(table.agentId),
-  uniqueUserAgent: unique('unique_user_agent').on(table.userId, table.agentId),
-}));
+export type DeployStepStatus = "pending" | "in-progress" | "complete" | "error";
 
-// Type exports
-export type User = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
-export type Deployment = typeof deployments.$inferSelect;
-export type NewDeployment = typeof deployments.$inferInsert;
+export interface DeployStep {
+  id: DeployStepId;
+  label: string;
+  status: DeployStepStatus;
+  error?: string;
+}
+
+export interface VercelDeploymentData {
+  deploymentUrl: string;
+  projectDashboardUrl?: string;
+}
+
+export interface DeploySession {
+  agentId: string;
+  currentStep: DeployStepId;
+  steps: DeployStep[];
+  vercel?: VercelDeploymentData;
+  createdAt: number;
+  expiresAt: number;
+}
+```
+
+### Session Configuration
+
+```typescript
+// Session expires after 30 minutes
+const SESSION_TTL_MS = 30 * 60 * 1000;
+
+// iron-session configuration
+const sessionOptions = {
+  password: process.env.SESSION_SECRET,
+  cookieName: "squad-deploy-session",
+  cookieOptions: {
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+    sameSite: "lax",
+  },
+};
 ```
 
 ---
@@ -160,7 +81,7 @@ The core data structure defining each deployable agent.
 ```typescript
 // src/config/agents.ts
 
-export type IntegrationType = 'neon' | 'ai-gateway';
+export type IntegrationType = 'prisma' | 'ai-gateway';
 
 export type EnvVarSource = 'integration' | 'user' | 'generated';
 
@@ -193,6 +114,24 @@ export interface FeatureConfig {
   description: string;
 }
 
+export interface DeployInstruction {
+  /** instruction title */
+  title: string;
+  /** instruction description */
+  description: string;
+}
+
+export interface GuideStep {
+  /** step title */
+  title: string;
+  /** step description */
+  description: string;
+  /** optional external link */
+  link?: string;
+  /** link text */
+  linkText?: string;
+}
+
 export interface AgentConfig {
   /** unique identifier (used in URLs) */
   id: string;
@@ -212,17 +151,23 @@ export interface AgentConfig {
   /** requirements/costs for running this agent */
   requirements: RequirementConfig[];
   
-  /** github repository URL */
+  /** github repository URL (standalone repo, not monorepo) */
   sourceRepo: string;
   
-  /** path within the monorepo (e.g., "packages/jack-x-agent") */
+  /** path within the repo (empty for root) */
   sourcePath: string;
   
-  /** integrations to provision via Vercel */
+  /** integrations to provision via Vercel marketplace */
   integrations: IntegrationType[];
   
   /** environment variables needed */
   envVars: EnvVarConfig[];
+  
+  /** deploy instructions shown on agent detail page */
+  deployInstructions: DeployInstruction[];
+  
+  /** post-deployment setup guide steps */
+  guideSteps: GuideStep[];
   
   /** availability status */
   status: 'available' | 'coming-soon';
@@ -389,205 +334,125 @@ export const sensieAgent: AgentConfig = {
 
 ---
 
-## Session State
+## API Routes
 
-During the deploy flow, we need to track OAuth tokens temporarily.
-
-### DeploySession
+### Deploy Start
 
 ```typescript
-// stored in encrypted cookies during deploy flow
+// POST /api/deploy/start
+// Initializes a deploy session for an agent
 
-export interface DeploySession {
-  /** which agent is being deployed */
+export interface DeployStartRequest {
   agentId: string;
-  
-  /** vercel oauth state */
-  vercel?: {
-    accessToken: string;
-    teamId?: string;
-    expiresAt: number;
-  };
-  
-  /** github oauth state */
-  github?: {
-    accessToken: string;
-    username: string;
-    expiresAt: number;
-  };
-  
-  /** current step in the flow */
-  step: DeployStep;
-  
-  /** session creation timestamp */
-  createdAt: number;
-  
-  /** session expiry (30 minutes) */
-  expiresAt: number;
 }
 
-export type DeployStep = 
-  | 'initial'
-  | 'vercel-auth'
-  | 'github-auth'
-  | 'provisioning'
-  | 'deploying'
-  | 'complete'
-  | 'error';
+export interface DeployStartResponse {
+  success: boolean;
+  session?: DeploySession;
+  error?: string;
+}
 ```
 
-### DeployResult
+### Deploy Redirect
 
 ```typescript
-// returned after successful deployment
+// GET /api/deploy/vercel/deploy
+// Redirects to Vercel Deploy Button with agent configuration
 
-export interface DeployResult {
-  /** deployed project URL */
+// Query params:
+// - agentId: string (required)
+
+// Redirects to: https://vercel.com/new/clone?...
+// With parameters:
+// - repository-url: agent's source repo
+// - redirect-url: callback URL with state
+// - project-name: suggested project name
+// - products: Prisma Postgres integration config
+// - env: required environment variables
+```
+
+### Deploy Callback
+
+```typescript
+// GET /api/deploy/vercel/callback
+// Handles callback from Vercel after deployment
+
+// Query params from Vercel:
+// - state: base64url encoded { agentId }
+// - deployment-url: deployed project URL (optional)
+// - project-dashboard-url: Vercel dashboard URL (optional)
+
+// Updates session with deployment data and redirects to deploy page
+```
+
+---
+
+## Vercel Deploy Button Integration
+
+Squad uses Vercel's Deploy Button instead of OAuth. This simplifies the flow:
+
+```typescript
+// Deploy Button URL structure
+const deployUrl = new URL("https://vercel.com/new/clone");
+deployUrl.searchParams.set("repository-url", agent.sourceRepo);
+deployUrl.searchParams.set("redirect-url", callbackUrl);
+deployUrl.searchParams.set("project-name", `${agentId}-agent`);
+deployUrl.searchParams.set("repository-name", `${agentId}-agent`);
+
+// Prisma Postgres integration
+const prismaProduct = {
+  type: "integration",
+  protocol: "storage",
+  productSlug: "prisma-postgres",
+  integrationSlug: "prisma",
+};
+deployUrl.searchParams.set("products", JSON.stringify([prismaProduct]));
+deployUrl.searchParams.set("skippable-integrations", "1");
+
+// Environment variables
+deployUrl.searchParams.set("env", requiredEnvVars.join(","));
+```
+
+---
+
+## Constants
+
+```typescript
+// src/lib/deploy/types.ts
+
+export const DEPLOY_STEPS: DeployStep[] = [
+  { id: "vercel-deploy", label: "deploy to vercel", status: "pending" },
+];
+
+export const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+```
+
+---
+
+## Future: V2 Data Models
+
+Planned for V2 with user authentication:
+
+```typescript
+// V2: User accounts (Better Auth)
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  createdAt: Date;
+}
+
+// V2: Deployment records
+export interface Deployment {
+  id: string;
+  userId: string;
+  agentId: string;
   deploymentUrl: string;
-  
-  /** vercel project dashboard URL */
-  projectUrl: string;
-  
-  /** github repo URL (user's fork) */
-  repoUrl: string;
-  
-  /** provisioned integrations */
-  integrations: {
-    type: IntegrationType;
-    status: 'success' | 'failed';
-    details?: string;
-  }[];
-  
-  /** any user-provided env vars that were set */
-  configuredEnvVars: string[];
-}
-```
-
----
-
-## API Response Types
-
-### OAuth Callback
-
-```typescript
-// GET /api/auth/vercel/callback
-export interface VercelAuthResponse {
-  success: boolean;
-  accessToken?: string;
-  teamId?: string;
-  error?: string;
+  projectDashboardUrl?: string;
+  createdAt: Date;
 }
 
-// GET /api/auth/github/callback
-export interface GitHubAuthResponse {
-  success: boolean;
-  accessToken?: string;
-  username?: string;
-  error?: string;
-}
-```
-
-### Deployment API
-
-```typescript
-// POST /api/deploy/provision
-export interface ProvisionRequest {
-  agentId: string;
-  vercelToken: string;
-  githubToken: string;
-}
-
-export interface ProvisionResponse {
-  success: boolean;
-  repoUrl?: string;
-  integrations?: {
-    neon?: { connectionString: string };
-    aiGateway?: { endpoint: string };
-  };
-  error?: string;
-}
-
-// POST /api/deploy/create
-export interface CreateDeploymentRequest {
-  agentId: string;
-  vercelToken: string;
-  repoUrl: string;
-  envVars: Record<string, string>;
-}
-
-export interface CreateDeploymentResponse {
-  success: boolean;
-  deploymentUrl?: string;
-  projectUrl?: string;
-  error?: string;
-}
-```
-
----
-
-## Vercel API Types
-
-Types for interacting with Vercel's REST API.
-
-```typescript
-// vercel project creation
-export interface VercelProjectCreate {
-  name: string;
-  gitRepository: {
-    type: 'github';
-    repo: string;  // "owner/repo"
-  };
-  rootDirectory?: string;
-  framework?: 'nextjs';
-  buildCommand?: string;
-  installCommand?: string;
-}
-
-// vercel environment variable
-export interface VercelEnvVar {
-  key: string;
-  value: string;
-  type: 'encrypted' | 'plain';
-  target: ('production' | 'preview' | 'development')[];
-}
-
-// vercel integration provisioning
-export interface VercelIntegrationProvision {
-  integrationSlug: string;  // e.g., "neon", "ai-gateway"
-  projectId: string;
-}
-```
-
----
-
-## GitHub API Types
-
-Types for interacting with GitHub's REST API.
-
-```typescript
-// fork a repository
-export interface GitHubForkRequest {
-  owner: string;
-  repo: string;
-  name?: string;  // optional custom name for fork
-}
-
-export interface GitHubForkResponse {
-  id: number;
-  full_name: string;  // "user/repo"
-  html_url: string;
-  clone_url: string;
-}
-```
-
----
-
-## Future: Payment Types (V2)
-
-Placeholder for DodoPayments integration.
-
-```typescript
-// V2: payment session
+// V2: Payment integration (DodoPayments)
 export interface PaymentSession {
   id: string;
   agentId: string;
@@ -597,53 +462,4 @@ export interface PaymentSession {
   email: string;
   createdAt: number;
 }
-
-// V2: paid deployment record
-export interface PaidDeployment {
-  id: string;
-  paymentSessionId: string;
-  agentId: string;
-  deploymentUrl: string;
-  createdAt: number;
-}
-```
-
----
-
-## Constants
-
-```typescript
-// src/config/constants.ts
-
-export const OAUTH_CONFIG = {
-  vercel: {
-    authUrl: 'https://vercel.com/oauth/authorize',
-    tokenUrl: 'https://api.vercel.com/oauth/token',
-    scopes: ['user', 'project', 'integration'],
-  },
-  github: {
-    authUrl: 'https://github.com/login/oauth/authorize',
-    tokenUrl: 'https://github.com/login/oauth/access_token',
-    scopes: ['repo', 'read:user'],
-  },
-};
-
-export const DEPLOY_CONFIG = {
-  sessionTtlMs: 30 * 60 * 1000,  // 30 minutes
-  pollIntervalMs: 2000,          // 2 seconds
-  maxPollAttempts: 60,           // 2 minutes max wait
-};
-
-export const INTEGRATIONS = {
-  neon: {
-    slug: 'neon',
-    name: 'Neon Postgres',
-    envVar: 'DATABASE_URL',
-  },
-  aiGateway: {
-    slug: 'ai-gateway',
-    name: 'Vercel AI Gateway',
-    envVar: 'AI_GATEWAY_URL',
-  },
-};
 ```

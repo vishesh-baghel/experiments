@@ -114,8 +114,9 @@ export const getStepIndex = (stepId: DeployStepId): number => {
   return stepId === "vercel-deploy" ? 0 : -1;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const getNextStep = (currentStep: DeployStepId): DeployStepId | null => {
-  return null; // Only one step
+  return null; // Only one step - kept for future multi-step flows
 };
 
 export const isSessionExpired = (session: DeploySession): boolean => {

@@ -8,7 +8,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getAgentById, agents } from "@/config/agents";
-import { ArrowLeft, ExternalLink, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/sections/header";
 import { Footer } from "@/components/sections/footer";

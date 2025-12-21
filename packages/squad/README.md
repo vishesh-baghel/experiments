@@ -2,13 +2,14 @@
 
 > hyper personalised agents i built, deploy them for yourself and let them do your boring work
 
-Squad is a deployment service that lets anyone deploy my personal AI agents to their own infrastructure with one click
+Squad is a deployment platform that lets anyone deploy my personal AI agents to their own infrastructure with one click.
 
 ## Features
 
-- **1-Click Deploy**: Connect Vercel + GitHub, we provision everything automatically
-- **Zero Config**: Database, AI gateway, and all env vars set up for you
+- **1-Click Deploy**: Deploy via Vercel Deploy Button with automatic Prisma Postgres provisioning
+- **Zero Config**: Database and environment variables configured automatically
 - **You Own It**: Code gets forked to your GitHub, deploys to your Vercel
+- **Setup Guide**: Step-by-step post-deployment configuration instructions
 
 ## Available Agents
 
@@ -33,8 +34,17 @@ pnpm install
 # Run development server
 pnpm dev
 
+# Run tests
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+
 # Build for production
 pnpm build
+
+# Lint
+pnpm lint
 ```
 
 ## Tech Stack
@@ -42,7 +52,28 @@ pnpm build
 - **Framework**: Next.js 15 (App Router)
 - **Styling**: TailwindCSS + shadcn/ui
 - **Font**: IBM Plex Mono
-- **APIs**: Vercel API, GitHub API
+- **Testing**: Vitest + React Testing Library
+- **Analytics**: PostHog
+- **APIs**: Vercel Deploy Button, Prisma Postgres
+
+## Project Structure
+
+```
+src/
+  app/                    # Next.js App Router pages
+    [agentId]/            # Agent detail pages
+    deploy/[agentId]/     # Deploy flow pages
+    api/deploy/           # Deploy API endpoints
+  components/             # React components
+    deploy/               # Deploy flow components
+    sections/             # Layout sections (header, footer)
+    ui/                   # shadcn/ui components
+  config/                 # Agent configurations
+  lib/                    # Utilities and helpers
+    deploy/               # Deploy session management
+    analytics.ts          # PostHog event tracking
+  __tests__/              # Test files
+```
 
 ## Adding New Agents
 
@@ -58,8 +89,10 @@ export const newAgent: AgentConfig = {
   requirements: [...],
   sourceRepo: "https://github.com/vishesh-baghel/experiments",
   sourcePath: "packages/new-agent",
-  integrations: ["neon", "ai-gateway"],
+  integrations: ["prisma", "ai-gateway"],
   envVars: [...],
+  deployInstructions: [...],
+  guideSteps: [...],
   status: "coming-soon", // or "available"
   estimatedMonthlyCost: "~$X/month",
 };
@@ -67,6 +100,31 @@ export const newAgent: AgentConfig = {
 // Add to agents array
 export const agents: AgentConfig[] = [jackAgent, sensieAgent, newAgent];
 ```
+
+## Testing
+
+The project uses Vitest for testing with React Testing Library for component tests.
+
+```bash
+# Run all tests
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+```
+
+Test coverage includes:
+- API endpoint tests (deploy/start, vercel/authorize, vercel/callback)
+- Component tests (AgentCard, OAuthButton, DeployError, DeployProgress)
+- Configuration tests (agents.ts validation)
+- Deploy session type tests
+
+## CI/CD
+
+GitHub Actions workflow runs on every push to main:
+- Runs test suite
+- Builds the application
+- Runs linting
 
 ## License
 

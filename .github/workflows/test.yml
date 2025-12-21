@@ -1,0 +1,102 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/squad/**'
+      - 'packages/jack/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/test.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/squad/**'
+      - 'packages/jack/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/test.yml'
+
+jobs:
+  # Detect which packages changed
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      squad: ${{ steps.filter.outputs.squad }}
+      jack: ${{ steps.filter.outputs.jack }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            squad:
+              - 'packages/squad/**'
+            jack:
+              - 'packages/jack/**'
+
+  # Squad tests
+  test-squad:
+    needs: changes
+    if: ${{ needs.changes.outputs.squad == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Squad tests
+        run: pnpm --filter squad test --run
+
+      - name: Run Squad build
+        run: pnpm --filter squad build
+
+      - name: Run Squad lint
+        run: pnpm --filter squad lint
+
+  # Jack tests (when tests are added)
+  test-jack:
+    needs: changes
+    if: ${{ needs.changes.outputs.jack == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Jack build
+        run: pnpm --filter jack build
+
+      # Uncomment when tests are added to jack
+      # - name: Run Jack tests
+      #   run: pnpm --filter jack test --run

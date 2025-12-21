@@ -1,7 +1,7 @@
 # Squad - UI Design Specification
 
-**Version:** 0.1.0  
-**Last Updated:** Dec 10, 2025
+**Version:** 0.2.0  
+**Last Updated:** Dec 21, 2025
 
 ---
 
@@ -206,14 +206,13 @@ Individual page for each agent with full details and deploy button.
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │  what we'll set up for you                          │   │
 │  │                                                     │   │
-│  │  ✓ fork the repo to your github                    │   │
+│  │  ✓ clone the repo to your vercel                   │   │
 │  │  ✓ create vercel project                           │   │
-│  │  ✓ provision neon postgres database               │   │
-│  │  ✓ configure ai gateway                            │   │
-│  │  ✓ set all environment variables                   │   │
+│  │  ✓ provision prisma postgres database             │   │
+│  │  ✓ set environment variables                       │   │
 │  │  ✓ deploy to production                            │   │
 │  │                                                     │   │
-│  │  you'll need to add your apify api key after.      │   │
+│  │  follow the setup guide after deployment.          │   │
 │  │                                                     │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
@@ -236,114 +235,108 @@ Individual page for each agent with full details and deploy button.
 
 ### Deploy Flow Page (`/deploy/[agentId]`)
 
-Multi-step deployment flow with progress indicators.
+Single-step deployment using Vercel Deploy Button. Opens in new tab.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │  deploying jack                           [cancel]  │   │
+│  │  ← squad                                  [theme]   │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │                                                     │   │
-│  │  step 1 of 4                                        │   │
+│  │  deploy jack                                        │   │
 │  │                                                     │   │
-│  │  ━━━━━━━━━━━━━━━━░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │   │
-│  │  25%                                                │   │
-│  │                                                     │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │                                                     │   │
-│  │  ✓ connect vercel                         done     │   │
-│  │  → connect github                      in progress │   │
-│  │  ○ provision services                   pending    │   │
-│  │  ○ deploy                               pending    │   │
-│  │                                                     │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │                                                     │   │
-│  │  connect your github account                        │   │
-│  │                                                     │   │
-│  │  we'll fork the jack repository to your account    │   │
-│  │  so you own the code.                              │   │
+│  │  click below to deploy your agent. this opens      │   │
+│  │  vercel in a new tab where you can set up your     │   │
+│  │  project and add a database.                       │   │
 │  │                                                     │   │
 │  │  ┌───────────────────────────────────────────────┐ │   │
-│  │  │           connect github                      │ │   │
+│  │  │           deploy to vercel                    │ │   │
 │  │  └───────────────────────────────────────────────┘ │   │
 │  │                                                     │   │
+│  │  you only pay for services you use (vercel, neon, │   │
+│  │  openai). this project is free and open source.   │   │
+│  │                                                     │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  setup guide                                        │   │
+│  │  step-by-step instructions to configure your       │   │
+│  │  jack agent                          [view guide]  │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Deploy Success Page
+### Deploy Success State (inline)
+
+Success state shown inline on deploy page after returning from Vercel.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │  squad                                    [theme]   │   │
+│  │  ← squad                                  [theme]   │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │                                                     │   │
-│  │  jack is live                                       │   │
+│  │  ✓ deployment successful                            │   │
 │  │                                                     │   │
-│  │  your agent is deployed and ready to use.          │   │
+│  │  your jack agent is now live. follow the setup     │   │
+│  │  guide to complete configuration.                  │   │
+│  │                                                     │   │
+│  │  ┌─────────────────┐  ┌─────────────────────────┐  │   │
+│  │  │ see your agent  │  │    vercel project       │  │   │
+│  │  └─────────────────┘  └─────────────────────────┘  │   │
+│  │                                                     │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  setup guide                                        │   │
+│  │  step-by-step instructions to configure your       │   │
+│  │  jack agent                          [view guide]  │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Setup Guide Page (`/deploy/[agentId]/guide`)
+
+Post-deployment configuration instructions.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  ← back to deploy                         [theme]   │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │                                                     │   │
+│  │  jack setup guide                                   │   │
+│  │                                                     │   │
+│  │  follow these steps to complete your deployment    │   │
 │  │                                                     │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │                                                     │   │
-│  │  your deployment                                    │   │
-│  │  https://jack-xyz123.vercel.app                    │   │
+│  │  ✓ 1. configure environment variables               │   │
+│  │       go to your vercel project settings and add   │   │
+│  │       the required environment variables.          │   │
+│  │       → vercel docs                                │   │
 │  │                                                     │   │
-│  │  ┌───────────────────────────────────────────────┐ │   │
-│  │  │              open your agent                  │ │   │
-│  │  └───────────────────────────────────────────────┘ │   │
+│  │  ✓ 2. set up ai gateway                             │   │
+│  │       configure your openai api key in vercel      │   │
+│  │       ai gateway settings.                         │   │
+│  │       → ai gateway docs                            │   │
 │  │                                                     │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
+│  │  ✓ 3. verify deployment                             │   │
+│  │       open your deployed agent and verify it works.│   │
 │  │                                                     │   │
-│  │  what was set up                                    │   │
-│  │                                                     │   │
-│  │  ✓ github repo                                      │   │
-│  │    github.com/yourname/jack                        │   │
-│  │                                                     │   │
-│  │  ✓ vercel project                                   │   │
-│  │    vercel.com/yourname/jack                        │   │
-│  │                                                     │   │
-│  │  ✓ neon postgres                                    │   │
-│  │    connected via vercel integration                │   │
-│  │                                                     │   │
-│  │  ✓ ai gateway                                       │   │
-│  │    configured for gpt-4                            │   │
-│  │                                                     │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │                                                     │   │
-│  │  next steps                                         │   │
-│  │                                                     │   │
-│  │  1. add your apify api key in vercel dashboard     │   │
-│  │     → go to settings > environment variables       │   │
-│  │     → add APIFY_API_KEY                            │   │
-│  │                                                     │   │
-│  │  2. set your auth passphrase                        │   │
-│  │     your auto-generated passphrase: xxxxxxxx       │   │
-│  │     (save this somewhere safe)                     │   │
-│  │                                                     │   │
-│  │  3. start using jack                                │   │
-│  │     open your deployment and log in                │   │
-│  │                                                     │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  → back to squad    → deploy another agent         │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
@@ -446,52 +439,52 @@ interface RequirementsTableProps {
 └──────────────────────────────────────────────────────────┘
 ```
 
-### Deploy Progress
+### DeployButton
 
-Shows current step in deployment flow.
-
-```tsx
-interface DeployProgressProps {
-  steps: {
-    label: string;
-    status: 'done' | 'in-progress' | 'pending';
-  }[];
-  currentStep: number;
-  totalSteps: number;
-}
-
-// Visual
-┌──────────────────────────────────────────────────────────┐
-│  step 2 of 4                                             │
-│                                                          │
-│  ━━━━━━━━━━━━━━━━━━━━━━━━━░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
-│  50%                                                     │
-│                                                          │
-│  ✓ connect vercel                              done     │
-│  → connect github                         in progress   │
-│  ○ provision services                        pending    │
-│  ○ deploy                                    pending    │
-└──────────────────────────────────────────────────────────┘
-```
-
-### Deploy Button
-
-Primary CTA for deployment.
+Primary CTA that opens Vercel Deploy Button in new tab.
 
 ```tsx
 interface DeployButtonProps {
   agentId: string;
   disabled?: boolean;
+  onStart?: () => void;
 }
 
 // Visual (default state)
 ┌──────────────────────────────────────────────────────────┐
-│                  deploy your own                         │
+│                  deploy to vercel                        │
 └──────────────────────────────────────────────────────────┘
 
-// Visual (hover state) - slight background change
+// Visual (loading state)
 ┌──────────────────────────────────────────────────────────┐
-│                  deploy your own                         │
+│              [spinner] redirecting...                    │
+└──────────────────────────────────────────────────────────┘
+```
+
+### DeployError
+
+Error display with retry option.
+
+```tsx
+interface DeployErrorProps {
+  type: 'session' | 'vercel' | 'unknown';
+  message: string;
+  agentId: string;
+  onRetry?: () => void;
+}
+
+// Visual
+┌──────────────────────────────────────────────────────────┐
+│  deployment failed                                       │
+│                                                          │
+│  something went wrong during deployment.                │
+│  please try again.                                      │
+│                                                          │
+│  ┌────────────┐                                         │
+│  │   retry    │                                         │
+│  └────────────┘                                         │
+│                                                          │
+│  → get help    → report issue                           │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -546,7 +539,7 @@ Minimal animations to maintain the portfolio's clean aesthetic:
 - page transitions: none (instant navigation)
 - button hover: subtle background color change
 - progress bar: smooth width transition
-- OAuth popup: system default
+- deploy button: opens new tab (no popup)
 - loading states: simple text or spinner
 
 ```css

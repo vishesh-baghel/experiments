@@ -2,10 +2,10 @@
 
 > "hyper personalised agents i built, deploy them for yourself and let them do your boring work"
 
-**Version:** 0.2.0  
+**Version:** 0.3.0  
 **Author:** Vishesh Baghel  
-**Last Updated:** Dec 13, 2025  
-**Status:** Updated - User Management + Free Deployment
+**Last Updated:** Dec 21, 2025  
+**Status:** Updated - Simplified Deploy Flow (Vercel Deploy Button)
 
 ---
 
@@ -57,36 +57,41 @@ Squad is the marketing and management platform for my personal AI agent ecosyste
 
 ## Goals & Non-Goals
 
-### V1 (MVP)
+### V1 (MVP) - Current Implementation
 
 **Core Features:**
 - Landing page showcasing available agents (jack, sensie, etc.)
 - Individual agent pages with visitor mode links
-- **User authentication** (GitHub OAuth, Google OAuth, username/password)
-- **Free 1-click deploy** via Vercel + GitHub OAuth
-- **Dashboard** to manage deployed agents
-- Automatic provisioning of required integrations (Neon DB, Vercel AI Gateway)
+- **Free 1-click deploy** via Vercel Deploy Button (no OAuth required)
+- **Automatic Prisma Postgres provisioning** via Vercel marketplace
+- **Environment variable configuration** during deploy
+- **Setup guide** with post-deployment instructions
 - Configurable agent registry (add new agents via config file)
 - Design system matching portfolio (IBM Plex Mono, minimalist, sharp edges)
+- **Test suite** with Vitest + React Testing Library
+- **CI/CD** via GitHub Actions
 
-**Authentication:**
-- **Squad Auth:** Better Auth with GitHub/Google OAuth + username/password
-- **Deployment Auth:** Vercel + GitHub OAuth (used once, tokens discarded)
-- User accounts with dashboard access
+**Simplified Deploy Flow:**
+- No user authentication required
+- No GitHub OAuth (Vercel handles repo cloning)
+- No Vercel OAuth (Deploy Button handles everything)
+- Session-based deploy state (cookie-based, 30 min expiry)
 
 **Data Storage:**
-- User accounts (username, password hash, optional email)
-- Forked repo reference (for future deployments)
-- Deployed agents list (agent ID, Vercel project name, deployed date)
+- No persistent database in V1
+- Deploy session stored in encrypted cookie (iron-session)
+- No user accounts, no login required
 
 **Transparency (explicitly communicated):**
-- We store: username, password (hashed), optional email, forked repo name, deployed agents
-- We DON'T store: GitHub tokens, Vercel tokens, any agent data
+- We DON'T store: any user data, tokens, or deployment info
+- Deploy session is temporary and cleared after completion
 
 **What's NOT in V1:**
+- User authentication (V2)
+- Dashboard to manage deployed agents (V2)
 - Overseer purchase flow (V2)
-- Payment integration
-- Cross-agent SSO via Overseer
+- Payment integration (V2)
+- Cross-agent SSO via Overseer (V2)
 
 ### V2 (Post-MVP)
 
@@ -142,55 +147,40 @@ I want to:
 - prominent "Try Live Demo" button (visitor mode link)
 - clear explanation of features
 - transparent about costs (~$15/month for jack)
-- shows required integrations (Neon, AI Gateway)
+- shows required integrations (prisma postgres, AI Gateway)
 
-#### 3. Sign Up / Login
+#### 3. Deploy an Agent (Free)
 
 **As a visitor**, I want to:
-1. create an account before deploying
-2. use GitHub or Google OAuth for quick signup
-3. or use username/password if I prefer
-
-**Acceptance Criteria:**
-- GitHub OAuth works
-- Google OAuth works
-- Username/password fallback (no email verification required)
-- Email is optional (for invoices only)
-- Clear privacy statement on what we store
-
-#### 4. Deploy an Agent (Free)
-
-**As a logged-in user**, I want to:
 1. click "deploy" on an agent page
-2. connect my GitHub account (if first time) to fork the experiments repo
-3. connect my Vercel account to create the project
-4. see integrations being provisioned
+2. be redirected to Vercel Deploy Button
+3. configure Prisma Postgres integration
+4. set required environment variables
 5. get my deployed agent URL
-6. see the agent in my dashboard
+6. follow setup guide for post-deployment configuration
 
 **Acceptance Criteria:**
 - total flow under 2 minutes
-- clear progress indicators
-- GitHub OAuth forks experiments repo (one-time, stored)
-- Vercel OAuth used once, token discarded after deployment
-- automatic Neon DB provisioning
-- automatic Vercel AI Gateway setup
-- success page with deployment URL
-- agent appears in dashboard
+- no login required
+- Vercel Deploy Button handles repo cloning
+- automatic Prisma Postgres provisioning (skippable)
+- environment variables prompted during deploy
+- success page with deployment URL and guide link
+- clear setup guide with step-by-step instructions
 
-#### 5. Manage Deployed Agents (Dashboard)
+#### 4. Follow Setup Guide
 
-**As a logged-in user**, I want to:
-1. see all my deployed agents in one place
-2. click to open each deployed agent
-3. deploy additional agents without re-connecting GitHub
-4. see which agents I haven't deployed yet
+**As a user who just deployed**, I want to:
+1. see step-by-step configuration instructions
+2. understand what environment variables to add
+3. know how to verify my deployment
+4. have links to relevant documentation
 
 **Acceptance Criteria:**
-- dashboard shows deployed agents with status
-- quick access to deployed agent URLs
-- one-click deploy for additional agents (GitHub already connected)
-- clear list of available agents to deploy
+- guide page accessible from success card
+- steps rendered from agent configuration
+- external links open in new tabs
+- clear completion indicator
 
 ---
 
@@ -214,83 +204,68 @@ I want to:
 │  └── /deploy/[id]   → Deploy flow for agent             │
 │                                                         │
 │  API Routes:                                            │
-│  ├── /api/auth/*           → Better Auth endpoints      │
-│  ├── /api/deploy/github    → GitHub OAuth for fork      │
-│  ├── /api/deploy/vercel    → Vercel OAuth for deploy    │
-│  ├── /api/deploy/provision → Provision integrations     │
-│  └── /api/deploy/create    → Create Vercel deployment   │
+│  ├── /api/deploy/start           → Initialize session   │
+│  ├── /api/deploy/vercel/deploy → Redirect to            │
+│  └── /api/deploy/vercel/callback  → Handle callback     │
 └─────────────────────────────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────┐
-│  Database (Neon Postgres)                               │
+│  Session Storage (iron-session)                         │
 │                                                         │
-│  Tables:                                                │
-│  ├── users           → User accounts (Better Auth)      │
-│  ├── sessions        → Auth sessions (Better Auth)      │
-│  ├── accounts        → OAuth accounts (Better Auth)     │
-│  └── deployments     → Deployed agents per user         │
-│                                                         │
-│  Custom Fields:                                         │
-│  ├── users.forked_repo    → GitHub fork reference       │
-│  └── deployments.*        → Agent deployments           │
+│  Cookie-based encrypted session:                        │
+│  ├── agentId         → Agent being deployed             │
+│  ├── currentStep     → Current deploy step              │
+│  ├── steps[]         → Step states                      │
+│  ├── vercel          → Deployment data from callback    │
+│  ├── createdAt       → Session creation time            │
+│  └── expiresAt       → Session expiry (30 min)          │
 └─────────────────────────────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────┐
 │  External Services                                      │
 │                                                         │
-│  Better Auth:                                           │
-│  ├── GitHub OAuth (signup/login)                        │
-│  ├── Google OAuth (signup/login)                        │
-│  └── Username/password (fallback)                       │
-│                                                         │
-│  Vercel API:                                            │
-│  ├── OAuth for deployment (one-time, token discarded)   │
+│  Vercel Deploy Button:                                  │
+│  ├── Handles repo cloning (no GitHub OAuth needed)      │
 │  ├── Project creation                                   │
-│  ├── Environment variable setup                         │
-│  ├── Neon DB integration provisioning                   │
-│  └── AI Gateway integration provisioning                │
-│                                                         │
-│  GitHub API:                                            │
-│  ├── OAuth for repo fork (stored as forked_repo)        │
-│  └── Repository forking (one-time per user)             │
+│  ├── Environment variable prompts                       │
+│  ├── Prisma Postgres integration provisioning           │
+│  └── Callback with deployment info                      │
 │                                                         │
 │  Source Repository:                                     │
-│  └── github.com/vishesh-baghel/experiments              │
-│      └── packages/* (all agents)                        │
+│  └── github.com/vishesh-baghel/jack (jack agent)        │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ### Key Design Decisions
 
-1. **User Management with Better Auth:**
-   - Full auth system with dashboard access
-   - GitHub OAuth (primary - target audience is developers)
-   - Google OAuth (secondary)
-   - Username/password fallback (no email verification)
-   - Email optional (for invoices only)
+1. **No Authentication in V1:**
+   - Simplified flow without login
+   - Deploy session stored in encrypted cookie
+   - No persistent user data
+   - Dashboard and user management deferred to V2
 
 2. **Free Deployment Model:**
    - All agents deploy for free
    - Reduces friction to experience agents
    - Funnel users to Overseer (paid, V2)
 
-3. **Token Handling:**
-   - Squad auth tokens: Managed by Better Auth (persistent sessions)
-   - Vercel OAuth: Used once per deployment, then discarded
-   - GitHub OAuth: Fork reference stored, token discarded
+3. **Vercel Deploy Button:**
+   - Single-step deployment flow
+   - No OAuth tokens to manage
+   - Vercel handles repo cloning
+   - Callback provides deployment info
 
-4. **Vercel Integrations for Provisioning:**
-   - use Vercel's marketplace integrations API
-   - automatically provision Neon Postgres
-   - automatically provision Vercel AI Gateway
-   - user doesn't configure anything manually
+4. **Prisma Postgres Integration:**
+   - Configured via Vercel marketplace
+   - Skippable during deployment
+   - Sets DATABASE_URL automatically
 
 5. **Config-Driven Agent Registry:**
-   - agents defined in `agents.config.ts`
+   - agents defined in `src/config/agents.ts`
    - easy to add new agents without code changes
-   - each agent specifies: source path, required integrations, env vars
+   - each agent specifies: source repo, integrations, env vars, deploy instructions, guide steps
 
 6. **Portfolio Design System:**
    - exact same styling as visheshbaghel.com
@@ -304,60 +279,38 @@ I want to:
    - Explicitly communicate what we DON'T store
    - Build trust with technical audience
 
-### Deploy Flow Sequence
+### Deploy Flow Sequence (Simplified)
 
 ```
-┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐
-│  User   │     │  Squad  │     │ Vercel  │     │ GitHub  │
-└────┬────┘     └────┬────┘     └────┬────┘     └────┬────┘
-     │               │               │               │
-     │ Click Deploy  │               │               │
-     │──────────────>│               │               │
-     │               │               │               │
-     │ Redirect to   │               │               │
-     │ Vercel OAuth  │               │               │
-     │<──────────────│               │               │
-     │               │               │               │
-     │ Authorize     │               │               │
-     │──────────────────────────────>│               │
-     │               │               │               │
-     │ Callback with │               │               │
-     │ access_token  │               │               │
-     │<──────────────────────────────│               │
-     │               │               │               │
-     │ Redirect to   │               │               │
-     │ GitHub OAuth  │               │               │
-     │<──────────────│               │               │
-     │               │               │               │
-     │ Authorize     │               │               │
-     │──────────────────────────────────────────────>│
-     │               │               │               │
-     │ Callback with │               │               │
-     │ access_token  │               │               │
-     │<──────────────────────────────────────────────│
-     │               │               │               │
-     │ Show Progress │               │               │
-     │<──────────────│               │               │
-     │               │               │               │
-     │               │ Fork Repo     │               │
-     │               │──────────────────────────────>│
-     │               │               │               │
-     │               │ Provision     │               │
-     │               │ Neon DB       │               │
-     │               │──────────────>│               │
-     │               │               │               │
-     │               │ Provision     │               │
-     │               │ AI Gateway    │               │
-     │               │──────────────>│               │
-     │               │               │               │
-     │               │ Create        │               │
-     │               │ Deployment    │               │
-     │               │──────────────>│               │
-     │               │               │               │
-     │ Success +     │               │               │
-     │ Deploy URL    │               │               │
-     │<──────────────│               │               │
-     │               │               │               │
+┌─────────┐     ┌─────────┐     ┌─────────────────┐
+│  User   │     │  Squad  │     │ Vercel Deploy   │
+└────┬────┘     └────┬────┘     └────────┬────────┘
+     │               │                    │
+     │ Visit /deploy │                    │
+     │──────────────>│                    │
+     │               │                    │
+     │ Create session│                    │
+     │<──────────────│                    │
+     │               │                    │
+     │ Click Deploy  │                    │
+     │──────────────>│                    │
+     │               │                    │
+     │ Redirect to   │                    │
+     │ Deploy Button │                    │
+     │<──────────────│                    │
+     │               │                    │
+     │ Configure     │                    │
+     │ (Prisma, env) │                    │
+     │──────────────────────────────────>│
+     │               │                    │
+     │               │    Callback with   │
+     │               │    deployment info │
+     │               │<───────────────────│
+     │               │                    │
+     │ Success page  │                    │
+     │ + guide link  │                    │
+     │<──────────────│                    │
+     │               │                    │
 ```
 
 ---
@@ -588,15 +541,13 @@ export const validateOverseerJwt: (token: string, secret: string, agentId: strin
 ### Backend
 
 - **Runtime:** Next.js API routes
-- **Auth:** Better Auth (GitHub, Google, credentials)
-- **Database:** Neon Postgres
-- **ORM:** Drizzle (Better Auth compatible)
+- **Session:** iron-session (encrypted cookies)
+- **No Database:** Session-only state management
 
 ### External APIs
 
-- **Better Auth:** User authentication
-- **Vercel API:** Project creation, integration provisioning
-- **GitHub API:** Repository forking
+- **Vercel Deploy Button:** Project creation, integration provisioning
+- **Prisma Postgres:** Database for deployed agents
 
 ### Deployment
 
@@ -662,40 +613,38 @@ export interface AgentConfig {
 - [x] landing page with agent cards
 - [x] individual agent pages with visitor mode links
 
-### Week 2: Authentication
+### Week 2: Deploy Flow (Completed)
 
-- [ ] Setup Neon Postgres database
-- [ ] Install and configure Better Auth
-- [ ] Implement GitHub OAuth
-- [ ] Implement Google OAuth
-- [ ] Implement username/password fallback
-- [ ] Login and signup pages
-- [ ] Protected routes middleware
+- [x] Vercel Deploy Button integration
+- [x] Session management with iron-session
+- [x] Deploy flow UI (single-step progress)
+- [x] Prisma Postgres integration configuration
+- [x] Environment variable configuration
+- [x] Success page with deployment details
+- [x] Setup guide page with step-by-step instructions
+- [x] Error handling and fallback flows
 
-### Week 3: Dashboard + User Management
+### Week 3: Testing + CI/CD (Completed)
 
-- [ ] Dashboard page (deployed agents list)
-- [ ] User profile with forked repo reference
-- [ ] Deployments table and API
-- [ ] Privacy/transparency page
+- [x] Vitest + React Testing Library setup
+- [x] API endpoint tests
+- [x] Component tests
+- [x] Configuration tests
+- [x] GitHub Actions workflow
+- [x] PostHog analytics integration
 
-### Week 4: Deploy Flow
+### Week 4: Polish + Launch
 
-- [ ] GitHub OAuth for repo forking
-- [ ] Vercel OAuth for deployment
-- [ ] deploy flow UI (multi-step progress)
-- [ ] GitHub repo forking via API
-- [ ] Vercel project creation via API
+- [ ] Deploy to squad.visheshbaghel.com
+- [ ] Production environment setup
+- [ ] Final testing and QA
 
-### Week 5: Provisioning + Launch
+### V2 (Future)
 
-- [ ] Neon DB provisioning via Vercel integration
-- [ ] AI Gateway provisioning via Vercel integration
-- [ ] environment variable injection (including passphrase)
-- [ ] deployment trigger and status polling
-- [ ] success page with deployment details
-- [ ] error handling and fallback flows
-- [ ] deploy to squad.visheshbaghel.com
+- [ ] User authentication (Better Auth)
+- [ ] Dashboard to manage deployed agents
+- [ ] Overseer purchase flow
+- [ ] Payment integration
 
 ---
 

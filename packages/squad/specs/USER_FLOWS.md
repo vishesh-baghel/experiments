@@ -1,13 +1,15 @@
 # Squad - User Flows
 
-**Version:** 0.1.0  
-**Last Updated:** Dec 10, 2025
+**Version:** 0.2.0  
+**Last Updated:** Dec 21, 2025
 
 ---
 
 ## Overview
 
-This document details all user flows in Squad V1. Each flow includes:
+This document details all user flows in Squad V1. The deploy flow has been simplified to use Vercel's Deploy Button instead of OAuth.
+
+Each flow includes:
 - trigger and entry point
 - step-by-step flow
 - success and error states
@@ -161,10 +163,10 @@ Agent detail page (`/jack` or `/sensie`)
 
 ---
 
-## Flow 3: Deploy Agent
+## Flow 3: Deploy Agent (Simplified)
 
 ### Trigger
-User clicks "deploy your own" button
+User clicks "deploy your own" button on agent detail page
 
 ### Entry Point
 Deploy flow page (`/deploy/[agentId]`)
@@ -174,52 +176,77 @@ Deploy flow page (`/deploy/[agentId]`)
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                                                             │
-│  Step 1: Connect Vercel                                     │
+│  Step 1: Click "Deploy to Vercel"                           │
 │                    │                                        │
 │                    ▼                                        │
-│  Step 2: Connect GitHub                                     │
+│  Step 2: Configure on Vercel (new tab)                      │
+│          - Set up Prisma Postgres                           │
+│          - Configure environment variables                  │
+│          - Deploy                                           │
 │                    │                                        │
 │                    ▼                                        │
-│  Step 3: Provision Services                                 │
+│  Step 3: Return to Squad (callback)                         │
 │                    │                                        │
 │                    ▼                                        │
-│  Step 4: Deploy                                             │
-│                    │                                        │
-│                    ▼                                        │
-│  Success: Show deployment URL                               │
+│  Success: Show deployment URL + setup guide link            │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Step 1: Connect Vercel
+### Step 1: Deploy Page
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                                                             │
-│  User clicks "deploy your own"                              │
+│  User clicks "deploy your own" on agent page                │
 │                                                             │
 │                    │                                        │
 │                    ▼                                        │
 │                                                             │
 │  ┌───────────────────────────────────────────────────────┐ │
 │  │  Deploy Page loads                                    │ │
-│  │  - Progress indicator (step 1 of 4)                   │ │
-│  │  - "connect vercel" button                            │ │
+│  │  - Session initialized via POST /api/deploy/start    │ │
+│  │  - "deploy to vercel" button                          │ │
 │  │  - Explanation text                                   │ │
+│  │  - Link to setup guide                                │ │
 │  └───────────────────────────────────────────────────────┘ │
 │                                                             │
 │                    │                                        │
 │                    ▼                                        │
 │                                                             │
-│  User clicks "connect vercel"                               │
+│  User clicks "deploy to vercel"                             │
+│                                                             │
+│                    │                                        │
+│                    ▼                                        │
+│                                                             │
+│  GET /api/deploy/vercel/deploy?agentId=jack                 │
+│  → Redirects to Vercel Deploy Button in new tab             │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Technical Details:**
+- Session created via `POST /api/deploy/start`
+- Deploy button opens new tab via `GET /api/deploy/vercel/deploy`
+- Redirect to `https://vercel.com/new/clone?...` with agent config
+
+### Step 2: Vercel Configuration (External)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│  User is on Vercel's Deploy Button page (new tab)           │
 │                                                             │
 │                    │                                        │
 │                    ▼                                        │
 │                                                             │
 │  ┌───────────────────────────────────────────────────────┐ │
-│  │  Browser opens Vercel OAuth popup                     │ │
-│  │  - User logs in (if needed)                           │ │
-│  │  - User authorizes Squad app                          │ │
+│  │  Vercel Deploy Button Flow                            │ │
+│  │  1. Log in to Vercel (if needed)                      │ │
+│  │  2. Choose Git provider (GitHub)                      │ │
+│  │  3. Configure Prisma Postgres (skippable)             │ │
+│  │  4. Set environment variables                         │ │
+│  │  5. Click "Deploy"                                    │ │
 │  └───────────────────────────────────────────────────────┘ │
 │                                                             │
 │                    │                                        │
@@ -227,202 +254,47 @@ Deploy flow page (`/deploy/[agentId]`)
 │         │                   │                              │
 │         ▼                   ▼                              │
 │                                                             │
-│  Success               Denied/Error                        │
-│  (token received)      (user cancelled)                    │
+│  Deploy Success        User Cancels                        │
+│  (callback triggered)  (no callback)                       │
 │         │                   │                              │
 │         ▼                   ▼                              │
 │                                                             │
-│  → Step 2             Show error message                   │
-│                       + retry button                       │
+│  → Step 3             User can retry                       │
+│                       from deploy page                     │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 **Technical Details:**
-- OAuth redirect to `https://vercel.com/oauth/authorize`
-- Scopes: `user`, `project`, `integration`
-- Callback: `/api/auth/vercel/callback`
-- Store token in encrypted cookie
+- Vercel handles repo cloning (no GitHub OAuth needed)
+- Prisma Postgres integration configured via `products` param
+- Environment variables prompted via `env` param
+- On success, Vercel redirects to our callback URL
 
-### Step 2: Connect GitHub
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                                                             │
-│  Vercel connected successfully                              │
-│                                                             │
-│                    │                                        │
-│                    ▼                                        │
-│                                                             │
-│  ┌───────────────────────────────────────────────────────┐ │
-│  │  Progress updates (step 2 of 4)                       │ │
-│  │  ✓ connect vercel (done)                              │ │
-│  │  → connect github (current)                           │ │
-│  │  - "connect github" button                            │ │
-│  └───────────────────────────────────────────────────────┘ │
-│                                                             │
-│                    │                                        │
-│                    ▼                                        │
-│                                                             │
-│  User clicks "connect github"                               │
-│                                                             │
-│                    │                                        │
-│                    ▼                                        │
-│                                                             │
-│  ┌───────────────────────────────────────────────────────┐ │
-│  │  Browser opens GitHub OAuth popup                     │ │
-│  │  - User logs in (if needed)                           │ │
-│  │  - User authorizes Squad app                          │ │
-│  └───────────────────────────────────────────────────────┘ │
-│                                                             │
-│                    │                                        │
-│         ┌─────────┴─────────┐                              │
-│         │                   │                              │
-│         ▼                   ▼                              │
-│                                                             │
-│  Success               Denied/Error                        │
-│  (token received)      (user cancelled)                    │
-│         │                   │                              │
-│         ▼                   ▼                              │
-│                                                             │
-│  → Step 3             Show error message                   │
-│                       + retry button                       │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Technical Details:**
-- OAuth redirect to `https://github.com/login/oauth/authorize`
-- Scopes: `repo`, `read:user`
-- Callback: `/api/auth/github/callback`
-- Store token in encrypted cookie
-
-### Step 3: Provision Services
+### Step 3: Callback & Success
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                                                             │
-│  GitHub connected successfully                              │
+│  Vercel deployment complete                                 │
+│                                                             │
+│                    │                                        │
+│                    ▼                                        │
+│                                                             │
+│  GET /api/deploy/vercel/callback                            │
+│  - Receives: state, deployment-url, project-dashboard-url  │
+│  - Updates session with deployment data                     │
+│  - Redirects to /deploy/[agentId]                          │
 │                                                             │
 │                    │                                        │
 │                    ▼                                        │
 │                                                             │
 │  ┌───────────────────────────────────────────────────────┐ │
-│  │  Automatic provisioning starts                        │ │
-│  │  Progress updates (step 3 of 4)                       │ │
-│  │  ✓ connect vercel (done)                              │ │
-│  │  ✓ connect github (done)                              │ │
-│  │  → provision services (in progress)                   │ │
-│  │                                                       │ │
-│  │  Provisioning:                                        │ │
-│  │  ⏳ forking repository...                             │ │
-│  │  ○ neon postgres                                      │ │
-│  │  ○ ai gateway                                         │ │
-│  └───────────────────────────────────────────────────────┘ │
-│                                                             │
-│                    │                                        │
-│                    ▼                                        │
-│                                                             │
-│  API call: POST /api/deploy/provision                       │
-│  - Fork repo to user's GitHub                               │
-│  - Create Vercel project                                    │
-│  - Provision Neon DB integration                            │
-│  - Provision AI Gateway integration                         │
-│                                                             │
-│                    │                                        │
-│         ┌─────────┴─────────┐                              │
-│         │                   │                              │
-│         ▼                   ▼                              │
-│                                                             │
-│  Success               Error                               │
-│  (all provisioned)     (partial failure)                   │
-│         │                   │                              │
-│         ▼                   ▼                              │
-│                                                             │
-│  → Step 4             Show error details                   │
-│                       + manual instructions                │
-│                       + retry button                       │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Technical Details:**
-- API route: `POST /api/deploy/provision`
-- GitHub API: fork repository
-- Vercel API: create project, add integrations
-- Poll for integration completion
-- Timeout: 2 minutes
-
-### Step 4: Deploy
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                                                             │
-│  Services provisioned successfully                          │
-│                                                             │
-│                    │                                        │
-│                    ▼                                        │
-│                                                             │
-│  ┌───────────────────────────────────────────────────────┐ │
-│  │  Deployment starts automatically                      │ │
-│  │  Progress updates (step 4 of 4)                       │ │
-│  │  ✓ connect vercel (done)                              │ │
-│  │  ✓ connect github (done)                              │ │
-│  │  ✓ provision services (done)                          │ │
-│  │  → deploy (in progress)                               │ │
-│  │                                                       │ │
-│  │  ⏳ deploying to production...                        │ │
-│  └───────────────────────────────────────────────────────┘ │
-│                                                             │
-│                    │                                        │
-│                    ▼                                        │
-│                                                             │
-│  API call: POST /api/deploy/create                          │
-│  - Set environment variables                                │
-│  - Trigger production deployment                            │
-│  - Poll for deployment status                               │
-│                                                             │
-│                    │                                        │
-│         ┌─────────┴─────────┐                              │
-│         │                   │                              │
-│         ▼                   ▼                              │
-│                                                             │
-│  Success               Error                               │
-│  (deployment live)     (build failed)                      │
-│         │                   │                              │
-│         ▼                   ▼                              │
-│                                                             │
-│  → Success Page       Show build logs                      │
-│                       + retry button                       │
-│                       + manual instructions                │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Technical Details:**
-- API route: `POST /api/deploy/create`
-- Vercel API: create deployment
-- Poll deployment status every 2 seconds
-- Timeout: 5 minutes
-- On success: redirect to success page
-
-### Success Page
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                                                             │
-│  Deployment successful                                      │
-│                                                             │
-│                    │                                        │
-│                    ▼                                        │
-│                                                             │
-│  ┌───────────────────────────────────────────────────────┐ │
-│  │  Success Page                                         │ │
-│  │  - Deployment URL                                     │ │
-│  │  - "open your agent" button                           │ │
-│  │  - What was set up (checklist)                        │ │
-│  │  - Next steps (manual config needed)                  │ │
-│  │  - Links: back to squad, deploy another               │ │
+│  │  Deploy Page shows success state                      │ │
+│  │  ✓ deployment successful                              │ │
+│  │  - "see your agent" button                            │ │
+│  │  - "vercel project" button                            │ │
+│  │  - Link to setup guide                                │ │
 │  └───────────────────────────────────────────────────────┘ │
 │                                                             │
 │                    │                                        │
@@ -430,9 +302,37 @@ Deploy flow page (`/deploy/[agentId]`)
 │         │         │         │                              │
 │         ▼         ▼         ▼                              │
 │                                                             │
-│  Open           Back to      Deploy                        │
-│  agent          squad        another                       │
-│  (new tab)      (navigate)   (navigate)                    │
+│  Open           Vercel       Setup                         │
+│  agent          dashboard    guide                         │
+│  (new tab)      (new tab)    (navigate)                    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Technical Details:**
+- Callback: `GET /api/deploy/vercel/callback`
+- Session updated with `vercel.deploymentUrl` and `vercel.projectDashboardUrl`
+- Success state shown inline on deploy page
+- Setup guide available at `/deploy/[agentId]/guide`
+
+### Flow 3.1: Setup Guide
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│  User clicks "view guide" on deploy page                    │
+│                                                             │
+│                    │                                        │
+│                    ▼                                        │
+│                                                             │
+│  ┌───────────────────────────────────────────────────────┐ │
+│  │  Setup Guide Page (/deploy/[agentId]/guide)           │ │
+│  │  - Agent-specific configuration steps                 │ │
+│  │  - External links to documentation                    │ │
+│  │  - Step-by-step instructions                          │ │
+│  └───────────────────────────────────────────────────────┘ │
+│                                                             │
+│  Steps rendered from agent.guideSteps config                │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
