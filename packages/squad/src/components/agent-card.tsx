@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import type { AgentConfig } from "@/config/agents";
+import { trackAgentCardClick } from "@/lib/analytics";
 
 interface AgentCardProps {
   agent: AgentConfig;
@@ -8,6 +11,12 @@ interface AgentCardProps {
 
 export const AgentCard = ({ agent }: AgentCardProps) => {
   const isComingSoon = agent.status === "coming-soon";
+
+  const handleClick = () => {
+    if (!isComingSoon) {
+      trackAgentCardClick(agent.id);
+    }
+  };
 
   const CardContent = () => (
     <>
@@ -56,6 +65,7 @@ export const AgentCard = ({ agent }: AgentCardProps) => {
   return (
     <Link
       href={`/${agent.id}`}
+      onClick={handleClick}
       className="block border border-border p-6 hover:border-muted-foreground transition-colors no-underline text-foreground group"
     >
       <CardContent />

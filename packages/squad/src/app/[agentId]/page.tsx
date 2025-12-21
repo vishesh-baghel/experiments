@@ -5,6 +5,7 @@ import { Footer } from "@/components/sections/footer";
 import { Button } from "@/components/ui/button";
 import { agents, getAgentById } from "@/config/agents";
 import { Check } from "lucide-react";
+import { AgentPageTracker } from "@/components/analytics";
 
 interface AgentPageProps {
   params: Promise<{
@@ -46,11 +47,12 @@ const AgentPage = async ({ params }: AgentPageProps) => {
   const isJack = agent.id === "jack";
 
   return (
-    <div className="min-h-screen font-mono">
-      <div className="max-w-[800px] mx-auto">
-        <Header />
+    <AgentPageTracker agentId={agentId}>
+      <div className="min-h-screen font-mono">
+        <div className="max-w-[800px] mx-auto">
+          <Header />
 
-        <main>
+          <main>
           {/* Hero */}
           <section className="py-6">
             <div className="flex items-baseline gap-3 mb-2 flex-wrap">
@@ -237,6 +239,7 @@ const AgentPage = async ({ params }: AgentPageProps) => {
         <Footer />
       </div>
     </div>
+    </AgentPageTracker>
   );
 };
 

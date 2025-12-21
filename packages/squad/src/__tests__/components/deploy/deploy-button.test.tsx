@@ -7,6 +7,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { DeployButton } from "@/components/deploy/deploy-button";
+import * as analytics from "@/lib/analytics";
+
+vi.mock("@/lib/analytics", () => ({
+  trackDeployButtonClick: vi.fn(),
+}));
 
 // Mock window.open
 const mockWindowOpen = vi.fn();
@@ -80,5 +85,34 @@ describe("DeployButton", () => {
     render(<DeployButton agentId="jack" />);
 
     expect(screen.getByLabelText("Deploy to Vercel")).toBeInTheDocument();
+  });
+
+  it("should track analytics when button is clicked", () => {
+    render(<DeployButton agentId="jack" />);
+
+    const button = screen.getByRole("button");
+    fireEvent.click(button);
+
+    expect(analytics.trackDeployButtonClick).toHaveBeenCalledWith("jack");
+    expect(analytics.trackDeployButtonClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("should track analytics before opening window", () => {
+    render(<DeployButton agentId="jack" />);
+
+    const button = screen.getByRole("button");
+    fireEvent.click(button);
+
+    expect(analytics.trackDeployButtonClick).toHaveBeenCalled();
+    expect(mockWindowOpen).toHaveBeenCalled();
+  });
+
+  it("should not track analytics when button is disabled", () => {
+    render(<DeployButton agentId="jack" disabled />);
+
+    const button = screen.getByRole("button");
+    fireEvent.click(button);
+
+    expect(analytics.trackDeployButtonClick).not.toHaveBeenCalled();
   });
 });

@@ -3,6 +3,7 @@ import { Header } from "@/components/sections/header";
 import { Footer } from "@/components/sections/footer";
 import { getAgentById } from "@/config/agents";
 import { DeployFlow } from "./deploy-flow";
+import { DeployPageTracker } from "@/components/analytics";
 
 
 interface DeployPageProps {
@@ -43,26 +44,28 @@ const DeployPage = async ({ params }: DeployPageProps) => {
   }
 
   return (
-    <div className="min-h-screen font-mono">
-      <div className="max-w-[800px] mx-auto">
-        <Header />
+    <DeployPageTracker agentId={agentId}>
+      <div className="min-h-screen font-mono">
+        <div className="max-w-[800px] mx-auto">
+          <Header />
 
-        <main>
-          <section className="py-6">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-              deploy {agent.name}
-            </h1>
-            <p className="text-sm text-muted-foreground mb-6">
-              we&apos;ll set up everything for you in about 2 minutes
-            </p>
+          <main>
+            <section className="py-6">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2">
+                deploy {agent.name}
+              </h1>
+              <p className="text-sm text-muted-foreground mb-6">
+                we&apos;ll set up everything for you in about 2 minutes
+              </p>
 
-            <DeployFlow agent={agent} />
-          </section>
-        </main>
+              <DeployFlow agent={agent} />
+            </section>
+          </main>
 
-        <Footer />
+          <Footer />
+        </div>
       </div>
-    </div>
+    </DeployPageTracker>
   );
 };
 

@@ -4,10 +4,15 @@
  * Tests for the agent card component displayed on the homepage.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { AgentCard } from "@/components/agent-card";
 import { AgentConfig } from "@/config/agents";
+import * as analytics from "@/lib/analytics";
+
+vi.mock("@/lib/analytics", () => ({
+  trackAgentCardClick: vi.fn(),
+}));
 
 const createMockAgent = (overrides: Partial<AgentConfig> = {}): AgentConfig => ({
   id: "test-agent",
@@ -41,6 +46,10 @@ const createMockAgent = (overrides: Partial<AgentConfig> = {}): AgentConfig => (
 });
 
 describe("AgentCard", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("should render agent name", () => {
     const agent = createMockAgent({ name: "jack" });
     render(<AgentCard agent={agent} />);
@@ -104,5 +113,36 @@ describe("AgentCard", () => {
     render(<AgentCard agent={agent} />);
 
     expect(screen.queryByText("learn more")).not.toBeInTheDocument();
+  });
+
+  it("should track analytics when available agent card is clicked", () => {
+    const agent = createMockAgent({ id: "jack", status: "available" });
+    render(<AgentCard agent={agent} />);
+
+    const link = screen.getByRole("link");
+    link.click();
+
+    expect(analytics.trackAgentCardClick).toHaveBeenCalledWith("jack");
+    expect(analytics.trackAgentCardClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("should not track analytics when coming-soon agent card is rendered", () => {
+    const agent = createMockAgent({ status: "coming-soon" });
+    render(<AgentCard agent={agent} />);
+
+    expect(analytics.trackAgentCardClick).not.toHaveBeenCalled();
+  });
+
+  it("should not interfere with navigation when tracking analytics", () => {
+    const agent = createMockAgent({ id: "jack", status: "available" });
+    render(<AgentCard agent={agent} />);
+
+    const link = screen.getByRole("link");
+    expect(link).toHaveAttribute("href", "/jack");
+    
+    link.click();
+    
+    expect(analytics.trackAgentCardClick).toHaveBeenCalledWith("jack");
+    expect(link).toHaveAttribute("href", "/jack");
   });
 });

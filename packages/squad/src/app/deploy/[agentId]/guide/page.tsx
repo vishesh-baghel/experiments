@@ -12,6 +12,7 @@ import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/sections/header";
 import { Footer } from "@/components/sections/footer";
+import { GuidePageTracker } from "@/components/analytics";
 
 interface GuidePageProps {
   params: Promise<{ agentId: string }>;
@@ -46,11 +47,12 @@ const GuidePage = async ({ params }: GuidePageProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-background font-mono">
-      <div className="max-w-[800px] mx-auto">
-        <Header />
-        
-        <main>
+    <GuidePageTracker agentId={agentId}>
+      <div className="min-h-screen bg-background font-mono">
+        <div className="max-w-[800px] mx-auto">
+          <Header />
+          
+          <main>
           {/* Page Header */}
           <div className="mb-8">
             <h1 className="text-2xl font-bold">{agent.name} setup guide</h1>
@@ -136,6 +138,7 @@ const GuidePage = async ({ params }: GuidePageProps) => {
         <Footer />
       </div>
     </div>
+    </GuidePageTracker>
   );
 };
 

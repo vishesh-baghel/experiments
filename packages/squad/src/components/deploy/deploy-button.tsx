@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { trackDeployButtonClick } from "@/lib/analytics";
 
 
 interface DeployButtonProps {
@@ -28,6 +29,7 @@ export const DeployButton = ({
 
   const handleClick = async () => {
     setIsLoading(true);
+    trackDeployButtonClick(agentId);
     onStart?.();
 
     try {

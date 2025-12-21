@@ -16,6 +16,14 @@ vi.mock("next/headers", () => ({
   })),
 }));
 
+// Mock PostHog for analytics tests
+vi.mock("posthog-js", () => ({
+  default: {
+    init: vi.fn(),
+    capture: vi.fn(),
+  },
+}));
+
 // Mock environment variables
 process.env.SESSION_SECRET = "test-secret-32-characters-long!";
 process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3001";
