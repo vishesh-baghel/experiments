@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/client';
 import { z } from 'zod';
 import bcrypt from 'bcrypt';
+import { isSignupAllowed } from '@/lib/auth-server';
 
 const BCRYPT_SALT_ROUNDS = 12;
 
@@ -20,31 +21,6 @@ const signupSchema = z.object({
   message: 'passphrases do not match',
   path: ['confirmPassphrase'],
 });
-
-/**
- * Check if signup is allowed
- * Returns true if:
- * 1. ALLOW_SIGNUP env var is explicitly 'true', OR
- * 2. No owner exists in the database (fresh deployment)
- */
-async function isSignupAllowed(): Promise<boolean> {
-  const envAllowSignup = process.env.ALLOW_SIGNUP;
-  
-  if (envAllowSignup === 'false') {
-    return false;
-  }
-  
-  if (envAllowSignup === 'true') {
-    return true;
-  }
-  
-  const ownerExists = await prisma.user.findFirst({
-    where: { isOwner: true },
-    select: { id: true },
-  });
-  
-  return !ownerExists;
-}
 
 export async function POST(request: NextRequest) {
   try {

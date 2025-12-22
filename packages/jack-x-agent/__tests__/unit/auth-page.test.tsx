@@ -1,13 +1,10 @@
 /**
- * Auth Page Component Tests
+ * Auth Forms Client Component Tests
  * Tests signup/login form rendering and behavior
- * 
- * Note: These tests focus on basic rendering and state management.
- * Integration tests should cover full form submission flows.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
@@ -21,108 +18,72 @@ vi.mock('@/lib/auth-client', () => ({
   setUserSession: vi.fn(),
 }));
 
-// Mock fetch globally
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+import { AuthForms } from '@/app/auth/_components/auth-forms';
 
-import AuthPage from '@/app/auth/page';
-
-describe('Auth Page', () => {
+describe('Auth Forms', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockFetch.mockReset();
   });
 
-  describe('Initial State', () => {
-    it('should show loading state while checking signup status', () => {
-      mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
+  describe('Initial Rendering', () => {
+    it('should show login form when signup is not allowed', () => {
+      render(<AuthForms signupAllowed={false} />);
 
-      render(<AuthPage />);
-
-      expect(screen.getByText('loading...')).toBeInTheDocument();
-    });
-
-    it('should show login form when signup is not allowed', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ signupAllowed: false }),
-      });
-
-      render(<AuthPage />);
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /let me in/i })).toBeInTheDocument();
-      });
-
-      // Login form should be visible
+      expect(screen.getByRole('button', { name: /let me in/i })).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/enter the secret sauce/i)).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText(/you@example.com/i)).not.toBeInTheDocument();
     });
 
-    it('should show signup form when signup is allowed', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ signupAllowed: true }),
-      });
+    it('should show signup form when signup is allowed', () => {
+      render(<AuthForms signupAllowed={true} />);
 
-      render(<AuthPage />);
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /create my account/i })).toBeInTheDocument();
-      });
-
-      // Signup form fields should be visible
+      expect(screen.getByRole('button', { name: /create my account/i })).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/you@example.com/i)).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/min 8 characters/i)).toBeInTheDocument();
+    });
+
+    it('should not show signup toggle when signup is disabled', () => {
+      render(<AuthForms signupAllowed={false} />);
+
+      expect(screen.queryByText(/need to create an account/i)).not.toBeInTheDocument();
+    });
+
+    it('should show signup toggle when signup is allowed', () => {
+      render(<AuthForms signupAllowed={true} />);
+
+      // Initially in signup mode, so should show login toggle
+      expect(screen.getByText(/already have an account/i)).toBeInTheDocument();
     });
   });
 
   describe('Guest Login', () => {
-    it('should show guest login button on login form', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ signupAllowed: false }),
-      });
-
-      render(<AuthPage />);
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /let me in/i })).toBeInTheDocument();
-      });
+    it('should show guest login button on login form', () => {
+      render(<AuthForms signupAllowed={false} />);
 
       expect(screen.getByRole('button', { name: /see what I'm cooking/i })).toBeInTheDocument();
     });
 
-    it('should show guest login button on signup form', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ signupAllowed: true }),
-      });
-
-      render(<AuthPage />);
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /create my account/i })).toBeInTheDocument();
-      });
+    it('should show guest login button on signup form', () => {
+      render(<AuthForms signupAllowed={true} />);
 
       expect(screen.getByRole('button', { name: /see what I'm cooking/i })).toBeInTheDocument();
     });
   });
 
-  describe('Branding', () => {
-    it('should show jack branding', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ signupAllowed: false }),
-      });
+  describe('Form Fields', () => {
+    it('should have all signup form fields', () => {
+      render(<AuthForms signupAllowed={true} />);
 
-      render(<AuthPage />);
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
+      expect(screen.getByLabelText('passphrase')).toBeInTheDocument();
+      expect(screen.getByLabelText(/confirm passphrase/i)).toBeInTheDocument();
+    });
 
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /let me in/i })).toBeInTheDocument();
-      });
+    it('should have login form field', () => {
+      render(<AuthForms signupAllowed={false} />);
 
-      expect(screen.getByText('jack')).toBeInTheDocument();
-      expect(screen.getByText(/writer's block is for normies/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/passphrase/i)).toBeInTheDocument();
     });
   });
 });
