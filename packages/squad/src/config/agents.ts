@@ -237,6 +237,17 @@ export const jackAgent: AgentConfig = {
       title: "redeploy",
       description: "after adding environment variables, redeploy your project to apply the changes. go to your vercel project and click \"redeploy\".",
     },
+    {
+      title: "create your owner account",
+      description: "visit your deployed jack instance and create your owner account. on first visit, you'll see a signup form since no owner exists yet.",
+      details: [
+        "go to your deployed jack url (e.g., jack-yourname.vercel.app)",
+        "fill in your email, name (optional), and a secure passphrase (min 8 chars)",
+        "click \"create my account\"",
+        "signup is automatically disabled after your account is created",
+        "your passphrase is encrypted with bcrypt - remember it!",
+      ],
+    },
   ],
   status: "available",
   estimatedMonthlyCost: "~$15/month",
