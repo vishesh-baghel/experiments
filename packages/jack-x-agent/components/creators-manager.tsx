@@ -51,10 +51,23 @@ export function CreatorsManager({ userId, initialCreators = [] }: CreatorsManage
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to add creator');
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to add creator');
+        throw new Error('Failed to add creator');
+      }
 
       const { creator } = await response.json();
-      setCreators([creator, ...creators]);
+
+      // Check if creator already exists (reactivation case)
+      const existingIndex = creators.findIndex(c => c.id === creator.id);
+      if (existingIndex >= 0) {
+        // Update existing creator
+        setCreators(creators.map(c => c.id === creator.id ? creator : c));
+      } else {
+        // Add new creator
+        setCreators([creator, ...creators]);
+      }
       setNewHandle('');
     } catch (error) {
       console.error('Error adding creator:', error);

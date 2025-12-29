@@ -3,6 +3,7 @@
  */
 
 import type { IdeaContext, OutlineContext, TrendingTopic, ContentIdea } from './schemas';
+import { getAllCreatorTweets } from '@/lib/db/creator-tweets';
 
 interface UserWithRelations {
   id: string;
@@ -46,8 +47,15 @@ export async function buildIdeaContext(
     noHashtags: true,
     showFailures: true,
     includeNumbers: true,
+    customRules: [],
     learnedPatterns: {},
   };
+
+  // Fetch creator tweets
+  const creatorTweets = await getAllCreatorTweets(user.id, {
+    limit: 50,
+    daysBack: 30,
+  });
 
   return {
     topics: trendingTopics,
@@ -58,12 +66,19 @@ export async function buildIdeaContext(
       noHashtags: toneConfig.noHashtags,
       showFailures: toneConfig.showFailures,
       includeNumbers: toneConfig.includeNumbers,
+      customRules: (toneConfig.customRules as string[]) || [],
       learnedPatterns: (toneConfig.learnedPatterns as Record<string, unknown>) || {},
     },
     goodPosts: goodPosts.map((p) => ({
       content: p.content,
       contentPillar: p.contentPillar as 'lessons_learned' | 'helpful_content' | 'build_progress' | 'decisions' | 'promotion',
       format: p.contentType as 'post' | 'thread' | 'long_form',
+    })),
+    creatorTweets: creatorTweets.map((tweet) => ({
+      content: tweet.content,
+      author: tweet.authorHandle,
+      publishedAt: tweet.publishedAt.toISOString(),
+      metrics: tweet.metrics as Record<string, unknown>,
     })),
   };
 }
@@ -82,6 +97,7 @@ export async function buildOutlineContext(
     noHashtags: true,
     showFailures: true,
     includeNumbers: true,
+    customRules: [],
     learnedPatterns: {},
   };
 
@@ -98,6 +114,7 @@ export async function buildOutlineContext(
       noHashtags: toneConfig.noHashtags,
       showFailures: toneConfig.showFailures,
       includeNumbers: toneConfig.includeNumbers,
+      customRules: (toneConfig.customRules as string[]) || [],
       learnedPatterns: (toneConfig.learnedPatterns as Record<string, unknown>) || {},
     },
     goodPosts: goodPosts.map((p) => ({

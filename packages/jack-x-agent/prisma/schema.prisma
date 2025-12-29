@@ -48,18 +48,40 @@ model Project {
 }
 
 model Creator {
-  id        String   @id @default(cuid())
-  userId    String
-  xHandle   String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String         @id @default(cuid())
+  userId        String
+  xHandle       String
+  isActive      Boolean        @default(true)
+  lastScrapedAt DateTime?
+  twitterUserId String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tweets CreatorTweet[]
 
   @@unique([userId, xHandle])
   @@index([userId, isActive])
+  @@index([lastScrapedAt])
   @@map("creators")
+}
+
+model CreatorTweet {
+  id           String   @id @default(cuid())
+  creatorId    String
+  tweetId      String   @unique
+  content      String   @db.Text
+  authorHandle String
+  publishedAt  DateTime
+  metrics      Json
+  scrapedAt    DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId, publishedAt])
+  @@index([scrapedAt])
+  @@map("creator_tweets")
 }
 
 model ToneConfig {
@@ -70,6 +92,7 @@ model ToneConfig {
   noHashtags      Boolean  @default(true)
   showFailures    Boolean  @default(true)
   includeNumbers  Boolean  @default(true)
+  customRules     String[] @default([])
   learnedPatterns Json     @default("{}")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

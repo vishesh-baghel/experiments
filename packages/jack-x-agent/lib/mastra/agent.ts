@@ -56,6 +56,19 @@ export async function generateIdeas(
       input: context,
     });
 
+    // Build custom rules section
+    const customRulesSection = context.tone.customRules && context.tone.customRules.length > 0
+      ? `\nCustom Voice Rules:\n${context.tone.customRules.map((rule, i) => `${i + 1}. ${rule}`).join('\n')}`
+      : '';
+
+    // Build creator tweets section
+    const creatorTweetsSection = context.creatorTweets && context.creatorTweets.length > 0
+      ? `\nCreator Tweets (trending topics from creators you follow):\n${context.creatorTweets
+          .slice(0, 10)
+          .map((tweet) => `[@${tweet.author}] ${tweet.content.substring(0, 200)}...`)
+          .join('\n\n')}`
+      : '';
+
     const prompt = `${IDEA_GENERATION_PROMPT}
 
 Topics: ${context.topics.map((t) => `${t.name} (${t.mentions} mentions)`).join(', ')}
@@ -65,9 +78,11 @@ ${context.projects.map((p) => `${p.name}: ${p.description}`).join('\n')}
 
 Tone Config:
 ${JSON.stringify(context.tone, null, 2)}
+${customRulesSection}
 
 Learned Patterns:
 ${JSON.stringify(context.tone.learnedPatterns, null, 2)}
+${creatorTweetsSection}
 
 Good Posts:
 ${context.goodPosts.map((p) => `[${p.contentPillar}] ${p.content.substring(0, 100)}...`).join('\n\n')}
@@ -111,6 +126,11 @@ export async function generateOutline(
       input: context,
     });
 
+    // Build custom rules section
+    const customRulesSection = context.tone.customRules && context.tone.customRules.length > 0
+      ? `\nCustom Voice Rules:\n${context.tone.customRules.map((rule, i) => `${i + 1}. ${rule}`).join('\n')}`
+      : '';
+
     const prompt = `${OUTLINE_GENERATION_PROMPT}
 
 Idea:
@@ -120,6 +140,7 @@ Format: ${context.idea.suggestedFormat}
 
 Tone Config:
 ${JSON.stringify(context.tone, null, 2)}
+${customRulesSection}
 
 Learned Patterns:
 ${JSON.stringify(context.tone.learnedPatterns, null, 2)}
