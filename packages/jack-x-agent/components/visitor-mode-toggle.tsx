@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 interface VisitorModeToggleProps {
   isOwner: boolean;
@@ -53,14 +54,15 @@ export function VisitorModeToggle({ isOwner }: VisitorModeToggleProps) {
 
       if (response.ok) {
         setEnabled(!enabled);
+        toast.success(`visitor mode ${!enabled ? 'enabled' : 'disabled'}`);
       } else {
         const error = await response.json();
         console.error('Failed to toggle visitor mode:', error);
-        alert(error.error || 'Failed to toggle visitor mode');
+        toast.error(error.error || 'failed to toggle visitor mode');
       }
     } catch (error) {
       console.error('Error toggling visitor mode:', error);
-      alert('Something went wrong. Please try again.');
+      toast.error('something went wrong. please try again.');
     } finally {
       setIsSaving(false);
     }

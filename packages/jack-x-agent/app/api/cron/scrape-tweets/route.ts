@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/client';
 import { scrapeTwitterUser } from '@/lib/apify/twitter-scraper';
 import { storeCreatorTweets, getCreatorsNeedingScraping } from '@/lib/db/creator-tweets';
+import { calculateScaledTweetCounts } from '@/lib/utils/tweet-scaling';
 
 export async function GET(request: NextRequest) {
   // Verify CRON_SECRET authorization
@@ -24,10 +25,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Get all non-guest users
+    // Get all non-guest users with their daily tweet limits
     const users = await prisma.user.findMany({
       where: { isGuest: false },
-      select: { id: true, email: true },
+      select: { id: true, email: true, dailyTweetLimit: true },
     });
 
     let totalScraped = 0;
@@ -45,13 +46,32 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
+        const dailyLimit = user.dailyTweetLimit || 50;
+
+        // Calculate scaled tweet counts based on daily limit
+        const scaledConfigs = calculateScaledTweetCounts(
+          creators.map(c => ({
+            creatorId: c.id,
+            xHandle: c.xHandle,
+            requestedCount: c.tweetCount,
+            isActive: c.isActive,
+          })),
+          dailyLimit
+        );
+
         summary[user.email || user.id] = 0;
 
-        for (const creator of creators) {
-          try {
-            console.log(`[SCRAPER] Scraping ${creator.xHandle} for user ${user.email}`);
+        for (const config of scaledConfigs) {
+          const creator = creators.find(c => c.id === config.creatorId)!;
 
-            const tweets = await scrapeTwitterUser(creator.xHandle);
+          try {
+            console.log(
+              `[SCRAPER] Scraping ${config.xHandle} (${config.actualCount} tweets${
+                config.wasScaled ? ' - scaled' : ''
+              }) for user ${user.email}`
+            );
+
+            const tweets = await scrapeTwitterUser(creator.xHandle, config.actualCount);
             await storeCreatorTweets(creator.id, tweets);
 
             totalScraped += tweets.length;

@@ -1,85 +1,44 @@
 /**
- * Apify Twitter Scraper Integration
- * Uses apidojo/tweet-scraper actor to fetch tweets from creators
+ * Twitter Scraper Wrapper
+ * Provides backward-compatible interface using the generic scraper system
  */
 
-import { ApifyClient } from 'apify-client';
+import { TwitterScraperFactory } from '@/lib/scrapers/factory';
+import type { ScrapedTweet } from '@/lib/scrapers/types';
 
-const client = new ApifyClient({
-  token: process.env.APIFY_API_KEY,
-});
-
-export interface TweetData {
-  tweetId: string;
-  content: string;
-  authorHandle: string;
-  publishedAt: Date;
-  metrics: {
-    likes: number;
-    retweets: number;
-    replies: number;
-    views?: number;
-  };
-}
+// Backward compatibility export
+export type TweetData = ScrapedTweet;
 
 /**
  * Scrape recent tweets from a Twitter user
  * @param handle Twitter handle (with or without @)
+ * @param maxItems Optional maximum number of tweets to fetch (default: 50)
  * @returns Array of tweet data
  */
-export async function scrapeTwitterUser(handle: string): Promise<TweetData[]> {
-  if (!process.env.APIFY_API_KEY) {
-    console.error('[APIFY] API key not configured');
-    return [];
-  }
+export async function scrapeTwitterUser(
+  handle: string,
+  maxItems?: number
+): Promise<TweetData[]> {
+  const scraper = TwitterScraperFactory.getScraper('apify');
 
-  console.log(`[APIFY] Scraping tweets for ${handle}`);
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 30);
 
-  // Normalize handle (remove @ if present)
-  const normalizedHandle = handle.startsWith('@') ? handle.substring(1) : handle;
+  console.log(`[${scraper.getProviderName().toUpperCase()}] Scraping tweets for ${handle}`);
 
-  try {
-    // Calculate date range (last 30 days)
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 30);
+  const tweets = await scraper.scrapeTweets({
+    handle,
+    maxItems: maxItems || 50,
+    startDate,
+    endDate,
+  });
 
-    // Run the tweet scraper actor
-    const run = await client.actor('apidojo/tweet-scraper').call({
-      twitterHandles: [normalizedHandle],
-      maxItems: 50,
-      sort: 'Latest',
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
-    });
+  console.log(
+    `[${scraper.getProviderName().toUpperCase()}] Successfully fetched ${tweets.length} tweets for ${handle}`
+  );
 
-    // Fetch results
-    const { items } = await client.dataset(run.defaultDatasetId).listItems();
-
-    // Normalize data to our schema
-    const tweets: TweetData[] = (items as any[]).map((item: any) => ({
-      tweetId: item.id || item.tweetId || String(item.id_str),
-      content: item.text || item.full_text || '',
-      authorHandle: `@${item.author?.userName || normalizedHandle}`,
-      publishedAt: new Date(item.createdAt || item.created_at || Date.now()),
-      metrics: {
-        likes: item.likes || item.favorite_count || 0,
-        retweets: item.retweets || item.retweet_count || 0,
-        replies: item.replies || item.reply_count || 0,
-        views: item.views || item.viewCount || undefined,
-      },
-    }));
-
-    console.log(`[APIFY] Successfully fetched ${tweets.length} tweets for ${handle}`);
-    return tweets;
-  } catch (error) {
-    console.error(`[APIFY] Error scraping tweets for ${handle}:`, error);
-    throw new Error(
-      error instanceof Error
-        ? error.message
-        : 'Failed to scrape tweets. The account may be private, suspended, or the handle is invalid.'
-    );
-  }
+  return tweets;
 }
 
 /**
@@ -92,54 +51,6 @@ export async function validateTwitterHandle(handle: string): Promise<{
   userId?: string;
   error?: string;
 }> {
-  if (!process.env.APIFY_API_KEY) {
-    return {
-      valid: false,
-      error: 'Twitter scraper not configured. Please add APIFY_API_KEY to environment variables.',
-    };
-  }
-
-  // Normalize handle
-  const normalizedHandle = handle.startsWith('@') ? handle.substring(1) : handle;
-
-  // Basic validation
-  if (!/^[\w]+$/.test(normalizedHandle)) {
-    return {
-      valid: false,
-      error: 'Invalid Twitter handle format. Use only letters, numbers, and underscores.',
-    };
-  }
-
-  try {
-    // Try to scrape 1 tweet to verify account exists
-    const run = await client.actor('apidojo/tweet-scraper').call({
-      twitterHandles: [normalizedHandle],
-      maxItems: 1,
-    });
-
-    const { items } = await client.dataset(run.defaultDatasetId).listItems();
-
-    if (items.length === 0) {
-      return {
-        valid: false,
-        error: 'Twitter account not found or has no tweets. Verify the handle is correct.',
-      };
-    }
-
-    // Extract user ID from first tweet
-    const firstItem = items[0] as any;
-    const userId = firstItem?.author?.id || firstItem?.author?.id_str || undefined;
-
-    return {
-      valid: true,
-      userId: userId ? String(userId) : undefined,
-    };
-  } catch (error) {
-    console.error(`Error validating handle ${handle}:`, error);
-    return {
-      valid: false,
-      error:
-        'Unable to validate Twitter handle. The account may be private, suspended, or temporarily unavailable.',
-    };
-  }
+  const scraper = TwitterScraperFactory.getScraper('apify');
+  return scraper.validateHandle(handle);
 }

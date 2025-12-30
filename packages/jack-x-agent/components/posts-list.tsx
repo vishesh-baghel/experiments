@@ -15,6 +15,17 @@ import { DateRangeFilter } from '@/components/date-range-filter';
 import { useDateRangeFilter } from '@/hooks/use-date-range-filter';
 import { formatRelativeTime, getPillarColor, formatLabel } from '@/lib/utils';
 import { getUserSession } from '@/lib/auth-client';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Post {
   id: string;
@@ -43,6 +54,8 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState<string>('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<Post | null>(null);
   const [isGuest, setIsGuest] = useState(false);
   
   const { 
@@ -117,14 +130,20 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
     }
   };
 
-  const handleDelete = async (post: Post) => {
-    if (!confirm('Are you sure you want to delete this draft?')) return;
-    
-    setLoadingAction(`delete-${post.draftId}`);
+  const openDeleteDialog = (post: Post) => {
+    setPostToDelete(post);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!postToDelete) return;
+
+    setLoadingAction(`delete-${postToDelete.draftId}`);
+    setDeleteDialogOpen(false);
     setError(null);
-    
+
     try {
-      const response = await fetch(`/api/drafts/${post.draftId}`, {
+      const response = await fetch(`/api/drafts/${postToDelete.draftId}`, {
         method: 'DELETE',
       });
 
@@ -133,12 +152,16 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
         throw new Error(data.error || 'Failed to delete draft');
       }
 
-      setPosts(posts.filter(p => p.draftId !== post.draftId));
+      setPosts(posts.filter(p => p.draftId !== postToDelete.draftId));
+      toast.success('draft deleted');
     } catch (err) {
       console.error('Error deleting draft:', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete draft');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to delete draft';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoadingAction(null);
+      setPostToDelete(null);
     }
   };
 
@@ -381,7 +404,7 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
                   <GuestTooltipButton
                     size="sm"
                     variant="ghost"
-                    onClick={() => handleDelete(post)}
+                    onClick={() => openDeleteDialog(post)}
                     disabled={loadingAction === `delete-${post.draftId}`}
                     isGuest={isGuest}
                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -425,7 +448,7 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
             no {filter === 'good' ? 'bangers ' : filter === 'posted' ? 'shipped content ' : ''}yet
           </p>
           <p className="text-sm mt-2">
-            {filter === 'good' 
+            {filter === 'good'
               ? 'be honest with yourself - which ones actually slap?'
               : filter === 'posted'
                 ? 'the timeline is waiting. your audience is starving'
@@ -434,6 +457,26 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
           </p>
         </div>
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>delete this draft?</AlertDialogTitle>
+            <AlertDialogDescription>
+              this will permanently delete your draft. this action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              yeet it
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

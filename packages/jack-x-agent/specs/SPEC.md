@@ -81,6 +81,11 @@ Jack is an AI agent that reduces content creation time from 50 min to **20 min p
 
 **Content Discovery**
 - Track 50-100 X creators (user-specified)
+- **Dynamic tweet scraping** with per-creator configuration:
+  - Each creator has configurable tweet count (1-100 tweets/day)
+  - Global daily tweet limit (1-1000 tweets across all creators)
+  - Proportional scaling when total requested > daily limit
+  - Minimum 1 tweet per active creator guaranteed
 - Fetch trending topics daily (24h cache)
 - Generate 5 content ideas based on:
   - Trending topics from tracked creators
@@ -101,6 +106,10 @@ Jack is an AI agent that reduces content creation time from 50 min to **20 min p
 
 **Usability**
 - Simple web UI (no calendar, no complexity)
+- **Responsive navigation** with mobile hamburger menu
+  - Desktop (≥768px): horizontal navigation bar
+  - Mobile (<768px): hamburger menu with slide-in drawer
+- Minimalist design matching "jack" aesthetic (no "content agent" subtitle)
 - Save drafts for editing
 - Manual posting (no X API integration)
 

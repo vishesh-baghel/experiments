@@ -6,6 +6,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
+// Mock toast
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+import { toast } from 'sonner';
+
 // Mock fetch globally
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -146,9 +156,6 @@ describe('VisitorModeToggle Component', () => {
   });
 
   it('should show error alert when toggle fails', async () => {
-    // Mock window.alert
-    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
-
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
@@ -170,10 +177,8 @@ describe('VisitorModeToggle Component', () => {
     fireEvent.click(toggleButton);
 
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith('Toggle failed');
+      expect(toast.error).toHaveBeenCalledWith('Toggle failed');
     });
-
-    alertMock.mockRestore();
   });
 
   it('should disable toggle button while saving', async () => {

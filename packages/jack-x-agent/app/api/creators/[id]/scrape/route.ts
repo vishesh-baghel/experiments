@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db/client';
 import { scrapeTwitterUser } from '@/lib/apify/twitter-scraper';
 import { storeCreatorTweets } from '@/lib/db/creator-tweets';
 import { blockGuestWrite } from '@/lib/auth';
+import { calculateScaledTweetCounts } from '@/lib/utils/tweet-scaling';
 
 export async function POST(
   request: NextRequest,
@@ -27,9 +28,17 @@ export async function POST(
       );
     }
 
-    // Get creator
+    // Get creator with user
     const creator = await prisma.creator.findUnique({
       where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            dailyTweetLimit: true,
+          },
+        },
+      },
     });
 
     if (!creator) {
@@ -39,8 +48,45 @@ export async function POST(
       );
     }
 
-    // Scrape tweets
-    const tweets = await scrapeTwitterUser(creator.xHandle);
+    // Get all active creators for this user to calculate scaling
+    const allCreators = await prisma.creator.findMany({
+      where: {
+        userId: creator.userId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        xHandle: true,
+        tweetCount: true,
+        isActive: true,
+      },
+    });
+
+    const dailyLimit = creator.user.dailyTweetLimit || 50;
+
+    // Calculate scaled tweet counts
+    const scaledConfigs = calculateScaledTweetCounts(
+      allCreators.map(c => ({
+        creatorId: c.id,
+        xHandle: c.xHandle,
+        requestedCount: c.tweetCount,
+        isActive: c.isActive,
+      })),
+      dailyLimit
+    );
+
+    // Find the scaled config for this creator
+    const scaledConfig = scaledConfigs.find(c => c.creatorId === id);
+    const actualCount = scaledConfig?.actualCount || creator.tweetCount;
+
+    console.log(
+      `[MANUAL SCRAPE] Scraping ${creator.xHandle} (${actualCount} tweets${
+        scaledConfig?.wasScaled ? ' - scaled' : ''
+      })`
+    );
+
+    // Scrape tweets with scaled count
+    const tweets = await scrapeTwitterUser(creator.xHandle, actualCount);
 
     // Store in database
     await storeCreatorTweets(id, tweets);
@@ -49,6 +95,9 @@ export async function POST(
       success: true,
       count: tweets.length,
       creator: creator.xHandle,
+      requestedCount: creator.tweetCount,
+      actualCount,
+      wasScaled: scaledConfig?.wasScaled || false,
     });
   } catch (error) {
     console.error('Error scraping creator tweets:', error);

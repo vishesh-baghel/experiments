@@ -102,6 +102,13 @@ export async function getCreatorsNeedingScraping(
         { lastScrapedAt: { lt: staleThreshold } },
       ],
     },
+    select: {
+      id: true,
+      xHandle: true,
+      isActive: true,
+      tweetCount: true,
+      lastScrapedAt: true,
+    },
     orderBy: {
       lastScrapedAt: 'asc',
     },
