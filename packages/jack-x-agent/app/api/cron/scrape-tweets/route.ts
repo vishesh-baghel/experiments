@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const errors: Array<{ creator: string; error: string }> = [];
     const summary: Record<string, number> = {};
 
-    console.log(`Starting cron job for ${users.length} users...`);
+    console.log(`[CRON] Starting tweet scraping job for ${users.length} users`);
 
     for (const user of users) {
       try {
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 
         for (const creator of creators) {
           try {
-            console.log(`Scraping ${creator.xHandle} for user ${user.email}...`);
+            console.log(`[SCRAPER] Scraping ${creator.xHandle} for user ${user.email}`);
 
             const tweets = await scrapeTwitterUser(creator.xHandle);
             await storeCreatorTweets(creator.id, tweets);
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
             totalScraped += tweets.length;
             summary[user.email || user.id] += tweets.length;
 
-            console.log(`✓ Scraped ${tweets.length} tweets for ${creator.xHandle}`);
+            console.log(`[SCRAPER] Successfully scraped ${tweets.length} tweets for ${creator.xHandle}`);
 
             // Rate limiting: 2-second delay between creators
             await new Promise(resolve => setTimeout(resolve, 2000));
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
               creator: creator.xHandle,
               error: errorMessage,
             });
-            console.error(`✗ Failed to scrape ${creator.xHandle}:`, errorMessage);
+            console.error(`[SCRAPER] Failed to scrape ${creator.xHandle}:`, errorMessage);
           }
         }
       } catch (error) {
@@ -84,11 +84,11 @@ export async function GET(request: NextRequest) {
       errors: errors.length > 0 ? errors : undefined,
     };
 
-    console.log('Cron job completed:', result);
+    console.log('[CRON] Tweet scraping job completed:', result);
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Cron job failed:', error);
+    console.error('[CRON] Tweet scraping job failed:', error);
 
     return NextResponse.json(
       {

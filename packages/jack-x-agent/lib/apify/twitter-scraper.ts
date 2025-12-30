@@ -29,9 +29,11 @@ export interface TweetData {
  */
 export async function scrapeTwitterUser(handle: string): Promise<TweetData[]> {
   if (!process.env.APIFY_API_KEY) {
-    console.error('APIFY_API_KEY not set');
+    console.error('[APIFY] API key not configured');
     return [];
   }
+
+  console.log(`[APIFY] Scraping tweets for ${handle}`);
 
   // Normalize handle (remove @ if present)
   const normalizedHandle = handle.startsWith('@') ? handle.substring(1) : handle;
@@ -55,7 +57,7 @@ export async function scrapeTwitterUser(handle: string): Promise<TweetData[]> {
     const { items } = await client.dataset(run.defaultDatasetId).listItems();
 
     // Normalize data to our schema
-    const tweets: TweetData[] = items.map((item: any) => ({
+    const tweets: TweetData[] = (items as any[]).map((item: any) => ({
       tweetId: item.id || item.tweetId || String(item.id_str),
       content: item.text || item.full_text || '',
       authorHandle: `@${item.author?.userName || normalizedHandle}`,
@@ -68,9 +70,10 @@ export async function scrapeTwitterUser(handle: string): Promise<TweetData[]> {
       },
     }));
 
+    console.log(`[APIFY] Successfully fetched ${tweets.length} tweets for ${handle}`);
     return tweets;
   } catch (error) {
-    console.error(`Error scraping tweets for ${handle}:`, error);
+    console.error(`[APIFY] Error scraping tweets for ${handle}:`, error);
     throw new Error(
       error instanceof Error
         ? error.message
@@ -124,7 +127,8 @@ export async function validateTwitterHandle(handle: string): Promise<{
     }
 
     // Extract user ID from first tweet
-    const userId = items[0]?.author?.id || items[0]?.author?.id_str || undefined;
+    const firstItem = items[0] as any;
+    const userId = firstItem?.author?.id || firstItem?.author?.id_str || undefined;
 
     return {
       valid: true,

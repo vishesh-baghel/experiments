@@ -24,7 +24,7 @@ export async function analyzeGoodPosts(posts: Array<{
 }>): Promise<AnalyzedPatterns> {
   // Need at least 3 posts for meaningful analysis
   if (posts.length < 3) {
-    console.log('Insufficient posts for pattern analysis (need at least 3)');
+    console.log('[PATTERN ANALYZER] Insufficient posts for pattern analysis (need at least 3)');
     return {};
   }
 
@@ -63,7 +63,7 @@ Return ONLY valid JSON matching this exact schema (no markdown, no explanation):
 
     const patterns: AnalyzedPatterns = JSON.parse(jsonText);
 
-    console.log('Pattern analysis complete:', {
+    console.log('[PATTERN ANALYZER] Analysis complete:', {
       avgPostLength: patterns.avgPostLength,
       phrasesCount: patterns.commonPhrases?.length || 0,
       pillarsCount: patterns.successfulPillars?.length || 0,

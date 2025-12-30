@@ -14,17 +14,17 @@ import type { Prisma } from '@prisma/client';
  */
 export async function triggerPatternLearning(userId: string) {
   try {
-    console.log(`Starting pattern learning for user ${userId}...`);
+    console.log(`[PATTERN LEARNING] Starting analysis for user ${userId}`);
 
     // Get recent good posts
     const goodPosts = await getGoodPostsForLearning(userId, 20);
 
     if (goodPosts.length < 3) {
-      console.log(`Insufficient good posts for user ${userId} (${goodPosts.length}/3 minimum)`);
+      console.log(`[PATTERN LEARNING] Insufficient data - need 3 posts, found ${goodPosts.length}`);
       return null;
     }
 
-    console.log(`Analyzing ${goodPosts.length} good posts...`);
+    console.log(`[PATTERN LEARNING] Analyzing ${goodPosts.length} good posts`);
 
     // Analyze patterns using LLM
     const patterns = await analyzeGoodPosts(goodPosts);
@@ -35,7 +35,7 @@ export async function triggerPatternLearning(userId: string) {
     });
 
     if (!toneConfig) {
-      console.log(`No tone config found for user ${userId}, creating one...`);
+      console.log(`[PATTERN LEARNING] Creating new tone config for user ${userId}`);
       // Create tone config if it doesn't exist
       await prisma.toneConfig.create({
         data: {
@@ -63,11 +63,11 @@ export async function triggerPatternLearning(userId: string) {
       },
     });
 
-    console.log(`Pattern learning complete for user ${userId}`);
+    console.log(`[PATTERN LEARNING] Analysis complete - patterns updated for user ${userId}`);
 
     return updatedPatterns;
   } catch (error) {
-    console.error(`Pattern learning error for user ${userId}:`, error);
+    console.error(`[PATTERN LEARNING] Error for user ${userId}:`, error);
     // Don't throw - graceful degradation (background operation)
     return null;
   }

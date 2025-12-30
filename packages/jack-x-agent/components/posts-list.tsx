@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { DateRangeFilter } from '@/components/date-range-filter';
 import { useDateRangeFilter } from '@/hooks/use-date-range-filter';
-import { formatRelativeTime, getPillarColor } from '@/lib/utils';
+import { formatRelativeTime, getPillarColor, formatLabel } from '@/lib/utils';
 import { getUserSession } from '@/lib/auth-client';
 
 interface Post {
@@ -309,10 +309,10 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <Badge className={getPillarColor(post.contentPillar)}>
-                      {post.contentPillar}
+                      {formatLabel(post.contentPillar)}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      {post.contentType}
+                      {formatLabel(post.contentType)}
                     </span>
                     {post.isMarkedGood && (
                       <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">

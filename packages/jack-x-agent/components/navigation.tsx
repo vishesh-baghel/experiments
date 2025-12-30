@@ -73,7 +73,7 @@ export function Navigation() {
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2">
               <span className="text-2xl font-bold">jack</span>
-              <span className="text-xs text-muted-foreground">your ai ghostwriter</span>
+              <span className="text-xs text-muted-foreground">content agent</span>
             </Link>
             {/* Visitor Mode Indicator */}
             {isGuest && (

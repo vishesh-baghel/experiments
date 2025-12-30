@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { GuestTooltipButton } from '@/components/guest-tooltip-button';
 import { DateRangeFilter } from '@/components/date-range-filter';
 import { useDateRangeFilter } from '@/hooks/use-date-range-filter';
-import { formatRelativeTime, getPillarColor, getEngagementColor } from '@/lib/utils';
+import { formatRelativeTime, getPillarColor, getEngagementColor, formatLabel } from '@/lib/utils';
 import { getUserSession } from '@/lib/auth-client';
 
 interface Outline {
@@ -219,10 +219,10 @@ export function IdeasDashboard({ userId, initialIdeas = [] }: IdeasDashboardProp
                 {/* Tags row */}
                 <div className="flex flex-wrap items-center gap-2 pt-4">
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${getPillarColor(idea.contentPillar)}`}>
-                    {idea.contentPillar.replace(/_/g, ' ')}
+                    {formatLabel(idea.contentPillar)}
                   </span>
                   <span className="text-xs px-2.5 py-1 rounded-full bg-muted font-medium">
-                    {idea.suggestedFormat}
+                    {formatLabel(idea.suggestedFormat)}
                   </span>
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${getEngagementColor(idea.estimatedEngagement)}`}>
                     {idea.estimatedEngagement} engagement

@@ -95,10 +95,11 @@ export async function POST(request: NextRequest) {
  */
 async function scrapeAndStoreCreatorTweets(creatorId: string, handle: string) {
   try {
+    console.log(`[CREATOR] Initiating background scrape for ${handle}`);
     const tweets = await scrapeTwitterUser(handle);
     await storeCreatorTweets(creatorId, tweets);
-    console.log(`Scraped ${tweets.length} tweets for ${handle}`);
+    console.log(`[CREATOR] Stored ${tweets.length} tweets for ${handle}`);
   } catch (error) {
-    console.error(`Failed to scrape tweets for ${handle}:`, error);
+    console.error(`[CREATOR] Failed to scrape tweets for ${handle}:`, error);
   }
 }
