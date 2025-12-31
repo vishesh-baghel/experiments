@@ -146,10 +146,13 @@ export async function getCreatorTweets(
 
 /**
  * Delete old tweets (cleanup function for data retention)
+ * Default: Keep tweets for 7 days to minimize database costs
  */
-export async function deleteOldTweets(daysToKeep = 90) {
+export async function deleteOldTweets(daysToKeep = 7) {
   const threshold = new Date();
   threshold.setDate(threshold.getDate() - daysToKeep);
+
+  console.log(`[CLEANUP] Deleting tweets published before ${threshold.toISOString()}`);
 
   const result = await prisma.creatorTweet.deleteMany({
     where: {
@@ -158,6 +161,8 @@ export async function deleteOldTweets(daysToKeep = 90) {
       },
     },
   });
+
+  console.log(`[CLEANUP] Deleted ${result.count} old tweets`);
 
   return result.count;
 }

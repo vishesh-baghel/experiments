@@ -5,8 +5,9 @@
 
 import type { TwitterScraper } from './types';
 import { ApifyTwitterScraper } from './apify-scraper';
+import { TwitterAPIScraper } from './twitterapi-scraper';
 
-export type ScraperProvider = 'apify' | 'rapidapi' | 'custom';
+export type ScraperProvider = 'apify' | 'twitterapi' | 'rapidapi' | 'custom';
 
 export class TwitterScraperFactory {
   private static instance: TwitterScraper | null = null;
@@ -23,6 +24,13 @@ export class TwitterScraperFactory {
           throw new Error('APIFY_API_KEY environment variable is not set');
         }
         this.instance = new ApifyTwitterScraper(process.env.APIFY_API_KEY);
+        return this.instance;
+
+      case 'twitterapi':
+        if (!process.env.TWITTERAPI_IO_KEY) {
+          throw new Error('TWITTERAPI_IO_KEY environment variable is not set');
+        }
+        this.instance = new TwitterAPIScraper(process.env.TWITTERAPI_IO_KEY);
         return this.instance;
 
       // Future providers can be added here

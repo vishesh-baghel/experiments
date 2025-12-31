@@ -19,7 +19,7 @@ export async function scrapeTwitterUser(
   handle: string,
   maxItems?: number
 ): Promise<TweetData[]> {
-  const scraper = TwitterScraperFactory.getScraper('apify');
+  const scraper = TwitterScraperFactory.getScraper('twitterapi');
 
   const endDate = new Date();
   const startDate = new Date();
@@ -51,6 +51,6 @@ export async function validateTwitterHandle(handle: string): Promise<{
   userId?: string;
   error?: string;
 }> {
-  const scraper = TwitterScraperFactory.getScraper('apify');
+  const scraper = TwitterScraperFactory.getScraper('twitterapi');
   return scraper.validateHandle(handle);
 }
