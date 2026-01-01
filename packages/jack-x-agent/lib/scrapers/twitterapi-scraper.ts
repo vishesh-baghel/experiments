@@ -27,6 +27,19 @@ interface TwitterAPIResponse {
   };
 }
 
+interface UserAboutResponse {
+  data: {
+    id: string;
+    name: string;
+    userName: string;
+    createdAt: string;
+    isBlueVerified: boolean;
+    protected: boolean;
+  };
+  status: 'success' | 'error';
+  msg?: string;
+}
+
 export class TwitterAPIScraper implements TwitterScraper {
   private apiKey: string;
   private baseUrl = 'https://api.twitterapi.io/twitter/tweet/advanced_search';
@@ -107,21 +120,54 @@ export class TwitterAPIScraper implements TwitterScraper {
     }
 
     try {
-      // Try to fetch 1 tweet to validate account exists
-      const until = new Date();
-      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Last 30 days
-      const query = this.buildQuery(normalizedHandle, since, until);
+      console.log(`[TWITTERAPI.IO] Validating handle: ${normalizedHandle}`);
 
-      const response = await this.makeRequest(query, undefined);
+      // Use user_about endpoint for validation
+      const url = `https://api.twitterapi.io/twitter/user_about?userName=${normalizedHandle}`;
 
-      if (!response.data || !response.data.tweets || response.data.tweets.length === 0) {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-API-Key': this.apiKey,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[TWITTERAPI.IO] Validation failed with status ${response.status}: ${errorText}`);
+
+        // 400 usually means user not found
+        if (response.status === 400) {
+          return {
+            valid: false,
+            error: 'Twitter account not found.',
+          };
+        }
+
+        throw new Error(
+          `TwitterAPI.io validation request failed: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const data: UserAboutResponse = await response.json();
+
+      console.log(`[TWITTERAPI.IO] Validation response:`, {
+        status: data.status,
+        hasData: !!data.data,
+        userId: data.data?.id,
+      });
+
+      if (data.status !== 'success' || !data.data || !data.data.id) {
         return {
           valid: false,
-          error: 'Twitter account not found or has no tweets in the last 30 days.',
+          error: data.msg || 'Twitter account not found.',
         };
       }
 
-      const userId = response.data.tweets[0].user.id_str;
+      const userId = data.data.id;
+
+      console.log(`[TWITTERAPI.IO] Handle ${normalizedHandle} validated successfully. User ID: ${userId}`);
 
       return {
         valid: true,
@@ -129,9 +175,15 @@ export class TwitterAPIScraper implements TwitterScraper {
       };
     } catch (error) {
       console.error(`[TWITTERAPI.IO] Error validating handle ${handle}:`, error);
+
+      // Log more details about the error
+      if (error instanceof Error) {
+        console.error(`[TWITTERAPI.IO] Error message: ${error.message}`);
+      }
+
       return {
         valid: false,
-        error: 'Unable to validate Twitter handle. The account may be private, suspended, or temporarily unavailable.',
+        error: 'Unable to validate Twitter handle. Please try again later.',
       };
     }
   }
