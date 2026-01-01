@@ -7,24 +7,18 @@
 import type { TwitterScraper, TwitterScraperConfig, ScrapedTweet } from './types';
 
 interface TwitterAPIResponse {
-  data: {
-    tweets: Array<{
-      id: string;
-      text: string;
-      created_at: string;
-      user: {
-        screen_name: string;
-        id_str: string;
-      };
-      favorite_count: number;
-      retweet_count: number;
-      reply_count: number;
-      quote_count?: number;
-      // Note: views not available in standard response
-    }>;
-    has_next_page: boolean;
-    next_cursor?: string;
-  };
+  tweets: Array<{
+    id: string;
+    text: string;
+    createdAt: string;
+    retweetCount: number;
+    replyCount: number;
+    likeCount: number;
+    quoteCount?: number;
+    viewCount?: number;
+  }>;
+  has_next_page: boolean;
+  next_cursor?: string;
 }
 
 interface UserAboutResponse {
@@ -67,12 +61,12 @@ export class TwitterAPIScraper implements TwitterScraper {
       try {
         const response = await this.makeRequest(query, cursor);
 
-        if (!response.data || !response.data.tweets) {
+        if (!response.tweets || response.tweets.length === 0) {
           console.log(`[TWITTERAPI.IO] No tweets found for ${handle}`);
           break;
         }
 
-        const scrapedTweets = response.data.tweets.map((tweet) =>
+        const scrapedTweets = response.tweets.map((tweet) =>
           this.mapToScrapedTweet(tweet, normalizedHandle)
         );
 
@@ -81,8 +75,8 @@ export class TwitterAPIScraper implements TwitterScraper {
         tweets.push(...scrapedTweets.slice(0, remainingSlots));
 
         // Check pagination
-        hasMore = response.data.has_next_page && tweets.length < maxItems;
-        cursor = response.data.next_cursor;
+        hasMore = response.has_next_page && tweets.length < maxItems;
+        cursor = response.next_cursor;
 
         console.log(
           `[TWITTERAPI.IO] Fetched ${scrapedTweets.length} tweets for ${handle}, total: ${tweets.length}/${maxItems}`
@@ -231,6 +225,8 @@ export class TwitterAPIScraper implements TwitterScraper {
 
     const url = `${this.baseUrl}?${params.toString()}`;
 
+    console.log(`[TWITTERAPI.IO] Making request to: ${url}`);
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -241,29 +237,38 @@ export class TwitterAPIScraper implements TwitterScraper {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`[TWITTERAPI.IO] Request failed with status ${response.status}: ${errorText}`);
       throw new Error(
         `TwitterAPI.io request failed: ${response.status} ${response.statusText} - ${errorText}`
       );
     }
 
-    return response.json();
+    const data = await response.json();
+
+    console.log(`[TWITTERAPI.IO] Response data:`, {
+      hasTweets: !!data.tweets,
+      tweetCount: data.tweets?.length || 0,
+      hasNextPage: data.has_next_page,
+      nextCursor: data.next_cursor?.substring(0, 20) || 'none',
+    });
+
+    return data;
   }
 
   /**
    * Map TwitterAPI.io tweet format to ScrapedTweet
    */
-  private mapToScrapedTweet(tweet: TwitterAPIResponse['data']['tweets'][0], handle: string): ScrapedTweet {
+  private mapToScrapedTweet(tweet: TwitterAPIResponse['tweets'][0], handle: string): ScrapedTweet {
     return {
       tweetId: tweet.id,
       content: tweet.text,
-      authorHandle: `@${tweet.user.screen_name || handle}`,
-      publishedAt: new Date(tweet.created_at),
+      authorHandle: `@${handle}`,
+      publishedAt: new Date(tweet.createdAt),
       metrics: {
-        likes: tweet.favorite_count || 0,
-        retweets: tweet.retweet_count || 0,
-        replies: tweet.reply_count || 0,
-        // TwitterAPI.io doesn't provide view counts in standard response
-        views: undefined,
+        likes: tweet.likeCount || 0,
+        retweets: tweet.retweetCount || 0,
+        replies: tweet.replyCount || 0,
+        views: tweet.viewCount,
       },
     };
   }
