@@ -45,6 +45,7 @@ export async function storeCreatorTweets(creatorId: string, tweets: TweetData[])
 
 /**
  * Get all creator tweets for a user (from all active creators)
+ * BALANCED: Fetches tweets evenly across all creators to ensure diverse content
  */
 export async function getAllCreatorTweets(
   userId: string,
@@ -59,28 +60,73 @@ export async function getAllCreatorTweets(
   const dateThreshold = new Date();
   dateThreshold.setDate(dateThreshold.getDate() - daysBack);
 
-  return prisma.creatorTweet.findMany({
+  console.log(`[DB] Fetching balanced tweets from all creators (limit: ${limit}, daysBack: ${daysBack})`);
+
+  // First, get all active creators for this user
+  const creators = await prisma.creator.findMany({
     where: {
-      creator: {
-        userId,
-        isActive: true,
-      },
-      publishedAt: {
-        gte: dateThreshold,
-      },
+      userId,
+      isActive: true,
     },
-    include: {
-      creator: {
-        select: {
-          xHandle: true,
+    select: {
+      id: true,
+      xHandle: true,
+    },
+  });
+
+  if (creators.length === 0) {
+    console.log(`[DB] No active creators found for user ${userId}`);
+    return [];
+  }
+
+  console.log(`[DB] Found ${creators.length} active creators: ${creators.map(c => c.xHandle).join(', ')}`);
+
+  // Calculate tweets per creator (distribute evenly)
+  const tweetsPerCreator = Math.ceil(limit / creators.length);
+  console.log(`[DB] Fetching ${tweetsPerCreator} tweets per creator`);
+
+  // Fetch tweets from each creator
+  const tweetPromises = creators.map(creator =>
+    prisma.creatorTweet.findMany({
+      where: {
+        creatorId: creator.id,
+        publishedAt: {
+          gte: dateThreshold,
         },
       },
-    },
-    orderBy: {
-      publishedAt: 'desc',
-    },
-    take: limit,
-  });
+      include: {
+        creator: {
+          select: {
+            xHandle: true,
+          },
+        },
+      },
+      orderBy: {
+        publishedAt: 'desc',
+      },
+      take: tweetsPerCreator,
+    })
+  );
+
+  const tweetArrays = await Promise.all(tweetPromises);
+
+  // Flatten and interleave tweets from different creators
+  const allTweets = tweetArrays.flat();
+
+  console.log(`[DB] Fetched total of ${allTweets.length} tweets from ${creators.length} creators`);
+
+  // Log distribution
+  const distribution = creators.map(creator => {
+    const count = allTweets.filter(t => t.creatorId === creator.id).length;
+    return `${creator.xHandle}: ${count}`;
+  }).join(', ');
+  console.log(`[DB] Tweet distribution: ${distribution}`);
+
+  // Shuffle to mix creators (optional but helps with diversity)
+  const shuffled = allTweets.sort(() => Math.random() - 0.5);
+
+  // Return up to the limit
+  return shuffled.slice(0, limit);
 }
 
 /**
