@@ -99,23 +99,22 @@ describe('VisitorModeToggle Component', () => {
     expect(screen.queryByText('active')).not.toBeInTheDocument();
   });
 
-  it('should display guest access URL when enabled', async () => {
+  it('should not display guest access URL when enabled', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({ enabled: true }),
     });
 
-    // Mock window.location
-    delete (window as never).location;
-    window.location = { origin: 'http://localhost:3000' } as never;
-
     const { VisitorModeToggle } = await import('@/components/visitor-mode-toggle');
     render(<VisitorModeToggle isOwner={true} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/guest access url/i)).toBeInTheDocument();
-      expect(screen.getByText(/http:\/\/localhost:3000\/auth/)).toBeInTheDocument();
+      expect(screen.getByText(/visitor mode is on/i)).toBeInTheDocument();
     });
+
+    // Guest access URL section should not be displayed
+    expect(screen.queryByText(/guest access url/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/continue as guest/i)).not.toBeInTheDocument();
   });
 
   it('should toggle visitor mode when clicked', async () => {

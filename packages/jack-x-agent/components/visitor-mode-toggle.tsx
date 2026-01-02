@@ -125,17 +125,6 @@ export function VisitorModeToggle({ isOwner }: VisitorModeToggleProps) {
             />
           </button>
         </div>
-
-        {enabled && (
-          <div className="p-3 bg-muted rounded-md">
-            <p className="text-xs text-muted-foreground">
-              <strong>guest access url:</strong>{' '}
-              <span className="font-mono">{typeof window !== 'undefined' ? window.location.origin : ''}/auth</span>
-              <br />
-              visitors can click &quot;continue as guest&quot; to explore your jack
-            </p>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 interface ToneConfig {
   lowercase: boolean;
@@ -73,9 +74,16 @@ export function ToneConfigComponent({ userId, initialConfig }: ToneConfigProps) 
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to save config');
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || 'failed to save custom rules');
+        return;
+      }
+
+      toast.success('custom rules saved successfully');
     } catch (error) {
       console.error('Error saving config:', error);
+      toast.error('something went wrong. please try again.');
     } finally {
       setIsSaving(false);
     }
