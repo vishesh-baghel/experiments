@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { CreatorsManager } from '../creators-manager';
+import { CreatorsManager } from '@/components/creators-manager';
 
 // Mock auth client
 vi.mock('@/lib/auth-client', () => ({

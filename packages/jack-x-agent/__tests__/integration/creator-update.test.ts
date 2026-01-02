@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PATCH } from '../[id]/route';
+import { PATCH } from '@/app/api/creators/[id]/route';
 import { NextRequest } from 'next/server';
 
 // Mock dependencies

@@ -12,7 +12,9 @@ import { GuestTooltipButton } from '@/components/guest-tooltip-button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { DateRangeFilter } from '@/components/date-range-filter';
+import { Pagination } from '@/components/pagination';
 import { useDateRangeFilter } from '@/hooks/use-date-range-filter';
+import { usePagination } from '@/hooks/use-pagination';
 import { formatRelativeTime, getPillarColor, formatLabel } from '@/lib/utils';
 import { getUserSession } from '@/lib/auth-client';
 import { toast } from 'sonner';
@@ -244,13 +246,28 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
     // Status filter
     if (filter === 'good' && !post.isMarkedGood) return false;
     if (filter === 'posted' && !post.isPosted) return false;
-    
+
     // Date range filter
     const postDate = new Date(post.createdAt);
     const startDate = getStartDate();
     const endDate = getEndDate();
-    
+
     return postDate >= startDate && postDate <= endDate;
+  });
+
+  // Pagination - reset when filter or date range changes
+  const {
+    currentPage,
+    totalPages,
+    paginatedItems: paginatedPosts,
+    nextPage,
+    prevPage,
+    hasNextPage,
+    hasPrevPage,
+  } = usePagination({
+    items: filteredPosts,
+    itemsPerPage: 9,
+    resetDependencies: [filter, dateRange, customStartDate, customEndDate],
   });
 
   return (
@@ -315,17 +332,27 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
             shipped ({posts.filter(p => p.isPosted).length})
           </button>
         </div>
-        <DateRangeFilter
-          value={dateRange}
-          onChange={handleDateRangeChange}
-          customStartDate={customStartDate}
-          customEndDate={customEndDate}
-        />
+        <div className="flex items-center gap-3">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPrevPage={prevPage}
+            onNextPage={nextPage}
+            hasPrevPage={hasPrevPage}
+            hasNextPage={hasNextPage}
+          />
+          <DateRangeFilter
+            value={dateRange}
+            onChange={handleDateRangeChange}
+            customStartDate={customStartDate}
+            customEndDate={customEndDate}
+          />
+        </div>
       </div>
 
       {/* Posts List */}
       <div className="space-y-4">
-        {filteredPosts.map((post) => (
+        {paginatedPosts.map((post) => (
           <Card key={post.draftId}>
             <CardHeader>
               <div className="flex items-start justify-between gap-4">

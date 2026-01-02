@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ApifyTwitterScraper } from '../apify-scraper';
-import type { ScrapedTweet } from '../types';
+import { ApifyTwitterScraper } from '@/lib/scrapers/apify-scraper';
+import type { ScrapedTweet } from '@/lib/scrapers/types';
 
 // Mock the ApifyClient
 vi.mock('apify-client', () => {

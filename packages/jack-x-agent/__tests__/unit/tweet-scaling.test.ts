@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { calculateScaledTweetCounts, getTotalTweetCount } from '../tweet-scaling';
+import { calculateScaledTweetCounts, getTotalTweetCount } from '@/lib/utils/tweet-scaling';
 
 describe('calculateScaledTweetCounts', () => {
   it('should return requested counts when within limit', () => {

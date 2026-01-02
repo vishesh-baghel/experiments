@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Navigation } from '../navigation';
+import { Navigation } from '@/components/navigation';
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
