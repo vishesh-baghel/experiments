@@ -78,8 +78,8 @@ describe("agents configuration", () => {
       expect(jackAgent.status).toBe("available");
     });
 
-    it("should have prisma integration", () => {
-      expect(jackAgent.integrations).toContain("prisma");
+    it("should have neon integration", () => {
+      expect(jackAgent.integrations).toContain("neon");
     });
 
     it("should have required environment variables", () => {
