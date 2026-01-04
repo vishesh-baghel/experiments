@@ -84,8 +84,9 @@ model Topic {
 
 enum TopicStatus {
   QUEUED      // Added to learning queue
-  ACTIVE      // Currently learning
-  COMPLETED   // Mastered (80%+)
+  ACTIVE      // Currently learning (max 2-3 at a time)
+  COMPLETED   // Mastered (hit user's mastery threshold)
+  ARCHIVED    // Hidden from view, preserved for reference
 }
 
 model Subtopic {
@@ -217,9 +218,18 @@ model LearningSession {
   topicId    String   @unique // One active session per topic
 
   // Session state
-  currentSubtopicId String?
-  currentConceptId  String?
-  isActive          Boolean @default(true)
+  currentSubtopicId  String?
+  currentConceptId   String?
+  currentQuestionId  String?  // For exact resume
+  isActive           Boolean @default(true)
+
+  // Skip tracking (3 max per session)
+  skipsUsed          Int      @default(0)
+  skippedQuestionIds String[] // Questions to revisit before unlocking next subtopic
+
+  // Attempt tracking for current question
+  currentAttempts    Int      @default(0)
+  hintsUsed          Int      @default(0)
 
   // Metadata
   createdAt    DateTime @default(now())

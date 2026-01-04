@@ -248,6 +248,56 @@ Question 1/5: What happens when you pass a value to a function in Rust without u
 - **Overseer Integration:** Once Overseer launches, 20%+ of Sensie users upgrade
 - **Cross-Agent Value:** Sensie → Jack content ideas, Sensie → Code Review skill assessment
 
+## Topic Management Rules
+
+### Active Topics Limit: 2-3 Maximum
+
+**Rationale:** Focus leads to mastery. Too many active topics = shallow learning.
+
+**Behavior:**
+- User can have 2-3 topics in "Active" status simultaneously
+- When trying to add a 4th active topic, Sensie nudges:
+
+```
+Sensie: "I see you want to learn Distributed Systems, apprentice.
+However, you currently have 3 active topics:
+  • Rust (65%) - 2 subtopics remaining
+  • Giving Feedback (40%) - 3 subtopics remaining
+  • System Design (30%) - 5 subtopics remaining
+
+I recommend completing at least one before starting another.
+Focus leads to mastery!
+
+[Complete Rust First] [Add to Queue] [Start Anyway]"
+```
+
+- "Start Anyway" is allowed but discouraged
+- Topics can be moved to Queue without penalty
+
+### Topic States
+
+| Status | Description | Count Limit |
+|--------|-------------|-------------|
+| Active | Currently learning | 2-3 max |
+| Queued | Saved for later | Unlimited |
+| Mastered | Hit mastery threshold | Unlimited |
+| Archived | Hidden from view | Unlimited |
+
+### Revisiting Mastered Topics
+
+Once a topic reaches mastery threshold, user can:
+1. **Continue Learning** - Access remaining advanced subtopics
+2. **Review Mode** - Quick spaced repetition quizzes
+3. **Request Reteach** - If concepts were forgotten, Sensie reteaches from scratch
+
+```
+User: "/topics"
+Sensie shows mastered topic with options:
+
+✅ JavaScript Closures (92%)
+   [Continue to Advanced] [Quick Review] [Reteach from Start]
+```
+
 ## User Experience Principles
 
 ### 1. Challenging, Not Frustrating

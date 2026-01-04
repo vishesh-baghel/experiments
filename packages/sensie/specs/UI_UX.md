@@ -508,10 +508,13 @@ Provides detailed explanation:
 
 **`/skip`**
 ```
-Skips current question:
-- Marked for later review
-- Doesn't penalize mastery heavily
-- Limit: 2-3 skips per session
+Skips current question (LIMITED):
+- 3 skips max per learning session
+- Skipped questions marked for revisiting later in session
+- After 3 skips, Sensie refuses:
+  "No more skips remaining, apprentice. Face this challenge!"
+- Skips reset when session ends or topic changes
+- Skipped questions appear at end of subtopic before unlocking next
 ```
 
 **`/break`**
