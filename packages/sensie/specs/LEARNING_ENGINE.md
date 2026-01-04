@@ -171,18 +171,68 @@ class LearningPathGenerator {
                  │
                  ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  5. EXPLANATION (only if truly stuck)                        │
-│  • Provide clear explanation                                │
-│  • Immediately ask simpler question to verify understanding │
+│  5. EXPLANATION (after N failed attempts)                    │
+│  • After 3-4 failed attempts, provide full explanation      │
+│  • BUT don't move on - keep asking VARIATIONS               │
+│  • User must demonstrate understanding even after explain   │
 └────────────────┬────────────────────────────────────────────┘
                  │
                  ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  6. REPEAT UNTIL MASTERY                                     │
+│  6. VERIFY UNDERSTANDING (post-explanation)                  │
+│  • Ask variation of original question                       │
+│  • If correct → progress to next concept                   │
+│  • If still wrong → ask simpler variation                  │
+│  • Never move on until user demonstrates understanding     │
+└────────────────┬────────────────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────────────────┐
+│  7. REPEAT UNTIL MASTERY                                     │
 │  • Must answer correctly without hints 2-3 times            │
 │  • Questions vary to test true understanding                │
 └──────────────────────────────────────────────────────────────┘
+
+**Stuck User Flow (Detailed):**
+
+```typescript
+const MAX_ATTEMPTS_BEFORE_EXPLAIN = 3;
+
+async function handleStuckUser(
+  question: Question,
+  failedAttempts: number,
+  context: SocraticContext
+): Promise<NextAction> {
+  if (failedAttempts < MAX_ATTEMPTS_BEFORE_EXPLAIN) {
+    // Still under threshold - give hints and guide
+    return {
+      action: "guide",
+      response: await generateGuidingQuestion(question, context)
+    };
+  }
+
+  if (failedAttempts === MAX_ATTEMPTS_BEFORE_EXPLAIN) {
+    // Hit threshold - fully explain, then ask variation
+    return {
+      action: "explain_then_verify",
+      response: `
+        ${await generateFullExplanation(question.concept)}
+
+        Now, let me verify your understanding with a different angle:
+        ${await generateVariationQuestion(question)}
+      `
+    };
+  }
+
+  // Already explained, keep asking variations until they get it
+  return {
+    action: "variation",
+    response: await generateSimplerVariation(question, failedAttempts)
+  };
+}
 ```
+
+**Key Principle:** Never move on without understanding. Explanation is a tool, not an escape hatch.
 
 #### Question Types in Socratic Method
 

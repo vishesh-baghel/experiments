@@ -444,6 +444,10 @@ model UserPreferences {
   difficultyPreference Int     @default(3)    // 1-5
   masteryThreshold     Int     @default(80)   // 50, 70, 80, 90, or 100 - when is topic "mastered"
 
+  // AI Model preferences (user-configurable)
+  aiProvider     String  @default("anthropic") // "anthropic" | "openai"
+  preferredModel String? // null = use task-based defaults, or override like "claude-opus"
+
   // UI preferences
   theme             String  @default("dark")
   personalityLevel  String  @default("full") // full, balanced, minimal

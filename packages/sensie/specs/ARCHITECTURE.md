@@ -10,8 +10,51 @@
 ### AI & Agents
 - **Mastra 0.20+** - AI agent framework (same as Jack)
 - **Vercel AI SDK 4.x** - LLM integration layer
-- **Vercel AI Gateway** - Optional gateway for cost tracking and caching
+- **Vercel AI Gateway** - Gateway for cost tracking, caching, and runtime model switching
 - **Langfuse** - LLM observability and tracing
+
+### LLM Model Strategy
+
+**Default Models (User-Configurable):**
+
+| Task | Default Model | Rationale |
+|------|---------------|-----------|
+| Teaching & Explanations | Claude Sonnet | Best quality without Opus cost |
+| Question Generation | Claude Sonnet | Needs nuanced understanding |
+| Answer Evaluation | Claude Sonnet | Critical for accurate feedback |
+| Subtopic Suggestions | Claude Haiku | Simpler task, cost-effective |
+| Hint Generation | Claude Haiku | Straightforward task |
+| Gap Detection | Claude Sonnet | Requires deep analysis |
+
+**Multi-Provider Support:**
+- Anthropic (Claude Sonnet, Haiku, Opus)
+- OpenAI (GPT-4o, GPT-4o-mini)
+- User selects provider + model in Settings
+- AI Gateway with Mastra enables runtime model switching
+
+**Implementation:**
+```typescript
+// lib/ai/model-selector.ts
+type TaskType = "teaching" | "question" | "evaluation" | "hint" | "simple";
+
+function getModelForTask(task: TaskType, userPrefs: UserPreferences): Model {
+  const provider = userPrefs.aiProvider; // "anthropic" | "openai"
+
+  // User override - use their preferred model for everything
+  if (userPrefs.preferredModel) {
+    return getModel(provider, userPrefs.preferredModel);
+  }
+
+  // Default task-based selection
+  const isSimpleTask = task === "hint" || task === "simple";
+
+  if (provider === "anthropic") {
+    return isSimpleTask ? "claude-haiku" : "claude-sonnet";
+  } else {
+    return isSimpleTask ? "gpt-4o-mini" : "gpt-4o";
+  }
+}
+```
 
 ### Database & ORM
 - **PostgreSQL** (Neon for production, Docker for local dev)
@@ -152,6 +195,76 @@ See `DATABASE_SCHEMA.md` for detailed schema. High-level entities:
 - **CodebaseAnalysis** - Cached analysis of repositories
 - **Project** - User's projects (for project-based learning)
 - **LearningSession** - Chat sessions focused on current topic
+
+### Session Persistence
+
+**Principle:** Resume exactly where you left off - same question, same context.
+
+When user closes browser mid-session, we persist:
+```typescript
+interface SessionState {
+  topicId: string;
+  subtopicId: string;
+  conceptId: string;
+
+  // Exact position
+  currentQuestionId: string;
+  currentQuestionAttempts: number;
+  hintsUsed: number;
+
+  // Context for resumption
+  lastMessageId: string;
+  conversationContext: string; // Summary for LLM context
+}
+```
+
+**Resume Flow:**
+```
+User returns after closing browser
+  ↓
+Load SessionState from database
+  ↓
+Sensie: "Welcome back, apprentice! We were working on [concept].
+        Let me remind you where we left off..."
+  ↓
+Show brief recap (last 2-3 messages)
+  ↓
+Re-ask the exact question they were on
+  ↓
+Continue as if no interruption
+```
+
+**Implementation:**
+```typescript
+// Save on every message/answer
+async function saveSessionState(session: LearningSession) {
+  await prisma.learningSession.update({
+    where: { id: session.id },
+    data: {
+      currentQuestionId: session.currentQuestion.id,
+      currentAttempts: session.attempts,
+      hintsUsed: session.hintsUsed,
+      lastActivity: new Date()
+    }
+  });
+}
+
+// Resume on page load
+async function resumeSession(userId: string): Promise<ResumeContext> {
+  const session = await prisma.learningSession.findFirst({
+    where: { userId, isActive: true },
+    include: { messages: { take: 3, orderBy: { createdAt: 'desc' } } }
+  });
+
+  if (!session) return null;
+
+  return {
+    session,
+    resumeMessage: buildResumeMessage(session),
+    currentQuestion: await getQuestion(session.currentQuestionId)
+  };
+}
+```
 
 ### Relationships
 ```

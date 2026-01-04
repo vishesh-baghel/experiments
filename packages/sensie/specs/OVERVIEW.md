@@ -278,24 +278,35 @@ Question 1/5: What happens when you pass a value to a function in Rust without u
 
 ## Visitor Mode Experience
 
-**Goal:** Demonstrate Sensie's depth and personality without exposing personal details
+**Philosophy:** Complete authenticity. No fake demos, no curated showcases.
 
-**What Visitors See:**
-- Real topics Vishesh is learning (Rust, System Design, etc.)
+The goal of visitor mode across all agents (Sensie, Jack, etc.) is the same: **show real usage, not marketing material**. Visitors see exactly what I'm learning, where I'm struggling, and how I'm progressing.
+
+**Why Authenticity:**
+- Builds genuine credibility (can't fake a 75% mastery over months)
+- Shows the tool is actually useful (I use it daily)
+- More compelling than polished demos
+- Aligns with personal brand of transparency
+
+**What Visitors See (Everything Real):**
+- Actual topics I'm learning (Rust, Giving Feedback, System Design)
 - Real progress percentages and mastery levels
-- Anonymized questions and answers (replace personal projects/context)
+- Real learning path and subtopics
+- Real questions I've been asked
+- Real struggle points (where I needed hints)
 - Full UI/UX including commands
 - Master Roshi personality in action
 
-**What's Hidden:**
+**What's Hidden (Privacy, Not Authenticity):**
 - Specific code examples from private projects
-- Personal notes or context
-- Timestamps of learning sessions
-- Spaced repetition schedule
+- Personal notes that reference work context
+- Nothing that changes the authenticity of progress
 
 **Implementation:**
 ```typescript
 const isVisitor = session?.role === "visitor";
+
+// Visitors see REAL data, just read-only
 const data = isVisitor
   ? getAnonymizedLearningData() // Real topics, sanitized details
   : getRealLearningData();
