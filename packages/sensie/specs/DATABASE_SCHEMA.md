@@ -431,6 +431,7 @@ model LearningAnalytics {
   conceptsMastered  Int @default(0)
   reviewsCompleted  Int @default(0)
   timeSpent         Int @default(0) // Minutes
+  xpEarned          Int @default(0) // XP earned today
 
   // Streaks
   currentStreak Int @default(0)
@@ -439,6 +440,49 @@ model LearningAnalytics {
   @@unique([userId, date])
   @@index([userId, date])
 }
+
+// ============================================================================
+// GAMIFICATION
+// ============================================================================
+
+model UserProgress {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  // XP and Level
+  totalXP      Int @default(0)
+  currentLevel Int @default(1) // 1-10
+
+  // Streaks
+  currentStreak    Int      @default(0)
+  longestStreak    Int      @default(0)
+  lastActivityDate DateTime @default(now())
+  streakFreezes    Int      @default(0) // Earned streak freezes available
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Badge {
+  id          String   @id @default(cuid())
+  userId      String
+  badgeType   String   // "first_blood", "bookworm", "on_fire_7", etc.
+  earnedAt    DateTime @default(now())
+
+  // Badge metadata
+  name        String   // "First Blood"
+  description String   // "Answer your first question correctly"
+  icon        String   // "🎯"
+
+  @@unique([userId, badgeType])
+  @@index([userId])
+}
+
+// Badge types (for reference, not stored in DB):
+// Learning Milestones: first_blood, bookworm, on_fire_7, on_fire_30, centurion_100
+// Mastery: white_belt_1, yellow_belt_5, green_belt_10, black_belt_25
+// Skill-Specific: rustacean, communicator, architect
+// Challenge: no_hints_subtopic, perfectionist, feynman_master_10
 
 // ============================================================================
 // CONFIGURATION

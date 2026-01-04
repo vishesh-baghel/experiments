@@ -298,6 +298,84 @@ Sensie shows mastered topic with options:
    [Continue to Advanced] [Quick Review] [Reteach from Start]
 ```
 
+## Gamification System
+
+**Philosophy:** Full gamification to make learning addictive (in a good way).
+
+### XP Points
+
+| Action | XP Earned |
+|--------|-----------|
+| Answer question correctly (no hints) | +20 XP |
+| Answer question correctly (with hints) | +10 XP |
+| Complete a subtopic | +100 XP |
+| Complete a topic | +500 XP |
+| Pass a review session | +50 XP |
+| Complete Feynman exercise | +200 XP |
+| Maintain daily streak | +25 XP × streak days |
+
+### Levels
+
+| Level | Title | XP Required |
+|-------|-------|-------------|
+| 1 | Novice | 0 |
+| 2 | Apprentice | 500 |
+| 3 | Student | 1,500 |
+| 4 | Practitioner | 4,000 |
+| 5 | Journeyman | 8,000 |
+| 6 | Expert | 15,000 |
+| 7 | Master | 30,000 |
+| 8 | Grandmaster | 50,000 |
+| 9 | Sensei | 100,000 |
+| 10 | Legendary Sensei | 200,000 |
+
+### Badges (Achievements)
+
+**Learning Milestones:**
+- 🎯 First Blood - Answer your first question correctly
+- 📚 Bookworm - Complete your first topic
+- 🔥 On Fire - 7-day learning streak
+- ⚡ Lightning - 30-day learning streak
+- 🏆 Centurion - 100-day learning streak
+
+**Mastery Badges:**
+- 🥋 White Belt - Master 1 topic
+- 🥋 Yellow Belt - Master 5 topics
+- 🥋 Green Belt - Master 10 topics
+- 🥋 Black Belt - Master 25 topics
+
+**Skill-Specific:**
+- 🦀 Rustacean - Master a Rust topic
+- 💬 Communicator - Master a soft skills topic
+- 🏗️ Architect - Master System Design
+
+**Challenge Badges:**
+- 🧠 No Hints Needed - Complete a subtopic without hints
+- ⚔️ Perfectionist - 100% accuracy on a topic
+- 🎓 Feynman Master - Complete 10 Feynman exercises
+
+### Streak System
+
+- Daily streak: Learn at least one concept per day
+- Streak displayed prominently in header
+- Milestone celebrations: 7, 30, 100, 365 days
+- Streak freeze: Can skip 1 day per week without losing streak (earned via XP)
+
+```
+┌──────────────────────────────┐
+│  🔥 15-day streak!           │
+│  Keep going, apprentice!     │
+│  Next milestone: 30 days     │
+└──────────────────────────────┘
+```
+
+### Future: Leaderboards (Multi-User)
+
+When Sensie supports multiple users:
+- Weekly XP leaderboard
+- Topic-specific leaderboards
+- Opt-in (privacy respected)
+
 ## User Experience Principles
 
 ### 1. Challenging, Not Frustrating
@@ -322,9 +400,11 @@ Sensie shows mastered topic with options:
 
 ### 5. Multi-Modal Learning
 - Text explanations
-- Code examples (with execution if possible)
+- Code examples (display only - user runs locally)
 - Visual diagrams (future: generated with code)
 - Links to authoritative sources
+
+**Note:** No embedded code execution. Code examples are for reading and understanding. User copies and runs locally if they want to experiment. This keeps Sensie focused on teaching, not becoming an IDE.
 
 ## Visitor Mode Experience
 
