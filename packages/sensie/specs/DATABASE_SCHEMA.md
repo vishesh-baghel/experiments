@@ -448,10 +448,9 @@ model UserPreferences {
   theme             String  @default("dark")
   personalityLevel  String  @default("full") // full, balanced, minimal
 
-  // Notifications
-  reviewReminders   Boolean @default(true)
-  achievementAlerts Boolean @default(true)
-  dailyGoalReminders Boolean @default(false)
+  // Notifications (In-App Only - no email/push)
+  reviewReminders   Boolean @default(true)  // Show review badge in UI
+  achievementAlerts Boolean @default(true)  // Show celebration modals
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -211,6 +211,102 @@ class LearningPathGenerator {
 - "Design a system that uses Z"
 - "Teach me X as if I'm 10 years old"
 
+#### Soft Skills Teaching Approaches
+
+For non-technical topics (communication, teamwork, leadership), Sensie uses three specialized methods:
+
+**1. Scenario-Based Questions**
+Present realistic workplace situations and ask how the user would handle them.
+
+```
+Topic: Giving Feedback
+
+Sensie: "Your teammate submitted a PR with significant code quality issues.
+They're new to the team and seem stressed about an upcoming deadline.
+How would you approach giving them feedback?"
+
+User: [responds with their approach]
+
+Sensie evaluates:
+- Did they consider timing? (not during high stress)
+- Did they focus on the code, not the person?
+- Did they offer to help vs just criticize?
+- Did they balance honesty with empathy?
+```
+
+**2. Role-Play Exercises**
+Sensie plays the other person in a conversation, letting the user practice in a safe environment.
+
+```
+Topic: Conflict Resolution
+
+Sensie: "Let's practice. I'll be your teammate who disagrees with your
+technical approach. Try to navigate this conversation."
+
+Sensie (as teammate): "I don't think we should use microservices for this.
+It's overengineering and will slow us down."
+
+User: [responds]
+
+Sensie (as teammate): [responds based on how user handled it]
+
+After role-play, Sensie provides feedback:
+- "You acknowledged my concern before presenting your view - good."
+- "You jumped to defending your position. Try asking why I feel that way first."
+```
+
+**3. Reflection Questions**
+Deep questions that help users examine their own patterns and assumptions.
+
+```
+Topic: Emotional Intelligence
+
+Sensie: "Think about the last time you received critical feedback that
+upset you. What was your first reaction? Why do you think you reacted
+that way?"
+
+User: [reflects and responds]
+
+Sensie probes deeper:
+- "What would have been an ideal response?"
+- "What's one thing you could do differently next time?"
+- "How might the person giving feedback have perceived your reaction?"
+```
+
+**Evaluating Soft Skills Answers**
+
+Unlike technical topics with right/wrong answers, soft skills use a rubric:
+
+```typescript
+interface SoftSkillEvaluation {
+  demonstrates: string[];    // What the user did well
+  missing: string[];         // Important elements not addressed
+  perspective: string[];     // Alternative viewpoints to consider
+  nextQuestion: string;      // Probe deeper or move on
+}
+
+// Example rubric for "Giving Feedback"
+const feedbackRubric = {
+  excellent: [
+    "Considers timing and setting",
+    "Focuses on behavior, not person",
+    "Offers specific examples",
+    "Invites dialogue, not monologue",
+    "Shows empathy for recipient's situation"
+  ],
+  acceptable: [
+    "Generally constructive tone",
+    "Some specific points",
+    "Basic awareness of recipient's feelings"
+  ],
+  needsWork: [
+    "Vague or general criticism",
+    "Focuses on person, not behavior",
+    "No consideration for timing/setting"
+  ]
+};
+```
+
 #### Implementation
 
 **File:** `lib/learning/socratic-engine.ts`

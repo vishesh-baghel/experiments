@@ -675,12 +675,14 @@ See "Chat Area" section above.
 │  │                                                │ │
 │  └────────────────────────────────────────────────┘ │
 │                                                      │
-│  🔔 Notifications                                    │
+│  🔔 Notifications (In-App Only)                      │
 │  ┌────────────────────────────────────────────────┐ │
 │  │                                                │ │
 │  │  Review Reminders         [ON]                │ │
-│  │  Achievement Alerts       [ON]                │ │
-│  │  Daily Goal Reminders     [OFF]               │ │
+│  │  (Badge appears when reviews are due)          │ │
+│  │                                                │ │
+│  │  Achievement Celebrations [ON]                │ │
+│  │  (Confetti when you master a concept)         │ │
 │  │                                                │ │
 │  └────────────────────────────────────────────────┘ │
 │                                                      │
@@ -802,18 +804,98 @@ Sensei Voice: Inter Semi-Bold (slightly playful)
 - **Message appearance:** Fade in (fast, 150ms)
 - **All animations:** Respect `prefers-reduced-motion`
 
-## Empty States
+## Session Preferences
 
-**No Active Topic:**
+**Learning Mode: Deep Dives**
+
+Sensie is designed for focused, deep learning sessions rather than quick topic switching.
+
+**Approach:**
+- Stay on one topic until concepts are well understood
+- No arbitrary time limits - learn until mastery
+- Subtopics flow naturally into each other
+- User decides when to take breaks (`/break` command)
+
+**Session Flow:**
+```
+Start topic → Learn subtopic 1 → Questions until mastery →
+Auto-unlock subtopic 2 → Continue or /break →
+Resume exactly where you left off
+```
+
+**Why Deep Dives:**
+- Context switching breaks learning flow
+- True understanding requires sustained focus
+- Mastery over completion - quality over quantity
+
+## First-Time Experience
+
+**When user opens Sensie with no topics, Sensie initiates the conversation:**
+
 ```
 ┌──────────────────────────────────────────────────────┐
 │              🎴                                       │
 │                                                      │
-│  Your training awaits, young apprentice!             │
+│  Sensie:                                             │
+│  "Welcome, young apprentice! I am Sensie, your      │
+│  personal learning sensei.                           │
 │                                                      │
-│  Choose a topic and begin your journey to mastery.   │
+│  I can help you master anything - from Rust and     │
+│  system design to giving feedback and leading       │
+│  teams.                                              │
 │                                                      │
-│  [Browse Topics] [Start Learning]                    │
+│  What would you like to learn?"                      │
+│                                                      │
+│  ┌────────────────────────────────────────────────┐ │
+│  │ Type what you want to learn...                 │ │
+│  └────────────────────────────────────────────────┘ │
+│                                                      │
+└──────────────────────────────────────────────────────┘
+```
+
+**User responds, Sensie creates the learning path:**
+```
+User: "I want to learn how to give better feedback to my teammates"
+
+Sensie: "An excellent choice, apprentice! Giving feedback is an art
+that separates good teammates from great ones.
+
+I've mapped out your training journey:
+○ 1. Understanding Feedback Types
+○ 2. Timing and Setting
+○ 3. The SBI Model (Situation-Behavior-Impact)
+○ 4. Receiving Feedback Gracefully
+○ 5. Difficult Conversations
+
+Estimated time: ~2-3 hours
+
+💬 Any specific goal? (optional)
+┌────────────────────────────────────────────────┐
+│ e.g., "Preparing for performance review season"│
+└────────────────────────────────────────────────┘
+
+            [Begin Training →]"
+```
+
+## Empty States
+
+**No Active Topic (Returning User):**
+```
+┌──────────────────────────────────────────────────────┐
+│              🎴                                       │
+│                                                      │
+│  Sensie:                                             │
+│  "Welcome back, apprentice! Ready for more           │
+│  training?                                           │
+│                                                      │
+│  What would you like to learn today?"                │
+│                                                      │
+│  ┌────────────────────────────────────────────────┐ │
+│  │ Type what you want to learn...                 │ │
+│  └────────────────────────────────────────────────┘ │
+│                                                      │
+│  Or continue where you left off:                     │
+│  [Resume: Rust Ownership (75%)]                      │
 │                                                      │
 └──────────────────────────────────────────────────────┘
 ```
