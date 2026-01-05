@@ -492,10 +492,20 @@ Starts spaced repetition review:
 
 **`/hint`**
 ```
-Provides hint for current question:
-- Progressive hints (3 levels)
-- Doesn't fully reveal answer
-- Encourages thinking
+Provides hint for current question (3 PROGRESSIVE LEVELS):
+
+Hint 1: Related concept reminder / thinking direction
+  "Think about what happens to the original variable after the move..."
+
+Hint 2: Partial answer structure with blanks
+  "The function takes ___ of the value, meaning the original variable becomes ___"
+
+Hint 3: Narrow down to key insight
+  "The key concept here is 'move semantics' - the value is transferred, not copied"
+
+After 3 hints: No more hints available
+  Sensie: "You've used all your hints, apprentice. Give it your best attempt
+           - even a partial answer helps me understand your thinking!"
 ```
 
 **`/explain`**
@@ -510,11 +520,16 @@ Provides detailed explanation:
 ```
 Skips current question (LIMITED):
 - 3 skips max per learning session
-- Skipped questions marked for revisiting later in session
+- Skipped questions marked for revisiting at end of subtopic
 - After 3 skips, Sensie refuses:
   "No more skips remaining, apprentice. Face this challenge!"
 - Skips reset when session ends or topic changes
-- Skipped questions appear at end of subtopic before unlocking next
+
+Revisit Flow:
+- Skipped questions must be answered before unlocking next subtopic
+- If user fails skipped questions: loop on those questions only (no reteach)
+- User does NOT get additional skips during revisit
+- After 5 attempts per question, mark for review and proceed (don't block)
 ```
 
 **`/break`**
@@ -933,9 +948,51 @@ Estimated time: ~2-3 hours
 └──────────────────────────────────────────────────────┘
 ```
 
+## Visitor Mode UI
+
+**Philosophy:** Complete authenticity. Visitors see real usage, not marketing material.
+
+**What Visitors See:**
+- All topics, subtopics, mastery percentages
+- Real questions and answers (unless marked private)
+- XP, streaks, badges
+- Full conversation history
+- Read-only access (cannot submit answers)
+
+**Privacy Control (Owner Only):**
+
+Owners can mark specific answers as private:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ You:                                                         │
+│ [Answer text about company-specific context...]              │
+│                                                    [•••]     │ ← More menu
+└──────────────────────────────────────────────────────────────┘
+
+More Menu:
+┌─────────────────────────┐
+│ 🔒 Mark as Private      │ ← Hides from visitors
+│ 📋 Copy Answer          │
+│ 🔗 Share Link           │
+└─────────────────────────┘
+```
+
+**Private Answer Indicator (Owner View):**
+```
+┌──────────────────────────────────────────────────────────────┐
+│ You:                                              🔒 Private │
+│ [Answer text about company-specific context...]              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+Visitors will not see answers marked as private.
+
 ## Error States
 
 **Design Principle:** Stay fully in character + provide helpful debug info.
+
+**Retry Strategy:** All LLM errors are retried 2-3 times silently before showing user-facing error.
 
 Sensie never breaks character, but includes technical details for debugging.
 
@@ -1034,4 +1091,4 @@ Sensie never breaks character, but includes technical details for debugging.
 - [ ] Mobile gestures
 - [ ] Empty and error states
 
-**Last Updated:** 2026-01-04
+**Last Updated:** 2026-01-05

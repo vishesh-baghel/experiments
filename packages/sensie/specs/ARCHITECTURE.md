@@ -214,9 +214,38 @@ interface SessionState {
 
   // Context for resumption
   lastMessageId: string;
-  conversationContext: string; // Summary for LLM context
+  // Note: Full conversation history is persisted, not just a summary
 }
 ```
+
+**LLM Context Window Strategy:**
+
+All conversation history is persisted to the database, but for LLM calls we use a sliding window:
+
+```typescript
+const LLM_CONTEXT_WINDOW_SIZE = 15; // Last 15 messages
+
+async function getLLMContext(sessionId: string, topicId: string): Promise<Message[]> {
+  // Only fetch messages for the current topic (avoid context pollution)
+  const messages = await prisma.message.findMany({
+    where: {
+      sessionId,
+      // Topic-scoped to avoid mixing contexts
+    },
+    orderBy: { createdAt: 'desc' },
+    take: LLM_CONTEXT_WINDOW_SIZE
+  });
+
+  return messages.reverse(); // Chronological order for LLM
+}
+```
+
+**Key Decisions:**
+- **All history persisted**: User can scroll back through entire conversation
+- **Sliding window for LLM**: Only last 15 messages sent to LLM to prevent hallucinations
+- **Topic-scoped context**: Messages from other topics not included in LLM context
+- **No draft answers**: Incomplete/unsent answers are not saved
+- **Concurrent sessions allowed**: Multiple browser tabs work independently, sync on refresh
 
 **Resume Flow:**
 ```
@@ -320,6 +349,45 @@ suggestNextConcept(topicId: string, userId: string): Promise<{
 
 **Purpose:** Generates Socratic questions based on concept and user level
 
+**Question Generation Strategy (Hybrid Approach):**
+
+```typescript
+const INITIAL_BATCH_SIZE = 4;
+const QUESTIONS_PER_SUBTOPIC = 10;
+
+async function generateQuestionsForSubtopic(
+  subtopic: Subtopic,
+  userLevel: number
+): Promise<Question[]> {
+  // 1. Generate initial batch of 3-4 questions upfront
+  const initialQuestions = await generateBatch(subtopic, INITIAL_BATCH_SIZE, userLevel);
+
+  // 2. Remaining questions generated adaptively based on:
+  //    - Which concepts user struggled with
+  //    - Answer patterns (shallow vs deep understanding)
+  //    - Difficulty adjustments needed
+
+  return initialQuestions;
+}
+
+async function generateAdaptiveQuestion(
+  subtopic: Subtopic,
+  previousAnswers: Answer[],
+  userLevel: number
+): Promise<Question> {
+  // Analyze where user is struggling
+  const weakAreas = analyzeWeakAreas(previousAnswers);
+
+  // Generate targeted question for weak areas
+  return await generateTargetedQuestion(subtopic, weakAreas, userLevel);
+}
+```
+
+**Why Hybrid:**
+- Initial batch provides immediate questions (no latency)
+- Adaptive questions target actual gaps (personalized learning)
+- Balance between efficiency and personalization
+
 **Functions:**
 ```typescript
 generateQuestions(concept: Concept, difficulty: number): Promise<Question[]>
@@ -401,35 +469,42 @@ class SocraticEngine {
 
 **File:** `lib/learning/spaced-repetition.ts`
 
-**Purpose:** Implements spaced repetition algorithm (SuperMemo 2 variant)
+**Purpose:** Implements spaced repetition using the FSRS algorithm via `ts-fsrs` library
 
-**Algorithm:**
+**Library:** `ts-fsrs` (npm package) - Modern spaced repetition algorithm used by Anki
+
+**Why FSRS over SM-2:**
+- More accurate retention predictions
+- Better handling of varying difficulty
+- Active development and maintenance
+- Used by Anki (industry standard)
+
+**Implementation:**
 ```typescript
+import { fsrs, createEmptyCard, Rating } from 'ts-fsrs';
+
 class SpacedRepetitionScheduler {
-  calculateNextReview(
-    lastReview: Date,
-    ease: number,
-    interval: number,
-    quality: number // 0-5 (how well user remembered)
-  ): { nextReview: Date; newEase: number; newInterval: number } {
-    // SM-2 algorithm implementation
-    // Interval increases based on quality of recall
-    // Poor recall → shorter interval
-    // Perfect recall → longer interval
+  private f = fsrs(); // Initialize with default parameters
+
+  scheduleReview(card: Card, rating: Rating): Card {
+    const schedulingCards = this.f.repeat(card, new Date());
+    return schedulingCards[rating].card;
   }
 
   getReviewsDue(userId: string): Promise<Review[]> {
-    // Fetch all topics/concepts due for review
+    // Fetch all items where card.due <= now
+    // Order by: oldest due first (FSRS default)
   }
 }
+
+// Rating scale:
+// Rating.Again (1) - Complete failure
+// Rating.Hard (2) - Recalled with difficulty
+// Rating.Good (3) - Recalled correctly
+// Rating.Easy (4) - Recalled instantly
 ```
 
-**Intervals:**
-- First review: 1 day
-- Second review: 3 days
-- Third review: 7 days
-- Fourth review: 14 days
-- Subsequent reviews: exponential increase based on performance
+**Review Prioritization:** Oldest due first (per FSRS algorithm)
 
 ### 3. Difficulty Adjuster
 
@@ -877,6 +952,8 @@ packages/sensie/
     "bcrypt": "^5.1.1",
     "iron-session": "^8.0.0",
 
+    "ts-fsrs": "^4.0.0",
+
     "langfuse": "^3.0.0",
 
     "framer-motion": "^11.0.0",
@@ -963,10 +1040,36 @@ const generation = trace.generation({
 
 ### Error Handling
 
+**LLM Failure Strategy:**
+```typescript
+const MAX_LLM_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
+
+async function callLLMWithRetry<T>(fn: () => Promise<T>): Promise<T> {
+  for (let attempt = 1; attempt <= MAX_LLM_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt === MAX_LLM_RETRIES) {
+        throw error; // Show user-facing error after all retries
+      }
+      await sleep(RETRY_DELAY_MS * attempt); // Exponential backoff
+    }
+  }
+}
+```
+
+**Error Handling Principles:**
+- **Retry silently**: Up to 3 retries before showing error to user
+- **Stay in character**: All user-facing errors use Sensie personality
+- **Include debug info**: Collapsible technical details for troubleshooting
+- **Graceful degradation**: If LLM unavailable, show cached content where possible
+
+**API Error Handling:**
 - API routes use try/catch with proper status codes
 - Database errors logged with context
-- LLM failures have fallback responses
-- User-facing errors use Sensie personality
+- LLM failures have fallback responses after retries exhausted
+- User-facing errors use Sensie personality (see UI_UX.md for error message templates)
 
 ## Performance Considerations
 

@@ -79,11 +79,11 @@
 ### Phase 1.4: Spaced Repetition (Weeks 7-8)
 
 **Review System**
-- ✅ SM-2 algorithm implementation
-- ✅ Schedule first review (1 day after learning)
+- ✅ FSRS algorithm implementation (via `ts-fsrs` library)
+- ✅ Schedule first review (based on FSRS scheduling)
 - ✅ Review session flow
-- ✅ Quality rating (0-5)
-- ✅ Interval calculation
+- ✅ Rating system (Again/Hard/Good/Easy)
+- ✅ Review prioritization (oldest due first)
 - ✅ `/review` command
 
 **Review UI**
@@ -120,14 +120,28 @@
 - ✅ Environment variables
 - ✅ CI/CD pipeline
 
+### MVP Deferred Features
+
+The following features are intentionally deferred from MVP to maintain focus:
+
+| Feature | Reason | Target Phase |
+|---------|--------|--------------|
+| Streak Freeze | Adds complexity, basic streaks first | Phase 2 |
+| Daily Goal Tracking | Precise time tracking not needed initially | Phase 2 |
+| Codebase Learning | Significant complexity (GitHub auth, analysis) | Phase 2 |
+| Feynman Technique | Core Socratic method is priority | Phase 2 |
+| Project-Based Learning | Requires codebase integration | Phase 2 |
+
 ### MVP Success Criteria
 
 **Functional:**
 - [ ] User can create topic and learn end-to-end
-- [ ] Socratic questioning works effectively
+- [ ] Socratic questioning works effectively (semantic evaluation, 3 hints, 5 max attempts)
+- [ ] 10 questions per subtopic with adaptive difficulty
 - [ ] Mastery percentage updates correctly
-- [ ] Spaced repetition schedules reviews
-- [ ] Visitor mode demonstrates real usage
+- [ ] Spaced repetition schedules reviews (FSRS algorithm)
+- [ ] Visitor mode demonstrates real usage (with private answer marking)
+- [ ] Hard limit of 3 active topics enforced
 
 **Quality:**
 - [ ] No critical bugs

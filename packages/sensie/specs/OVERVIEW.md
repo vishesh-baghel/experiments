@@ -250,13 +250,13 @@ Question 1/5: What happens when you pass a value to a function in Rust without u
 
 ## Topic Management Rules
 
-### Active Topics Limit: 2-3 Maximum
+### Active Topics Limit: 3 Maximum (Hard Limit)
 
 **Rationale:** Focus leads to mastery. Too many active topics = shallow learning.
 
 **Behavior:**
-- User can have 2-3 topics in "Active" status simultaneously
-- When trying to add a 4th active topic, Sensie nudges:
+- User can have maximum 3 topics in "Active" status simultaneously
+- When trying to add a 4th active topic, Sensie enforces the limit:
 
 ```
 Sensie: "I see you want to learn Distributed Systems, apprentice.
@@ -265,13 +265,14 @@ However, you currently have 3 active topics:
   • Giving Feedback (40%) - 3 subtopics remaining
   • System Design (30%) - 5 subtopics remaining
 
-I recommend completing at least one before starting another.
+You must complete or archive one topic before starting another.
 Focus leads to mastery!
 
-[Complete Rust First] [Add to Queue] [Start Anyway]"
+[Complete Rust First] [Archive a Topic] [Add to Queue]"
 ```
 
-- "Start Anyway" is allowed but discouraged
+- **Hard limit enforced** - no "Start Anyway" option
+- User must complete (reach mastery threshold) or archive an existing topic
 - Topics can be moved to Queue without penalty
 
 ### Topic States
@@ -359,7 +360,7 @@ Sensie shows mastered topic with options:
 - Daily streak: Learn at least one concept per day
 - Streak displayed prominently in header
 - Milestone celebrations: 7, 30, 100, 365 days
-- Streak freeze: Can skip 1 day per week without losing streak (earned via XP)
+- **Streak freeze: Deferred to post-MVP** (initially, missing a day breaks the streak)
 
 ```
 ┌──────────────────────────────┐
@@ -380,8 +381,24 @@ When Sensie supports multiple users:
 
 ### 1. Challenging, Not Frustrating
 - Questions should be hard but fair
-- Sensie provides hints before giving up
+- Sensie provides 3 progressive hints before revealing answer
+- Maximum 5 attempts per question, then mark for review and move on
 - Celebrates progress frequently
+
+### Question & Skip Rules
+
+**Questions Per Subtopic:** 10 questions (open-ended for depth)
+
+**Skip Rules:**
+- 3 skips maximum per learning session
+- Skipped questions are marked and must be answered before unlocking next subtopic
+- If user fails skipped questions during revisit → loop on those questions only (not full reteach)
+- Skip count resets when session ends or topic changes
+
+**Stuck User Flow:**
+- After 5 failed attempts on any question, Sensie marks it for review and moves on
+- Goal: Never block the user from continuing their learning journey
+- Marked questions appear in spaced repetition reviews
 
 ### 2. Transparent Progress
 - Always know where you are in the learning journey
@@ -423,23 +440,26 @@ The goal of visitor mode across all agents (Sensie, Jack, etc.) is the same: **s
 - Real progress percentages and mastery levels
 - Real learning path and subtopics
 - Real questions I've been asked
+- Real answers I've given (unless marked private)
 - Real struggle points (where I needed hints)
 - Full UI/UX including commands
 - Master Roshi personality in action
+- XP, streaks, and badges
 
-**What's Hidden (Privacy, Not Authenticity):**
-- Specific code examples from private projects
-- Personal notes that reference work context
-- Nothing that changes the authenticity of progress
+**Privacy Control:**
+- Owner can manually mark specific answers as private (won't be shown to visitors)
+- No automatic anonymization - authenticity is the goal
+- Private marking is per-answer, not per-topic
 
 **Implementation:**
 ```typescript
 const isVisitor = session?.role === "visitor";
 
 // Visitors see REAL data, just read-only
-const data = isVisitor
-  ? getAnonymizedLearningData() // Real topics, sanitized details
-  : getRealLearningData();
+// Only answers marked as private are filtered out
+const answers = isVisitor
+  ? allAnswers.filter(a => !a.isPrivate)
+  : allAnswers;
 ```
 
 ## Integration with Ecosystem

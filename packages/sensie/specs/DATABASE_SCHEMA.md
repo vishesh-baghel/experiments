@@ -191,6 +191,9 @@ model Answer {
   timeToAnswer   Int?     // Seconds
   attemptNumber  Int      @default(1) // How many attempts for this question
 
+  // Privacy (for visitor mode)
+  isPrivate  Boolean  @default(false) // Owner can mark answers as private
+
   createdAt DateTime @default(now())
 
   // Relationships
@@ -283,18 +286,23 @@ model Review {
   conceptId  String?
   type       ReviewType
 
-  // SM-2 Algorithm Parameters
-  easeFactor  Float    @default(2.5) // 1.3 to 2.5
-  interval    Int      @default(1)   // Days until next review
-  repetitions Int      @default(0)   // Successful reviews in a row
+  // FSRS Algorithm Parameters (ts-fsrs library)
+  // See: https://github.com/open-spaced-repetition/ts-fsrs
+  stability    Float    @default(0)   // How well the memory is retained
+  difficulty   Float    @default(0)   // How hard the card is
+  elapsedDays  Int      @default(0)   // Days since last review
+  scheduledDays Int     @default(0)   // Days until next review
+  reps         Int      @default(0)   // Number of successful reviews
+  lapses       Int      @default(0)   // Number of times forgotten
+  state        Int      @default(0)   // FSRS state: New(0), Learning(1), Review(2), Relearning(3)
 
   // Scheduling
   lastReviewed DateTime?
-  nextReview   DateTime
+  nextReview   DateTime              // Card due date
   status       ReviewStatus @default(NEW)
 
   // Performance tracking
-  lastQuality Int? // 0-5 (SM-2 quality rating)
+  lastRating   Int?                  // FSRS Rating: Again(1), Hard(2), Good(3), Easy(4)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -630,27 +638,47 @@ WHERE topicId = 'topic456'
   AND order = (SELECT order + 1 FROM Subtopic WHERE id = 'subtopic789');
 ```
 
-### 3. Scheduling a Review
+### 3. Scheduling a Review (Using ts-fsrs)
 
-```sql
--- 1. Create review entry
-INSERT INTO Review (userId, topicId, subtopicId, type, nextReview)
-VALUES ('user123', 'topic456', 'subtopic789', 'SUBTOPIC', NOW() + INTERVAL '1 day');
+```typescript
+import { fsrs, createEmptyCard, Rating } from 'ts-fsrs';
 
--- 2. Later: Record review result
-UPDATE Review
-SET
-  lastReviewed = NOW(),
-  lastQuality = 4,  -- Good recall
-  repetitions = repetitions + 1,
-  interval = CASE
-    WHEN repetitions = 0 THEN 1
-    WHEN repetitions = 1 THEN 6
-    ELSE interval * easeFactor
-  END,
-  nextReview = NOW() + (interval || ' days')::INTERVAL,
-  status = CASE WHEN repetitions >= 5 THEN 'GRADUATED' ELSE 'LEARNING' END
-WHERE id = 'review123';
+// 1. Create new review card
+const f = fsrs();
+const card = createEmptyCard();
+
+// Insert into database
+await prisma.review.create({
+  data: {
+    userId: 'user123',
+    topicId: 'topic456',
+    subtopicId: 'subtopic789',
+    type: 'SUBTOPIC',
+    nextReview: card.due,
+    stability: card.stability,
+    difficulty: card.difficulty,
+    state: card.state,
+  }
+});
+
+// 2. Later: Record review result
+const schedulingCards = f.repeat(card, new Date());
+const nextCard = schedulingCards[Rating.Good].card; // User rated "Good"
+
+await prisma.review.update({
+  where: { id: 'review123' },
+  data: {
+    lastReviewed: new Date(),
+    lastRating: Rating.Good,
+    nextReview: nextCard.due,
+    stability: nextCard.stability,
+    difficulty: nextCard.difficulty,
+    reps: nextCard.reps,
+    lapses: nextCard.lapses,
+    state: nextCard.state,
+    status: nextCard.state === 2 ? 'GRADUATED' : 'LEARNING', // State 2 = Review
+  }
+});
 ```
 
 ## Calculated Fields (Not Stored)

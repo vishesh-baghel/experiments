@@ -37,6 +37,11 @@ Sensie's approach: Test → Detect gaps → Teach prerequisites → Guide throug
 │  • Foundation concepts (prerequisites - cannot skip)        │
 │  • Core concepts (main learning material)                   │
 │  • Advanced concepts (deeper understanding)                 │
+│                                                             │
+│  SUBTOPIC LIMIT: 8-12 subtopics (soft limit)               │
+│  • If LLM generates more, suggest breaking into topics     │
+│  • "This is a broad topic. Consider learning X and Y       │
+│    as separate topics for better focus."                   │
 └────────────────┬────────────────────────────────────────────┘
                  │
                  ▼
@@ -171,10 +176,9 @@ class LearningPathGenerator {
                  │
                  ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  5. EXPLANATION (after N failed attempts)                    │
-│  • After 3-4 failed attempts, provide full explanation      │
-│  • BUT don't move on - keep asking VARIATIONS               │
-│  • User must demonstrate understanding even after explain   │
+│  5. EXPLANATION (after 3 failed attempts)                    │
+│  • After 3 failed attempts, provide full explanation        │
+│  • Then ask VARIATION to verify understanding               │
 └────────────────┬────────────────────────────────────────────┘
                  │
                  ▼
@@ -182,27 +186,41 @@ class LearningPathGenerator {
 │  6. VERIFY UNDERSTANDING (post-explanation)                  │
 │  • Ask variation of original question                       │
 │  • If correct → progress to next concept                   │
-│  • If still wrong → ask simpler variation                  │
-│  • Never move on until user demonstrates understanding     │
+│  • If still wrong → try one more variation                 │
 └────────────────┬────────────────────────────────────────────┘
                  │
                  ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  7. REPEAT UNTIL MASTERY                                     │
-│  • Must answer correctly without hints 2-3 times            │
-│  • Questions vary to test true understanding                │
+│  7. MOVE ON AFTER MAX ATTEMPTS (5 total)                     │
+│  • After 5 total attempts, mark question for later review   │
+│  • Move on to next question to avoid blocking               │
+│  • Goal: Never block user from continuing their journey     │
+│  • Marked questions appear in spaced repetition reviews     │
 └──────────────────────────────────────────────────────────────┘
 
 **Stuck User Flow (Detailed):**
 
 ```typescript
 const MAX_ATTEMPTS_BEFORE_EXPLAIN = 3;
+const MAX_TOTAL_ATTEMPTS = 5;
 
 async function handleStuckUser(
   question: Question,
   failedAttempts: number,
   context: SocraticContext
 ): Promise<NextAction> {
+  // After 5 attempts, mark for review and move on
+  if (failedAttempts >= MAX_TOTAL_ATTEMPTS) {
+    await markQuestionForReview(question, context.user);
+    return {
+      action: "move_on",
+      response: `
+        This one's tricky, apprentice. I've marked it for your review sessions.
+        Let's continue with the next concept - we'll circle back to this!
+      `
+    };
+  }
+
   if (failedAttempts < MAX_ATTEMPTS_BEFORE_EXPLAIN) {
     // Still under threshold - give hints and guide
     return {
@@ -224,7 +242,7 @@ async function handleStuckUser(
     };
   }
 
-  // Already explained, keep asking variations until they get it
+  // Attempts 4-5: ask simpler variations
   return {
     action: "variation",
     response: await generateSimplerVariation(question, failedAttempts)
@@ -232,7 +250,7 @@ async function handleStuckUser(
 }
 ```
 
-**Key Principle:** Never move on without understanding. Explanation is a tool, not an escape hatch.
+**Key Principle:** Don't block the user. After 5 attempts, mark for review and let them continue. The spaced repetition system will bring it back later.
 
 #### Question Types in Socratic Method
 
@@ -357,9 +375,32 @@ const feedbackRubric = {
 };
 ```
 
+**Rubric → Mastery Percentage Mapping:**
+
+| Rubric Level | Mastery % | Interpretation |
+|--------------|-----------|----------------|
+| **Excellent** | 100% | Hit all rubric points with insight, nuanced understanding |
+| **Acceptable** | 70% | Covered basics correctly, missed nuances |
+| **NeedsWork** | 30% | Missed key points, needs guidance |
+
+```typescript
+function mapRubricToMastery(level: 'excellent' | 'acceptable' | 'needsWork'): number {
+  const mapping = { excellent: 100, acceptable: 70, needsWork: 30 };
+  return mapping[level];
+}
+```
+
 #### Implementation
 
 **File:** `lib/learning/socratic-engine.ts`
+
+**Key Parameters:**
+```typescript
+const QUESTIONS_PER_SUBTOPIC = 10;
+const MAX_HINTS_PER_QUESTION = 3;
+const MAX_ATTEMPTS_BEFORE_MOVE_ON = 5;
+const MIN_ANSWER_LENGTH = 10; // Characters - below this is considered gibberish
+```
 
 ```typescript
 interface SocraticContext {
@@ -385,6 +426,7 @@ class SocraticEngine {
     // - User's previous answers (adapt difficulty)
     // - Type of question needed (based on progress)
     // - Socratic prompts template
+    // - Prefer open-ended questions for depth
   }
 
   async evaluateAnswer(
@@ -394,14 +436,17 @@ class SocraticEngine {
     isCorrect: boolean;
     depth: "none" | "shallow" | "deep";
     feedback: string;
-    nextAction: "proceed" | "probe_deeper" | "guide" | "explain";
+    terminologyCorrection?: string; // If correct but wrong terminology
+    nextAction: "proceed" | "probe_deeper" | "guide" | "explain" | "move_on";
     detectedGap?: string;
   }> {
-    // Use LLM to:
-    // 1. Check if answer contains expected elements
+    // SEMANTIC EVALUATION (not keyword matching)
+    // Use fast LLM (Haiku) to:
+    // 1. Semantically evaluate if answer captures the concept
     // 2. Assess depth of understanding
-    // 3. Detect misconceptions or gaps
-    // 4. Decide next action
+    // 3. Correct terminology if answer is right but uses wrong terms
+    // 4. Detect misconceptions or gaps
+    // 5. Decide next action
   }
 
   async generateGuidingQuestion(
@@ -415,13 +460,53 @@ class SocraticEngine {
 
   async provideHint(
     question: SocraticQuestion,
-    attemptNumber: number
+    hintNumber: number // 1, 2, or 3
   ): Promise<string> {
-    // Progressive hints:
-    // Attempt 1-2: Related concept reminder
-    // Attempt 3-4: Partial answer structure
-    // Attempt 5+: Multiple choice
+    // 3 Progressive hints:
+    // Hint 1: Related concept reminder / thinking direction
+    // Hint 2: Partial answer structure with blanks
+    // Hint 3: Narrow down to key insight, still requires user input
+    // After 3 hints: Nudge user to attempt anyway (no more hints given)
   }
+
+  isGibberishAnswer(answer: string): boolean {
+    // Detect low-effort answers:
+    // - Too short (< 10 characters)
+    // - No real words (keyboard mash)
+    // - "idk", "I don't know", etc.
+    // Returns true if gibberish - don't count toward attempt limit
+  }
+}
+```
+
+**Answer Evaluation - Semantic Matching:**
+
+```typescript
+async function evaluateAnswerSemantically(
+  userAnswer: string,
+  question: SocraticQuestion,
+  concept: Concept
+): Promise<AnswerEvaluation> {
+  // Use fast model (Haiku) for quick evaluation
+  const prompt = `
+    Evaluate this answer semantically. The student may use different
+    terminology but still demonstrate understanding.
+
+    Question: ${question.text}
+    Expected concepts: ${question.expectedElements.join(', ')}
+    Student answer: ${userAnswer}
+
+    Respond with:
+    1. Is the answer correct? (semantically, not keyword matching)
+    2. Depth: none/shallow/deep
+    3. If correct but wrong terminology, provide correction
+    4. Feedback for the student
+  `;
+
+  // If answer is correct but uses wrong terms:
+  // "You've got the concept! Just a terminology note: we call this
+  //  'ownership transfer' rather than 'passing the value'. But your
+  //  understanding is correct!"
 }
 ```
 
@@ -429,65 +514,50 @@ class SocraticEngine {
 
 **Purpose:** Optimize long-term retention by scheduling reviews at optimal intervals
 
-#### Algorithm: SuperMemo 2 (SM-2) Variant
+#### Algorithm: FSRS (Free Spaced Repetition Scheduler)
 
-**Core Formula:**
+**Library:** `ts-fsrs` (npm package) - Modern algorithm used by Anki
+
+**Why FSRS over SM-2:**
+- More accurate retention predictions based on research
+- Better handling of varying difficulty levels
+- Actively maintained and used by Anki
+- Simpler API, less manual parameter tuning
+
+**Rating Scale:**
+```typescript
+import { Rating } from 'ts-fsrs';
+
+// Rating.Again (1) - Complete failure, couldn't recall
+// Rating.Hard (2)  - Recalled with significant difficulty
+// Rating.Good (3)  - Recalled correctly with some effort
+// Rating.Easy (4)  - Recalled instantly, felt easy
 ```
-IF quality >= 3:
-  // Good recall
-  IF repetitions == 0:
-    interval = 1 day
-  ELSE IF repetitions == 1:
-    interval = 6 days
-  ELSE:
-    interval = previous_interval * ease_factor
-
-  ease_factor = ease_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
-
-ELSE:
-  // Poor recall, reset
-  interval = 1 day
-  repetitions = 0
-```
-
-**Quality Scale:**
-- 5: Perfect recall, instant answer
-- 4: Correct after hesitation
-- 3: Correct with difficulty
-- 2: Incorrect but familiar
-- 1: Incorrect, no recognition
-- 0: Complete blackout
 
 #### Scheduling Strategy
 
 **Initial Learning:**
 ```
-New concept → Immediate test
-Correct? → Review in 1 day
-Correct again? → Review in 3 days
-Correct again? → Review in 7 days
-Enter SRS with calculated intervals
+New concept → First question
+User rates response → FSRS calculates next review
+Typical progression:
+  - Again → Review in minutes/hours
+  - Hard → Review in 1-2 days
+  - Good → Review in 1-4 days
+  - Easy → Review in 4+ days
 ```
 
-**Lapsed Reviews (Forgotten):**
-```
-Failed review → Mark as "lapsed"
-Re-teach concept → Reset to 1-day interval
-Faster progression second time (boost ease_factor)
-```
-
-**Graduated Concepts (Mastered):**
-```
-5+ successful reviews → "Graduated"
-Reviews become less frequent (max 90 days)
-Still track to detect long-term forgetting
-```
+**Review Prioritization:**
+- Oldest due first (items overdue longest get priority)
+- Maximum 20 items per review session to prevent fatigue
 
 #### Implementation
 
 **File:** `lib/learning/spaced-repetition.ts`
 
 ```typescript
+import { fsrs, createEmptyCard, Rating, Card } from 'ts-fsrs';
+
 interface ReviewItem {
   id: string;
   topicId: string;
@@ -495,45 +565,76 @@ interface ReviewItem {
   conceptId?: string;
   type: "topic" | "subtopic" | "concept";
 
-  // SM-2 parameters
-  easeFactor: number; // 1.3 to 2.5 (default: 2.5)
-  interval: number; // Days until next review
-  repetitions: number; // Successful reviews in a row
+  // FSRS card state (stored in DB, maps to ts-fsrs Card)
+  card: Card;
 
   lastReviewed: Date;
   nextReview: Date;
-  status: "new" | "learning" | "graduated" | "lapsed";
+  status: "new" | "learning" | "review" | "relearning";
 }
 
 class SpacedRepetitionScheduler {
-  calculateNextReview(
-    item: ReviewItem,
-    quality: number // 0-5
-  ): ReviewItem {
-    // Implement SM-2 algorithm
-    // Return updated item with new interval and nextReview date
+  private f = fsrs(); // Initialize FSRS with default parameters
+
+  scheduleNextReview(card: Card, rating: Rating): Card {
+    const schedulingCards = this.f.repeat(card, new Date());
+    return schedulingCards[rating].card;
   }
 
   async getReviewsDue(userId: string): Promise<ReviewItem[]> {
     // Fetch all items where nextReview <= now
-    // Order by: lapsed first, then by due date
+    // Order by: oldest due first (overdue items prioritized)
+    return await prisma.review.findMany({
+      where: {
+        userId,
+        nextReview: { lte: new Date() }
+      },
+      orderBy: { nextReview: 'asc' }, // Oldest due first
+      take: 20 // Limit per session
+    });
   }
 
-  async scheduleReview(
+  async createReviewItem(
     userId: string,
     itemId: string,
     itemType: "topic" | "subtopic" | "concept"
   ): Promise<ReviewItem> {
-    // Create new review item with default parameters
+    const card = createEmptyCard();
+    return await prisma.review.create({
+      data: {
+        userId,
+        [`${itemType}Id`]: itemId,
+        type: itemType,
+        nextReview: card.due,
+        // Store FSRS card fields
+        stability: card.stability,
+        difficulty: card.difficulty,
+        state: card.state,
+      }
+    });
   }
 
   async recordReview(
     reviewId: string,
-    quality: number
+    rating: Rating
   ): Promise<ReviewItem> {
-    // Update review item based on quality
-    // Calculate next review date
-    // Update status if needed
+    const review = await prisma.review.findUnique({ where: { id: reviewId } });
+    const card = this.reconstructCard(review);
+    const nextCard = this.scheduleNextReview(card, rating);
+
+    return await prisma.review.update({
+      where: { id: reviewId },
+      data: {
+        lastReviewed: new Date(),
+        nextReview: nextCard.due,
+        lastRating: rating,
+        stability: nextCard.stability,
+        difficulty: nextCard.difficulty,
+        reps: nextCard.reps,
+        lapses: nextCard.lapses,
+        state: nextCard.state,
+      }
+    });
   }
 }
 ```
@@ -541,22 +642,30 @@ class SpacedRepetitionScheduler {
 #### Review Session Flow
 
 ```typescript
+const MAX_REVIEWS_PER_SESSION = 20;
+
 async function conductReviewSession(userId: string): Promise<ReviewSession> {
-  // 1. Get all due reviews
+  // 1. Get all due reviews (oldest first, max 20)
   const dueReviews = await srs.getReviewsDue(userId);
 
-  // 2. Limit to 20 items per session (prevent fatigue)
-  const sessionReviews = dueReviews.slice(0, 20);
+  if (dueReviews.length === 0) {
+    return { status: 'no_reviews_due' };
+  }
 
-  // 3. For each review, ask 2-3 questions
-  const questions = await generateReviewQuestions(sessionReviews);
+  // 2. For each review, ask 2-3 questions
+  const questions = await generateReviewQuestions(dueReviews);
 
-  // 4. User answers, calculate quality score
-  // 5. Update review schedule
+  // 3. User answers, map to FSRS rating:
+  //    - All correct easily → Rating.Easy
+  //    - All correct with effort → Rating.Good
+  //    - Some struggle → Rating.Hard
+  //    - Failed → Rating.Again
 
-  // 6. Show summary:
+  // 4. Update review schedule using FSRS
+
+  // 5. Show summary:
   // - Items reviewed
-  // - Items lapsed (need re-learning)
+  // - Items that need relearning (Rating.Again)
   // - Next review date
 }
 ```
@@ -1251,4 +1360,4 @@ const trace = langfuse.trace({
 4. Test gap detection accuracy
 5. Build Feynman exercise flow
 
-**Last Updated:** 2026-01-04
+**Last Updated:** 2026-01-05
