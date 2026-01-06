@@ -4,29 +4,80 @@ import {
   generateFollowUp,
   generateQuiz,
   generateHints,
-  adjustQuestionDifficulty,
   generateGuidingQuestion,
-  generateExpectedElements,
   selectBestQuestion,
   validateQuestion,
-} from '@/lib/mastra/question-agent';
+} from '@/lib/mastra';
 import type { Concept, SocraticQuestion } from '@/lib/types';
 
+// Mock Prisma client
+vi.mock('@/lib/db/client', () => ({
+  prisma: {
+    concept: {
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+    },
+    topic: {
+      findUnique: vi.fn(),
+    },
+  },
+}));
+
+// Mock the Mastra core modules
+vi.mock('@mastra/core/agent', () => ({
+  Agent: vi.fn().mockImplementation(() => ({
+    name: 'sensie',
+    generate: vi.fn().mockResolvedValue({
+      object: {
+        questions: [
+          {
+            text: 'What do you understand about this concept?',
+            type: 'UNDERSTANDING',
+            difficulty: 3,
+            expectedElements: ['key point 1', 'key point 2'],
+            hints: ['Think about...', 'Consider...', 'Remember...'],
+            followUpPrompts: ['Why is this important?'],
+          },
+        ],
+        text: 'What do you think happens when you transfer ownership?',
+        type: 'UNDERSTANDING',
+        difficulty: 3,
+        expectedElements: ['move semantics', 'original variable invalid'],
+        hints: ['Think about the original variable', 'Consider memory', 'What happens?'],
+        followUpPrompts: ['Can you explain further?'],
+        title: 'Rust Ownership Quiz',
+        description: 'Test your understanding of ownership',
+        totalPoints: 50,
+        passingScore: 35,
+        timeLimit: 15,
+      },
+    }),
+    __registerMastra: vi.fn(),
+  })),
+}));
+
+vi.mock('@mastra/core/mastra', () => ({
+  Mastra: vi.fn().mockImplementation(() => ({
+    agents: {},
+  })),
+}));
+
 describe('question-agent', () => {
+  // Mock Concept matching Prisma schema
   const mockConcept: Concept = {
     id: 'concept-123',
-    name: 'Ownership in Rust',
     subtopicId: 'subtopic-123',
-    order: 1,
+    name: 'Ownership in Rust',
     explanation: 'Ownership is Rust\'s memory management system...',
     codeExamples: ['let s1 = String::from("hello"); let s2 = s1;'],
-    realWorldAnalogy: 'Like passing a physical book to someone',
-    keyPoints: ['Single owner', 'Move semantics', 'Borrowing'],
-    prerequisites: [],
+    analogies: ['Like passing a physical book to someone'],
+    isMastered: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    masteredAt: null,
   };
 
   const mockQuestion: SocraticQuestion = {
-    id: 'q-123',
     text: 'What happens when you transfer ownership in Rust?',
     type: 'UNDERSTANDING',
     difficulty: 3,
@@ -41,150 +92,221 @@ describe('question-agent', () => {
 
   describe('generateQuestions', () => {
     it('should generate questions for concept', async () => {
-      await expect(
-        generateQuestions(mockConcept, { difficulty: 3 })
-      ).rejects.toThrow('Not implemented');
+      const result = await generateQuestions(mockConcept, { difficulty: 3 });
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]).toHaveProperty('text');
+      expect(result[0]).toHaveProperty('type');
+      expect(result[0]).toHaveProperty('difficulty');
     });
 
     it('should respect difficulty level', async () => {
-      await expect(
-        generateQuestions(mockConcept, { difficulty: 5 })
-      ).rejects.toThrow('Not implemented');
+      const result = await generateQuestions(mockConcept, { difficulty: 5 });
+      expect(Array.isArray(result)).toBe(true);
     });
 
     it('should filter by question type', async () => {
-      await expect(
-        generateQuestions(mockConcept, { difficulty: 3, type: 'APPLICATION' })
-      ).rejects.toThrow('Not implemented');
+      const result = await generateQuestions(mockConcept, { difficulty: 3, type: 'APPLICATION' });
+      expect(Array.isArray(result)).toBe(true);
     });
 
     it('should avoid specified elements', async () => {
-      await expect(
-        generateQuestions(mockConcept, {
-          difficulty: 3,
-          avoidElements: ['borrowing'],
-        })
-      ).rejects.toThrow('Not implemented');
+      const result = await generateQuestions(mockConcept, {
+        difficulty: 3,
+        avoidElements: ['borrowing'],
+      });
+      expect(Array.isArray(result)).toBe(true);
     });
   });
 
   describe('generateFollowUp', () => {
     it('should generate follow-up for shallow answer', async () => {
-      await expect(
-        generateFollowUp(mockQuestion, 'It moves', ['memory safety'])
-      ).rejects.toThrow('Not implemented');
+      const result = await generateFollowUp(mockQuestion, 'It moves', ['memory safety']);
+      expect(result).toHaveProperty('text');
+      expect(result).toHaveProperty('type');
+      expect(result).toHaveProperty('difficulty');
+      expect(result).toHaveProperty('expectedElements');
     });
 
     it('should target specific missing elements', async () => {
-      await expect(
-        generateFollowUp(mockQuestion, 'It moves', ['original variable invalid'])
-      ).rejects.toThrow('Not implemented');
+      const result = await generateFollowUp(mockQuestion, 'It moves', ['original variable invalid']);
+      expect(result).toHaveProperty('text');
     });
   });
 
   describe('generateQuiz', () => {
     it('should generate quiz with specified count', async () => {
-      await expect(
-        generateQuiz('topic-123', { questionCount: 5 })
-      ).rejects.toThrow('Not implemented');
+      // Mock prisma to return a topic
+      const { prisma } = await import('@/lib/db/client');
+      (prisma.topic.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'topic-123',
+        name: 'Rust Fundamentals',
+        subtopics: [
+          {
+            id: 'subtopic-123',
+            isLocked: false,
+            concepts: [{ name: 'Ownership' }, { name: 'Borrowing' }],
+          },
+        ],
+      });
+
+      const result = await generateQuiz('topic-123', { questionCount: 5 });
+      expect(result).toHaveProperty('title');
+      expect(result).toHaveProperty('questions');
+      expect(result).toHaveProperty('totalPoints');
+      expect(result).toHaveProperty('passingScore');
     });
 
-    it('should respect difficulty setting', async () => {
-      await expect(
-        generateQuiz('topic-123', { questionCount: 5, difficulty: 4 })
-      ).rejects.toThrow('Not implemented');
-    });
+    it('should throw error for non-existent topic', async () => {
+      const { prisma } = await import('@/lib/db/client');
+      (prisma.topic.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
-    it('should include review questions when requested', async () => {
-      await expect(
-        generateQuiz('topic-123', { questionCount: 5, includeReview: true })
-      ).rejects.toThrow('Not implemented');
-    });
-  });
-
-  describe('generateHints', () => {
-    it('should generate 3 progressive hints', async () => {
-      await expect(generateHints(mockQuestion, mockConcept)).rejects.toThrow(
-        'Not implemented'
+      await expect(generateQuiz('nonexistent', { questionCount: 5 })).rejects.toThrow(
+        'Topic not found'
       );
     });
   });
 
-  describe('adjustQuestionDifficulty', () => {
-    it('should increase difficulty', async () => {
-      await expect(
-        adjustQuestionDifficulty(mockQuestion, 5)
-      ).rejects.toThrow('Not implemented');
+  describe('generateHints', () => {
+    it('should return existing hints if already 3', async () => {
+      const questionWithHints: SocraticQuestion = {
+        ...mockQuestion,
+        hints: ['Hint 1', 'Hint 2', 'Hint 3'],
+      };
+      const result = await generateHints(questionWithHints, mockConcept);
+      expect(result).toEqual(['Hint 1', 'Hint 2', 'Hint 3']);
     });
 
-    it('should decrease difficulty', async () => {
-      await expect(
-        adjustQuestionDifficulty(mockQuestion, 1)
-      ).rejects.toThrow('Not implemented');
+    it('should generate hints if fewer than 3', async () => {
+      const questionWithFewHints: SocraticQuestion = {
+        ...mockQuestion,
+        hints: ['Hint 1'],
+      };
+      const result = await generateHints(questionWithFewHints, mockConcept);
+      expect(Array.isArray(result)).toBe(true);
     });
   });
 
   describe('generateGuidingQuestion', () => {
     it('should generate guiding question for knowledge gap', async () => {
-      await expect(
-        generateGuidingQuestion(
-          'It copies the value',
-          mockQuestion,
-          'Understanding move semantics'
-        )
-      ).rejects.toThrow('Not implemented');
+      const result = await generateGuidingQuestion(
+        'It copies the value',
+        mockQuestion,
+        'Understanding move semantics'
+      );
+      expect(result).toHaveProperty('text');
+      expect(result).toHaveProperty('type');
+      expect(result).toHaveProperty('difficulty');
     });
 
-    it('should not reveal the answer', async () => {
-      await expect(
-        generateGuidingQuestion(
-          'Wrong answer',
-          mockQuestion,
-          'Gap description'
-        )
-      ).rejects.toThrow('Not implemented');
-    });
-  });
-
-  describe('generateExpectedElements', () => {
-    it('should generate expected elements for question', async () => {
-      await expect(
-        generateExpectedElements('What is ownership?', mockConcept)
-      ).rejects.toThrow('Not implemented');
+    it('should reduce difficulty for guiding question', async () => {
+      const result = await generateGuidingQuestion(
+        'Wrong answer',
+        { ...mockQuestion, difficulty: 4 },
+        'Gap description'
+      );
+      expect(result.difficulty).toBeLessThanOrEqual(3);
     });
   });
 
   describe('selectBestQuestion', () => {
-    it('should select appropriate question for performance', async () => {
+    it('should select appropriate question for high performance', () => {
       const questions = [
         { ...mockQuestion, difficulty: 2 },
         { ...mockQuestion, difficulty: 3 },
         { ...mockQuestion, difficulty: 4 },
       ];
-      await expect(
-        selectBestQuestion(questions, { accuracy: 0.7, hintsUsed: 1 })
-      ).rejects.toThrow('Not implemented');
+      const result = selectBestQuestion(questions, { accuracy: 0.85, hintsUsed: 0 });
+      expect(result.difficulty).toBe(4); // High performer gets harder questions
     });
 
-    it('should select easier question for low accuracy', async () => {
-      await expect(
-        selectBestQuestion([mockQuestion], { accuracy: 0.3, hintsUsed: 5 })
-      ).rejects.toThrow('Not implemented');
+    it('should select easier question for low accuracy', () => {
+      const questions = [
+        { ...mockQuestion, difficulty: 2 },
+        { ...mockQuestion, difficulty: 3 },
+        { ...mockQuestion, difficulty: 4 },
+      ];
+      const result = selectBestQuestion(questions, { accuracy: 0.3, hintsUsed: 5 });
+      expect(result.difficulty).toBeLessThanOrEqual(2); // Struggling student gets easier questions
+    });
+
+    it('should select moderate difficulty for average performance', () => {
+      const questions = [
+        { ...mockQuestion, difficulty: 2 },
+        { ...mockQuestion, difficulty: 3 },
+        { ...mockQuestion, difficulty: 4 },
+      ];
+      const result = selectBestQuestion(questions, { accuracy: 0.65, hintsUsed: 1 });
+      expect(result.difficulty).toBe(3);
+    });
+
+    it('should throw error for empty questions array', () => {
+      expect(() => selectBestQuestion([], { accuracy: 0.5, hintsUsed: 0 })).toThrow(
+        'No questions provided'
+      );
+    });
+
+    it('should return single question when only one available', () => {
+      const result = selectBestQuestion([mockQuestion], { accuracy: 0.5, hintsUsed: 0 });
+      expect(result).toEqual(mockQuestion);
     });
   });
 
   describe('validateQuestion', () => {
     it('should validate well-formed question', () => {
-      expect(() => validateQuestion(mockQuestion)).toThrow('Not implemented');
+      const result = validateQuestion(mockQuestion);
+      expect(result.valid).toBe(true);
+      expect(result.issues).toHaveLength(0);
     });
 
-    it('should identify issues with poorly formed question', () => {
+    it('should identify issues with empty text', () => {
       const badQuestion: SocraticQuestion = {
         ...mockQuestion,
         text: '',
+      };
+      const result = validateQuestion(badQuestion);
+      expect(result.valid).toBe(false);
+      expect(result.issues).toContain('Question text is too short or empty');
+    });
+
+    it('should identify missing question mark', () => {
+      const badQuestion: SocraticQuestion = {
+        ...mockQuestion,
+        text: 'This is a statement without a question mark',
+      };
+      const result = validateQuestion(badQuestion);
+      expect(result.valid).toBe(false);
+      expect(result.issues).toContain('Question should end with a question mark');
+    });
+
+    it('should identify missing expected elements', () => {
+      const badQuestion: SocraticQuestion = {
+        ...mockQuestion,
         expectedElements: [],
       };
-      expect(() => validateQuestion(badQuestion)).toThrow('Not implemented');
+      const result = validateQuestion(badQuestion);
+      expect(result.valid).toBe(false);
+      expect(result.issues).toContain('Question should have at least 1 expected element');
+    });
+
+    it('should identify missing hints', () => {
+      const badQuestion: SocraticQuestion = {
+        ...mockQuestion,
+        hints: [],
+      };
+      const result = validateQuestion(badQuestion);
+      expect(result.valid).toBe(false);
+      expect(result.issues).toContain('Question should have at least 1 hint');
+    });
+
+    it('should identify too many hints', () => {
+      const badQuestion: SocraticQuestion = {
+        ...mockQuestion,
+        hints: ['hint1', 'hint2', 'hint3', 'hint4'],
+      };
+      const result = validateQuestion(badQuestion);
+      expect(result.valid).toBe(false);
+      expect(result.issues).toContain('Question should have at most 3 hints');
     });
   });
 });

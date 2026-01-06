@@ -1,11 +1,28 @@
 import { NextRequest } from 'next/server';
 import { streamText, convertToCoreMessages } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
+import { createOpenAI } from '@ai-sdk/openai';
 import { getSession } from '@/lib/auth/session';
 import { requireAuth } from '@/lib/auth/auth';
 import { getActiveSession, createSession, addMessage } from '@/lib/db/sessions';
 import { getTopicById } from '@/lib/db/topics';
 import { SENSIE_SYSTEM_PROMPT } from '@/lib/mastra/prompts';
+
+// Create Vercel AI Gateway client if configured
+const aiGateway = process.env.AI_GATEWAY_API_KEY
+  ? createOpenAI({
+      baseURL: 'https://gateway.ai.cloudflare.com/v1/vercel/vercel-ai-gateway',
+      apiKey: process.env.AI_GATEWAY_API_KEY,
+    })
+  : null;
+
+// Get the model to use - AI Gateway or direct Anthropic
+function getModel() {
+  if (aiGateway) {
+    return aiGateway('anthropic/claude-sonnet-4-20250514');
+  }
+  return anthropic('claude-sonnet-4-20250514');
+}
 
 /**
  * POST /api/chat/message
@@ -67,9 +84,9 @@ export async function POST(request: NextRequest) {
     // Build context for Sensie
     const systemPrompt = buildSystemPrompt(topic?.name, topic?.masteryPercentage);
 
-    // Stream response using AI SDK
+    // Stream response using AI SDK (uses AI Gateway if configured)
     const result = streamText({
-      model: anthropic('claude-sonnet-4-20250514'),
+      model: getModel(),
       system: systemPrompt,
       messages: convertToCoreMessages(messages),
     });

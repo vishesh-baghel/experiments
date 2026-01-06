@@ -11,6 +11,38 @@ import {
 } from '@/lib/learning/socratic-engine';
 import type { SocraticContext, SocraticQuestion } from '@/lib/types';
 
+// Mock Prisma client
+vi.mock('@/lib/db/client', () => ({
+  prisma: {
+    concept: {
+      findUnique: vi.fn(),
+    },
+  },
+}));
+
+// Mock AI SDK
+vi.mock('ai', () => ({
+  generateObject: vi.fn().mockResolvedValue({
+    object: {
+      text: 'What happens when you transfer ownership in Rust?',
+      type: 'UNDERSTANDING',
+      difficulty: 3,
+      expectedElements: ['move semantics', 'original variable invalid'],
+      hints: ['Think about the original variable...', 'Consider memory...', 'Key insight...'],
+      followUpPrompts: ['Why does this matter?'],
+      isCorrect: true,
+      depth: 'DEEP',
+      feedback: 'Excellent work!',
+      missingElements: [],
+      gaps: [],
+    },
+  }),
+}));
+
+vi.mock('@ai-sdk/anthropic', () => ({
+  anthropic: vi.fn().mockReturnValue('mock-model'),
+}));
+
 describe('socratic-engine', () => {
   const mockContext: SocraticContext = {
     topicId: 'topic-123',
@@ -22,7 +54,6 @@ describe('socratic-engine', () => {
   };
 
   const mockQuestion: SocraticQuestion = {
-    id: 'q-123',
     text: 'What happens when you transfer ownership of a value in Rust?',
     type: 'UNDERSTANDING',
     difficulty: 3,
@@ -43,128 +74,203 @@ describe('socratic-engine', () => {
 
   describe('generateQuestion', () => {
     it('should generate a question with all expected elements', async () => {
-      await expect(generateQuestion(mockContext)).rejects.toThrow('Not implemented');
+      const { prisma } = await import('@/lib/db/client');
+      (prisma.concept.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'concept-123',
+        name: 'Ownership',
+        explanation: 'Ownership is Rust\'s memory management system',
+        subtopic: {
+          name: 'Memory Management',
+          topic: {
+            name: 'Rust Programming',
+          },
+        },
+      });
+
+      const result = await generateQuestion(mockContext);
+
+      expect(result).toHaveProperty('text');
+      expect(result).toHaveProperty('type');
+      expect(result).toHaveProperty('difficulty');
+      expect(result).toHaveProperty('expectedElements');
+      expect(result).toHaveProperty('hints');
     });
 
-    it('should adjust difficulty based on user level', async () => {
-      const highLevelContext = { ...mockContext, userLevel: 5 };
-      await expect(generateQuestion(highLevelContext)).rejects.toThrow('Not implemented');
+    it('should throw error for non-existent concept', async () => {
+      const { prisma } = await import('@/lib/db/client');
+      (prisma.concept.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+      await expect(generateQuestion(mockContext)).rejects.toThrow('Concept not found');
     });
   });
 
   describe('evaluateAnswer', () => {
-    it('should evaluate correct answer as correct with deep depth', async () => {
+    it('should evaluate an answer and return evaluation result', async () => {
+      const { prisma } = await import('@/lib/db/client');
+      (prisma.concept.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'concept-123',
+        name: 'Ownership',
+        explanation: 'Ownership concept',
+      });
+
       const correctAnswer =
         'When ownership is transferred, the original variable becomes invalid and cannot be used. This is called a move and ensures memory safety by preventing double-free errors.';
 
-      await expect(
-        evaluateAnswer(correctAnswer, mockQuestion, mockContext)
-      ).rejects.toThrow('Not implemented');
+      const result = await evaluateAnswer(correctAnswer, mockQuestion, mockContext);
+
+      expect(result).toHaveProperty('isCorrect');
+      expect(result).toHaveProperty('depth');
+      expect(result).toHaveProperty('feedback');
+      expect(result).toHaveProperty('missingElements');
     });
 
-    it('should evaluate shallow answer as correct with shallow depth', async () => {
-      const shallowAnswer = 'The value moves to the new variable.';
+    it('should detect gibberish answers immediately', async () => {
+      const result = await evaluateAnswer('asdf', mockQuestion, mockContext);
 
-      await expect(
-        evaluateAnswer(shallowAnswer, mockQuestion, mockContext)
-      ).rejects.toThrow('Not implemented');
-    });
-
-    it('should evaluate incorrect answer as incorrect', async () => {
-      const incorrectAnswer = 'The value is copied to the new variable.';
-
-      await expect(
-        evaluateAnswer(incorrectAnswer, mockQuestion, mockContext)
-      ).rejects.toThrow('Not implemented');
+      expect(result.isCorrect).toBe(false);
+      expect(result.depth).toBe('SHALLOW');
+      expect(result.missingElements).toEqual(mockQuestion.expectedElements);
     });
   });
 
   describe('generateGuidingQuestion', () => {
-    it('should generate a guiding question for incorrect answer', async () => {
-      const incorrectAnswer = 'The value is copied.';
-      const gap = 'Understanding move semantics';
+    it('should generate a guiding question', async () => {
+      const result = await generateGuidingQuestion(
+        'The value is copied.',
+        mockQuestion,
+        'Understanding move semantics'
+      );
 
-      await expect(
-        generateGuidingQuestion(incorrectAnswer, mockQuestion, gap)
-      ).rejects.toThrow('Not implemented');
+      expect(result).toHaveProperty('text');
+      expect(result).toHaveProperty('type');
+      expect(result).toHaveProperty('difficulty');
+      // Guiding question should be easier
+      expect(result.difficulty).toBeLessThanOrEqual(mockQuestion.difficulty);
     });
   });
 
   describe('provideHint', () => {
     it('should provide hint level 1', async () => {
-      await expect(provideHint(mockQuestion, 1)).rejects.toThrow('Not implemented');
+      const result = await provideHint(mockQuestion, 1);
+
+      expect(typeof result).toBe('string');
+      expect(result.length).toBeGreaterThan(0);
     });
 
     it('should provide hint level 2', async () => {
-      await expect(provideHint(mockQuestion, 2)).rejects.toThrow('Not implemented');
+      const result = await provideHint(mockQuestion, 2);
+
+      expect(typeof result).toBe('string');
     });
 
     it('should provide hint level 3', async () => {
-      await expect(provideHint(mockQuestion, 3)).rejects.toThrow('Not implemented');
+      const result = await provideHint(mockQuestion, 3);
+
+      expect(typeof result).toBe('string');
     });
 
-    it('should not provide hints beyond level 3', async () => {
-      await expect(provideHint(mockQuestion, 4)).rejects.toThrow('Not implemented');
+    it('should clamp hint number to valid range', async () => {
+      const result = await provideHint(mockQuestion, 10);
+
+      // Should return the last hint (hint 3)
+      expect(typeof result).toBe('string');
     });
   });
 
   describe('isGibberishAnswer', () => {
-    it('should detect gibberish answer', () => {
-      expect(() => isGibberishAnswer('asdfghjkl')).toThrow('Not implemented');
+    it('should detect gibberish answer (repeated chars)', () => {
+      expect(isGibberishAnswer('aaaaaa')).toBe(true);
     });
 
     it('should detect too-short answer', () => {
-      expect(() => isGibberishAnswer('yes')).toThrow('Not implemented');
+      expect(isGibberishAnswer('yes')).toBe(true);
+    });
+
+    it('should detect common throwaway answers', () => {
+      expect(isGibberishAnswer('idk')).toBe(true);
+      expect(isGibberishAnswer('dunno')).toBe(true);
+      expect(isGibberishAnswer('test')).toBe(true);
+    });
+
+    it('should detect just numbers', () => {
+      expect(isGibberishAnswer('12345')).toBe(true);
     });
 
     it('should accept valid answer', () => {
-      expect(() =>
+      expect(
         isGibberishAnswer('Ownership transfer means the value moves to a new owner.')
-      ).toThrow('Not implemented');
+      ).toBe(false);
+    });
+
+    it('should require at least 2 meaningful words', () => {
+      expect(isGibberishAnswer('just a')).toBe(true);
+      expect(isGibberishAnswer('the value moves')).toBe(false);
     });
   });
 
   describe('detectKnowledgeGaps', () => {
+    it('should return empty array when no incorrect answers', async () => {
+      const result = await detectKnowledgeGaps([], 'Rust ownership');
+
+      expect(result).toEqual([]);
+    });
+
     it('should detect gaps from incorrect answers', async () => {
       const incorrectAnswers = [
         { question: mockQuestion, answer: 'The value is copied.' },
         { question: mockQuestion, answer: 'Both variables can use the value.' },
       ];
 
-      await expect(
-        detectKnowledgeGaps(incorrectAnswers, 'Rust ownership')
-      ).rejects.toThrow('Not implemented');
-    });
+      const result = await detectKnowledgeGaps(incorrectAnswers, 'Rust ownership');
 
-    it('should rank gaps by severity', async () => {
-      await expect(
-        detectKnowledgeGaps([], 'Rust ownership')
-      ).rejects.toThrow('Not implemented');
+      expect(Array.isArray(result)).toBe(true);
     });
   });
 
   describe('generateFollowUpQuestion', () => {
     it('should generate follow-up for shallow answer', async () => {
-      const shallowAnswer = 'The value moves.';
-      const missingElements = ['memory safety', 'original variable invalid'];
+      const result = await generateFollowUpQuestion(
+        'The value moves.',
+        mockQuestion,
+        ['memory safety', 'original variable invalid']
+      );
 
-      await expect(
-        generateFollowUpQuestion(shallowAnswer, mockQuestion, missingElements)
-      ).rejects.toThrow('Not implemented');
+      expect(result).toHaveProperty('text');
+      expect(result).toHaveProperty('type');
+      expect(result.difficulty).toBe(mockQuestion.difficulty); // Same difficulty
     });
   });
 
   describe('shouldProceedToNextConcept', () => {
-    it('should proceed when sufficient correct answers', () => {
-      expect(() => shouldProceedToNextConcept(4, 5, 3)).toThrow('Not implemented');
+    it('should proceed when 80%+ correct with 1 deep answer', () => {
+      const result = shouldProceedToNextConcept(4, 5, 1);
+      expect(result).toBe(true);
+    });
+
+    it('should proceed when 60%+ correct with 2 deep answers', () => {
+      const result = shouldProceedToNextConcept(3, 5, 2);
+      expect(result).toBe(true);
+    });
+
+    it('should not proceed when insufficient questions', () => {
+      const result = shouldProceedToNextConcept(2, 2, 2);
+      expect(result).toBe(false);
     });
 
     it('should not proceed when insufficient correct answers', () => {
-      expect(() => shouldProceedToNextConcept(2, 5, 1)).toThrow('Not implemented');
+      const result = shouldProceedToNextConcept(2, 5, 1);
+      expect(result).toBe(false);
     });
 
     it('should require deep understanding for progress', () => {
-      expect(() => shouldProceedToNextConcept(5, 5, 0)).toThrow('Not implemented');
+      // 80%+ correct but no deep answers
+      const result = shouldProceedToNextConcept(4, 5, 0);
+      expect(result).toBe(false);
+    });
+
+    it('should not proceed when correct rate < 60%', () => {
+      const result = shouldProceedToNextConcept(2, 5, 2);
+      expect(result).toBe(false);
     });
   });
 });

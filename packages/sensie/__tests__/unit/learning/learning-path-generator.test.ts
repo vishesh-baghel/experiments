@@ -12,24 +12,72 @@ import {
 } from '@/lib/learning/learning-path-generator';
 import type { LearningPath } from '@/lib/types';
 
+// Mock Prisma client
+vi.mock('@/lib/db/client', () => ({
+  prisma: {
+    topic: {
+      create: vi.fn(),
+      count: vi.fn(),
+      findMany: vi.fn(),
+    },
+  },
+}));
+
+// Mock AI SDK
+vi.mock('ai', () => ({
+  generateObject: vi.fn().mockResolvedValue({
+    object: {
+      domain: 'technical',
+      subtopics: [
+        { name: 'Fundamentals', order: 1, concepts: ['Concept 1', 'Concept 2', 'Concept 3'] },
+        { name: 'Intermediate', order: 2, concepts: ['Concept 4', 'Concept 5'] },
+        { name: 'Advanced', order: 3, concepts: ['Concept 6', 'Concept 7'] },
+      ],
+      prerequisites: ['Basic programming'],
+      reasoning: 'These are needed...',
+    },
+  }),
+}));
+
+vi.mock('@ai-sdk/anthropic', () => ({
+  anthropic: vi.fn().mockReturnValue('mock-model'),
+}));
+
 describe('learning-path-generator', () => {
   const mockPath: LearningPath = {
     topicName: 'Rust Programming',
     domain: 'technical',
+    estimatedHours: 5,
     subtopics: [
       {
         name: 'Ownership',
+        description: 'Subtopic 1: Ownership',
         order: 1,
-        concepts: ['Ownership Rules', 'Move Semantics', 'Borrowing'],
+        concepts: [
+          { name: 'Ownership Rules', keyPoints: [] },
+          { name: 'Move Semantics', keyPoints: [] },
+          { name: 'Borrowing', keyPoints: [] },
+        ],
       },
       {
         name: 'Lifetimes',
+        description: 'Subtopic 2: Lifetimes',
         order: 2,
-        concepts: ['Lifetime Annotations', 'Lifetime Elision'],
+        concepts: [
+          { name: 'Lifetime Annotations', keyPoints: [] },
+          { name: 'Lifetime Elision', keyPoints: [] },
+        ],
+      },
+      {
+        name: 'Traits',
+        description: 'Subtopic 3: Traits',
+        order: 3,
+        concepts: [
+          { name: 'Trait Definition', keyPoints: [] },
+          { name: 'Trait Bounds', keyPoints: [] },
+        ],
       },
     ],
-    estimatedHours: 20,
-    prerequisites: ['Basic programming'],
   };
 
   beforeEach(() => {
@@ -38,97 +86,224 @@ describe('learning-path-generator', () => {
 
   describe('generatePath', () => {
     it('should generate learning path for topic', async () => {
-      await expect(generatePath('Rust Programming')).rejects.toThrow('Not implemented');
+      const result = await generatePath('Rust Programming');
+
+      expect(result).toHaveProperty('topicName');
+      expect(result).toHaveProperty('domain');
+      expect(result).toHaveProperty('subtopics');
+      expect(result).toHaveProperty('estimatedHours');
     });
 
-    it('should include user goal in path generation', async () => {
-      await expect(
-        generatePath('Rust Programming', 'Build CLI tools')
-      ).rejects.toThrow('Not implemented');
+    it('should include user goal context', async () => {
+      const result = await generatePath('Rust Programming', 'Build CLI tools');
+
+      expect(result).toHaveProperty('topicName', 'Rust Programming');
     });
   });
 
   describe('createTopicFromPath', () => {
     it('should create topic and subtopics in database', async () => {
+      const { prisma } = await import('@/lib/db/client');
+      (prisma.topic.count as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+      (prisma.topic.create as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'topic-123',
+        name: 'Rust Programming',
+        subtopics: [],
+      });
+
+      const result = await createTopicFromPath(mockPath, 'user-123');
+
+      expect(result).toHaveProperty('id');
+      expect(prisma.topic.create).toHaveBeenCalled();
+    });
+
+    it('should enforce max 3 active topics', async () => {
+      const { prisma } = await import('@/lib/db/client');
+      (prisma.topic.count as ReturnType<typeof vi.fn>).mockResolvedValue(3);
+
       await expect(createTopicFromPath(mockPath, 'user-123')).rejects.toThrow(
-        'Not implemented'
+        'Maximum 3 active topics allowed'
       );
     });
   });
 
   describe('identifyDomain', () => {
-    it('should identify technical domain for programming topics', async () => {
-      await expect(identifyDomain('Rust Programming')).rejects.toThrow(
-        'Not implemented'
-      );
-    });
+    it('should identify domain for a topic', async () => {
+      const result = await identifyDomain('Rust Programming');
 
-    it('should identify soft-skills domain for communication topics', async () => {
-      await expect(identifyDomain('Public Speaking')).rejects.toThrow(
-        'Not implemented'
-      );
-    });
-
-    it('should identify career domain for career topics', async () => {
-      await expect(identifyDomain('Interview Preparation')).rejects.toThrow(
-        'Not implemented'
-      );
+      expect(['technical', 'soft-skills', 'career']).toContain(result);
     });
   });
 
   describe('estimateLearningTime', () => {
     it('should estimate hours based on path complexity', () => {
-      expect(() => estimateLearningTime(mockPath)).toThrow('Not implemented');
+      const result = estimateLearningTime(mockPath);
+
+      expect(typeof result).toBe('number');
+      expect(result).toBeGreaterThan(0);
+    });
+
+    it('should scale with number of concepts', () => {
+      const smallPath: LearningPath = {
+        ...mockPath,
+        subtopics: [
+          {
+            name: 'Single Subtopic',
+            description: 'Only one',
+            order: 1,
+            concepts: [{ name: 'One Concept', keyPoints: [] }],
+          },
+        ],
+      };
+
+      const smallTime = estimateLearningTime(smallPath);
+      const fullTime = estimateLearningTime(mockPath);
+
+      expect(fullTime).toBeGreaterThan(smallTime);
     });
   });
 
   describe('validatePath', () => {
     it('should validate correct path structure', () => {
-      expect(() => validatePath(mockPath)).toThrow('Not implemented');
+      const result = validatePath(mockPath);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
 
-    it('should return errors for invalid path', () => {
+    it('should return errors for too few subtopics', () => {
       const invalidPath: LearningPath = {
         ...mockPath,
-        subtopics: [],
+        subtopics: [
+          {
+            name: 'Only One',
+            description: 'Only subtopic',
+            order: 1,
+            concepts: [{ name: 'Concept 1', keyPoints: [] }],
+          },
+        ],
       };
-      expect(() => validatePath(invalidPath)).toThrow('Not implemented');
+      const result = validatePath(invalidPath);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('should return errors for too few concepts in subtopic', () => {
+      const invalidPath: LearningPath = {
+        ...mockPath,
+        subtopics: [
+          {
+            name: 'Subtopic 1',
+            description: 'First',
+            order: 1,
+            concepts: [{ name: 'Only One', keyPoints: [] }], // Need at least 2
+          },
+          {
+            name: 'Subtopic 2',
+            description: 'Second',
+            order: 2,
+            concepts: [{ name: 'C1', keyPoints: [] }, { name: 'C2', keyPoints: [] }],
+          },
+          {
+            name: 'Subtopic 3',
+            description: 'Third',
+            order: 3,
+            concepts: [{ name: 'C3', keyPoints: [] }, { name: 'C4', keyPoints: [] }],
+          },
+        ],
+      };
+      const result = validatePath(invalidPath);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => e.includes('too few concepts'))).toBe(true);
+    });
+
+    it('should detect duplicate subtopic names', () => {
+      const invalidPath: LearningPath = {
+        ...mockPath,
+        subtopics: [
+          {
+            name: 'Ownership',
+            description: 'First',
+            order: 1,
+            concepts: [{ name: 'C1', keyPoints: [] }, { name: 'C2', keyPoints: [] }],
+          },
+          {
+            name: 'Ownership', // Duplicate!
+            description: 'Second',
+            order: 2,
+            concepts: [{ name: 'C3', keyPoints: [] }, { name: 'C4', keyPoints: [] }],
+          },
+          {
+            name: 'Traits',
+            description: 'Third',
+            order: 3,
+            concepts: [{ name: 'C5', keyPoints: [] }, { name: 'C6', keyPoints: [] }],
+          },
+        ],
+      };
+      const result = validatePath(invalidPath);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => e.includes('Duplicate'))).toBe(true);
     });
   });
 
   describe('getPrerequisites', () => {
-    it('should return prerequisites for technical topic', async () => {
-      await expect(getPrerequisites('Advanced Rust')).rejects.toThrow(
-        'Not implemented'
-      );
-    });
+    it('should return prerequisites for topic', async () => {
+      const result = await getPrerequisites('Advanced Rust');
 
-    it('should return empty array for beginner topic', async () => {
-      await expect(getPrerequisites('Introduction to Programming')).rejects.toThrow(
-        'Not implemented'
-      );
+      expect(Array.isArray(result)).toBe(true);
     });
   });
 
   describe('adjustPathForUser', () => {
-    it('should skip concepts user already knows', async () => {
-      await expect(adjustPathForUser(mockPath, 'user-123')).rejects.toThrow(
-        'Not implemented'
-      );
+    it('should return path unchanged for new user', async () => {
+      const { prisma } = await import('@/lib/db/client');
+      (prisma.topic.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+      const result = await adjustPathForUser(mockPath, 'user-123');
+
+      expect(result).toEqual(mockPath);
+    });
+
+    it('should filter known concepts for experienced user', async () => {
+      const { prisma } = await import('@/lib/db/client');
+      (prisma.topic.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          id: 'completed-topic',
+          status: 'COMPLETED',
+          subtopics: [
+            {
+              concepts: [{ name: 'Ownership Rules' }],
+            },
+          ],
+        },
+      ]);
+
+      const result = await adjustPathForUser(mockPath, 'user-123');
+
+      // Should still have a valid path
+      expect(result.subtopics.length).toBeGreaterThanOrEqual(PATH_CONSTRAINTS.MIN_SUBTOPICS);
     });
   });
 
   describe('generateSubtopics', () => {
-    it('should generate ordered subtopics', async () => {
-      await expect(
-        generateSubtopics('Rust Programming', 'technical')
-      ).rejects.toThrow('Not implemented');
+    it('should generate subtopics with concepts', async () => {
+      const result = await generateSubtopics('Rust Programming', 'technical');
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]).toHaveProperty('name');
+      expect(result[0]).toHaveProperty('order');
+      expect(result[0]).toHaveProperty('concepts');
     });
 
-    it('should limit subtopics to constraints', async () => {
-      await expect(
-        generateSubtopics('Large Topic', 'technical')
-      ).rejects.toThrow('Not implemented');
+    it('should include user goal when provided', async () => {
+      const result = await generateSubtopics('Rust Programming', 'technical', 'Build CLI tools');
+
+      expect(Array.isArray(result)).toBe(true);
     });
   });
 
