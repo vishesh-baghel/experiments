@@ -1,27 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Lightbulb,
-  SkipForward,
-  TrendingUp,
-  BookOpen,
-  Coffee,
-  RotateCcw,
-  Send,
-  Sparkles,
-} from 'lucide-react';
-
-/**
- * InputArea - Chat input with command palette
- *
- * Features:
- * - Auto-growing textarea
- * - Command suggestions when typing /
- * - Animated send button
- * - Keyboard shortcuts
- */
+import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import { ArrowUp } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface InputAreaProps {
   onSend: (message: string) => void;
@@ -30,72 +11,50 @@ interface InputAreaProps {
 }
 
 const COMMANDS = [
-  { cmd: '/hint', label: 'Get a hint', icon: Lightbulb, description: 'Receive guidance without the answer' },
-  { cmd: '/skip', label: 'Skip question', icon: SkipForward, description: 'Move to the next question' },
-  { cmd: '/progress', label: 'View progress', icon: TrendingUp, description: 'See your mastery levels' },
-  { cmd: '/topics', label: 'My topics', icon: BookOpen, description: 'View all learning topics' },
-  { cmd: '/break', label: 'Take a break', icon: Coffee, description: 'Pause and save progress' },
-  { cmd: '/review', label: 'Start review', icon: RotateCcw, description: 'Begin spaced repetition' },
+  { cmd: '/hint', description: 'Get a hint for the current question' },
+  { cmd: '/skip', description: 'Skip this question (limited)' },
+  { cmd: '/progress', description: 'Show detailed progress' },
+  { cmd: '/topics', description: 'Manage learning topics' },
+  { cmd: '/review', description: 'Start spaced repetition' },
+  { cmd: '/break', description: 'Save and take a break' },
 ];
 
-export function InputArea({
-  onSend,
-  disabled = false,
-  placeholder = 'Share your thoughts or type / for commands...',
-}: InputAreaProps) {
-  const [value, setValue] = useState('');
+export function InputArea({ onSend, disabled, placeholder }: InputAreaProps) {
+  const [input, setInput] = useState('');
   const [showCommands, setShowCommands] = useState(false);
-  const [selectedCommand, setSelectedCommand] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Filter commands based on input
-  const filteredCommands = value.startsWith('/')
-    ? COMMANDS.filter((c) =>
-        c.cmd.toLowerCase().includes(value.toLowerCase())
-      )
+  const filteredCommands = input.startsWith('/')
+    ? COMMANDS.filter((c) => c.cmd.startsWith(input.toLowerCase()))
     : COMMANDS;
 
-  // Auto-resize textarea
   useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
-    }
-  }, [value]);
+    setShowCommands(input.startsWith('/') && input.length > 0);
+    setSelectedIndex(0);
+  }, [input]);
 
-  // Show commands when typing /
-  useEffect(() => {
-    setShowCommands(value.startsWith('/') && value.length < 15);
-    setSelectedCommand(0);
-  }, [value]);
-
-  const handleSubmit = (e?: FormEvent) => {
-    e?.preventDefault();
-    if (value.trim() && !disabled) {
-      onSend(value.trim());
-      setValue('');
-      setShowCommands(false);
-    }
+  const handleSubmit = () => {
+    if (!input.trim() || disabled) return;
+    onSend(input);
+    setInput('');
+    setShowCommands(false);
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (showCommands && filteredCommands.length > 0) {
+    if (showCommands) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedCommand((prev) =>
-          prev < filteredCommands.length - 1 ? prev + 1 : 0
-        );
+        setSelectedIndex((i) => Math.min(i + 1, filteredCommands.length - 1));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedCommand((prev) =>
-          prev > 0 ? prev - 1 : filteredCommands.length - 1
-        );
-      } else if (e.key === 'Tab' || e.key === 'Enter') {
+        setSelectedIndex((i) => Math.max(i - 1, 0));
+      } else if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        setValue(filteredCommands[selectedCommand].cmd + ' ');
-        setShowCommands(false);
-        return;
+        if (filteredCommands[selectedIndex]) {
+          setInput(filteredCommands[selectedIndex].cmd + ' ');
+          setShowCommands(false);
+        }
       } else if (e.key === 'Escape') {
         setShowCommands(false);
       }
@@ -106,166 +65,69 @@ export function InputArea({
   };
 
   const selectCommand = (cmd: string) => {
-    setValue(cmd + ' ');
+    setInput(cmd + ' ');
     setShowCommands(false);
     textareaRef.current?.focus();
   };
 
-  const isCommand = value.startsWith('/');
-
   return (
-    <div className="relative border-t border-[hsl(var(--border))] bg-[hsl(var(--background))]">
-      {/* Command palette */}
-      <AnimatePresence>
-        {showCommands && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.2 }}
-            className="absolute bottom-full left-0 right-0 p-3 bg-[hsl(var(--card))] border-t border-x border-[hsl(var(--border))] rounded-t-xl shadow-lg"
-          >
-            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-[hsl(var(--border))]">
-              <Sparkles className="w-4 h-4 text-[hsl(var(--ki-orange))]" />
-              <span className="text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wide">
-                Techniques
-              </span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {filteredCommands.map((command, index) => {
-                const Icon = command.icon;
-                const isSelected = index === selectedCommand;
-                return (
-                  <motion.button
-                    key={command.cmd}
-                    onClick={() => selectCommand(command.cmd)}
-                    className={`
-                      flex items-start gap-3 p-3 rounded-lg text-left transition-all
-                      ${isSelected
-                        ? 'bg-[hsl(var(--ki-orange))/0.1] border border-[hsl(var(--ki-orange))/0.3]'
-                        : 'hover:bg-[hsl(var(--muted))] border border-transparent'
-                      }
-                    `}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div
-                      className={`
-                        p-1.5 rounded-md
-                        ${isSelected
-                          ? 'bg-[hsl(var(--ki-orange))] text-white'
-                          : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]'
-                        }
-                      `}
-                    >
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm font-medium text-[hsl(var(--foreground))]">
-                          {command.cmd}
-                        </span>
-                      </div>
-                      <p className="text-xs text-[hsl(var(--muted-foreground))] truncate mt-0.5">
-                        {command.description}
-                      </p>
-                    </div>
-                  </motion.button>
-                );
-              })}
-            </div>
-            <p className="text-xs text-[hsl(var(--muted-foreground))] mt-3 text-center">
-              <kbd className="px-1.5 py-0.5 bg-[hsl(var(--muted))] rounded text-[10px] font-mono">↑↓</kbd>
-              {' '}navigate{' '}
-              <kbd className="px-1.5 py-0.5 bg-[hsl(var(--muted))] rounded text-[10px] font-mono">Tab</kbd>
-              {' '}select{' '}
-              <kbd className="px-1.5 py-0.5 bg-[hsl(var(--muted))] rounded text-[10px] font-mono">Esc</kbd>
-              {' '}close
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Input form */}
-      <form onSubmit={handleSubmit} className="p-4">
-        <div className="relative flex items-end gap-3 max-w-3xl mx-auto">
-          {/* Text input */}
-          <div className="flex-1 relative">
-            <textarea
-              ref={textareaRef}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={placeholder}
-              disabled={disabled}
-              rows={1}
-              className={`
-                w-full px-4 py-3 pr-12
-                bg-[hsl(var(--input))] border border-[hsl(var(--border))]
-                rounded-2xl resize-none
-                text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]
-                focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ki-orange))] focus:border-transparent
-                transition-all duration-200
-                disabled:opacity-50 disabled:cursor-not-allowed
-                ${isCommand ? 'font-mono' : ''}
-              `}
-              style={{ minHeight: '48px', maxHeight: '150px' }}
-            />
-
-            {/* Character hint */}
-            {value.length > 0 && (
-              <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="absolute right-4 bottom-3 text-xs text-[hsl(var(--muted-foreground))]"
+    <div className="border-t border-[hsl(var(--border))] bg-[hsl(var(--background))]">
+      <div className="max-w-3xl mx-auto p-4">
+        {/* Command palette */}
+        {showCommands && filteredCommands.length > 0 && (
+          <div className="mb-2 border border-[hsl(var(--border))] rounded-lg bg-[hsl(var(--card))] overflow-hidden">
+            {filteredCommands.map((command, index) => (
+              <button
+                key={command.cmd}
+                onClick={() => selectCommand(command.cmd)}
+                className={cn(
+                  'w-full px-3 py-2 text-left text-sm flex items-center justify-between transition-colors',
+                  index === selectedIndex
+                    ? 'bg-[hsl(var(--muted))]'
+                    : 'hover:bg-[hsl(var(--muted))]'
+                )}
               >
-                {value.length > 500 ? `${value.length}/1000` : ''}
-              </motion.span>
-            )}
+                <span className="font-mono text-[hsl(var(--foreground))]">
+                  {command.cmd}
+                </span>
+                <span className="text-[hsl(var(--muted-foreground))]">
+                  {command.description}
+                </span>
+              </button>
+            ))}
           </div>
+        )}
 
-          {/* Send button */}
-          <motion.button
-            type="submit"
-            disabled={disabled || !value.trim()}
-            className={`
-              flex-shrink-0 p-3 rounded-xl
-              bg-gradient-to-br from-[hsl(25,95%,53%)] to-[hsl(30,90%,48%)]
-              text-white shadow-lg
-              disabled:opacity-40 disabled:cursor-not-allowed
-              transition-all duration-200
-            `}
-            whileHover={{ scale: disabled ? 1 : 1.05 }}
-            whileTap={{ scale: disabled ? 1 : 0.95 }}
+        {/* Input */}
+        <div className="relative flex items-end gap-2">
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder || 'Type your answer...'}
+            disabled={disabled}
+            rows={1}
+            className="flex-1 resize-none px-4 py-3 bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg text-[15px] placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:border-[hsl(var(--foreground))/0.2] transition-colors disabled:opacity-50"
+            style={{
+              minHeight: '48px',
+              maxHeight: '200px',
+            }}
+          />
+          <button
+            onClick={handleSubmit}
+            disabled={!input.trim() || disabled}
+            className="p-3 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] rounded-lg disabled:opacity-40 transition-opacity"
           >
-            <Send className="w-5 h-5" />
-          </motion.button>
+            <ArrowUp className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Bottom hint */}
-        <div className="flex items-center justify-center gap-4 mt-3 text-xs text-[hsl(var(--muted-foreground))]">
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[hsl(var(--muted))] rounded text-[10px] font-mono mr-1">
-              Enter
-            </kbd>
-            to send
-          </span>
-          <span className="text-[hsl(var(--border))]">•</span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[hsl(var(--muted))] rounded text-[10px] font-mono mr-1">
-              /
-            </kbd>
-            for techniques
-          </span>
-          <span className="text-[hsl(var(--border))]">•</span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-[hsl(var(--muted))] rounded text-[10px] font-mono mr-1">
-              Shift+Enter
-            </kbd>
-            new line
-          </span>
-        </div>
-      </form>
+        {/* Command hints */}
+        <p className="text-xs text-[hsl(var(--muted-foreground))] mt-2">
+          Type <span className="font-mono">/</span> for commands
+        </p>
+      </div>
     </div>
   );
 }

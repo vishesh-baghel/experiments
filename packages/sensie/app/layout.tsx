@@ -1,22 +1,11 @@
 import type { Metadata } from 'next';
-import { DM_Sans, Fraunces } from 'next/font/google';
+import { GeistSans } from 'geist/font/sans';
+import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  variable: '--font-body',
-  display: 'swap',
-});
-
-const fraunces = Fraunces({
-  subsets: ['latin'],
-  variable: '--font-display',
-  display: 'swap',
-});
-
 export const metadata: Metadata = {
-  title: 'Sensie - AI Learning Guide',
-  description: 'Learn through Socratic questioning with your personal AI sensei',
+  title: 'sensie',
+  description: 'Learn through Socratic questioning',
 };
 
 interface RootLayoutProps {
@@ -25,8 +14,8 @@ interface RootLayoutProps {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${fraunces.variable}`}>
-      <body className="antialiased">
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+      <body className="antialiased min-h-screen">
         {children}
       </body>
     </html>
