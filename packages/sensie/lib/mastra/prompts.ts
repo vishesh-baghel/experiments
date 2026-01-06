@@ -50,19 +50,19 @@ export const ANSWER_EVALUATION_PROMPT = `Evaluate the student's answer to the So
 
 ## Evaluation Criteria
 1. **Correctness**: Does the answer demonstrate correct understanding?
-2. **Depth**: Is it shallow (surface-level), moderate (good understanding), or deep (insightful)?
+2. **Depth**: Is it wrong (none), shallow (surface-level), or deep (insightful)?
 3. **Completeness**: Does it address all expected elements?
 4. **Misconceptions**: Are there any wrong assumptions?
 
 ## Depth Levels
-- SHALLOW: Mentions key terms but lacks explanation
-- MODERATE: Shows understanding with some explanation
+- NONE: Completely wrong or missing the point
+- SHALLOW: Correct but mentions key terms without deeper explanation
 - DEEP: Demonstrates thorough understanding with examples/implications
 
 ## Output Format
 Provide structured evaluation with:
 - isCorrect: boolean
-- depth: "SHALLOW" | "MODERATE" | "DEEP"
+- depth: "NONE" | "SHALLOW" | "DEEP"
 - missingElements: string[]
 - misconceptions: string[]
 - feedback: string (in Sensie's voice)`;

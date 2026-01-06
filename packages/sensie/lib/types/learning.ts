@@ -1,4 +1,5 @@
 import type {
+  User as PrismaUser,
   Topic as PrismaTopic,
   Subtopic as PrismaSubtopic,
   Concept as PrismaConcept,
@@ -7,10 +8,22 @@ import type {
   TopicStatus,
   QuestionType,
   AnswerDepth,
+  UserRole,
 } from '@prisma/client';
 
 // Re-export Prisma enums
-export { TopicStatus, QuestionType, AnswerDepth };
+export { TopicStatus, QuestionType, AnswerDepth, UserRole };
+
+// User type for auth
+export interface User {
+  id: string;
+  username: string;
+  role: 'OWNER' | 'VISITOR';
+  createdAt: Date;
+}
+
+// Extended Prisma user with relations
+export type PrismaUserFull = PrismaUser;
 
 // Extended types with relations
 export type Topic = PrismaTopic & {
@@ -115,4 +128,24 @@ export interface CachedContent {
   commonMisconceptions: string[];
   prerequisites: string[];
   cachedAt: Date;
+}
+
+// Quiz types
+export interface Quiz {
+  id?: string;
+  title: string;
+  description: string;
+  questions: QuizQuestion[];
+  totalPoints: number;
+  passingScore: number;
+  timeLimit?: number;
+}
+
+export interface QuizQuestion {
+  id?: string;
+  question: string;
+  type: 'UNDERSTANDING' | 'APPLICATION' | 'ANALYSIS';
+  difficulty: number;
+  expectedAnswer: string;
+  scoringCriteria: string[];
 }

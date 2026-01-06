@@ -11,7 +11,7 @@ import { z } from 'zod';
  */
 export const AnswerEvaluationSchema = z.object({
   isCorrect: z.boolean().describe('Whether the answer is correct'),
-  depth: z.enum(['SHALLOW', 'MODERATE', 'DEEP']).describe('Depth of understanding shown'),
+  depth: z.enum(['NONE', 'SHALLOW', 'DEEP']).describe('Depth of understanding shown: NONE (wrong), SHALLOW (correct but lacks depth), DEEP (correct with understanding)'),
   missingElements: z
     .array(z.string())
     .describe('Key elements missing from the answer'),

@@ -11,7 +11,15 @@ export async function createConcept(data: {
   codeExamples?: string[];
   analogies?: string[];
 }): Promise<Concept> {
-  throw new Error('Not implemented');
+  return prisma.concept.create({
+    data: {
+      subtopicId: data.subtopicId,
+      name: data.name,
+      explanation: data.explanation,
+      codeExamples: data.codeExamples || [],
+      analogies: data.analogies || [],
+    },
+  });
 }
 
 /**
@@ -26,7 +34,20 @@ export async function createConcepts(
     analogies?: string[];
   }>
 ): Promise<Concept[]> {
-  throw new Error('Not implemented');
+  const created = await prisma.$transaction(
+    concepts.map((concept) =>
+      prisma.concept.create({
+        data: {
+          subtopicId,
+          name: concept.name,
+          explanation: concept.explanation,
+          codeExamples: concept.codeExamples || [],
+          analogies: concept.analogies || [],
+        },
+      })
+    )
+  );
+  return created;
 }
 
 /**
@@ -35,7 +56,10 @@ export async function createConcepts(
 export async function getConceptsBySubtopic(
   subtopicId: string
 ): Promise<Concept[]> {
-  throw new Error('Not implemented');
+  return prisma.concept.findMany({
+    where: { subtopicId },
+    orderBy: { createdAt: 'asc' },
+  });
 }
 
 /**
@@ -43,9 +67,12 @@ export async function getConceptsBySubtopic(
  */
 export async function getConceptById(
   conceptId: string,
-  includeQuestions?: boolean
+  includeQuestions: boolean = false
 ): Promise<Concept | null> {
-  throw new Error('Not implemented');
+  return prisma.concept.findUnique({
+    where: { id: conceptId },
+    include: includeQuestions ? { questions: true } : undefined,
+  });
 }
 
 /**
@@ -54,14 +81,26 @@ export async function getConceptById(
 export async function getNextUnmasteredConcept(
   subtopicId: string
 ): Promise<Concept | null> {
-  throw new Error('Not implemented');
+  return prisma.concept.findFirst({
+    where: {
+      subtopicId,
+      isMastered: false,
+    },
+    orderBy: { createdAt: 'asc' },
+  });
 }
 
 /**
  * Mark concept as mastered
  */
 export async function markConceptMastered(conceptId: string): Promise<Concept> {
-  throw new Error('Not implemented');
+  return prisma.concept.update({
+    where: { id: conceptId },
+    data: {
+      isMastered: true,
+      masteredAt: new Date(),
+    },
+  });
 }
 
 /**
@@ -71,19 +110,29 @@ export async function updateConceptExplanation(
   conceptId: string,
   explanation: string
 ): Promise<Concept> {
-  throw new Error('Not implemented');
+  return prisma.concept.update({
+    where: { id: conceptId },
+    data: { explanation },
+  });
 }
 
 /**
  * Count mastered concepts for a subtopic
  */
 export async function countMasteredConcepts(subtopicId: string): Promise<number> {
-  throw new Error('Not implemented');
+  return prisma.concept.count({
+    where: {
+      subtopicId,
+      isMastered: true,
+    },
+  });
 }
 
 /**
  * Count total concepts for a subtopic
  */
 export async function countConcepts(subtopicId: string): Promise<number> {
-  throw new Error('Not implemented');
+  return prisma.concept.count({
+    where: { subtopicId },
+  });
 }

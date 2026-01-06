@@ -1,53 +1,67 @@
 import { prisma } from './client';
-import type { User, UserPreferences } from '@prisma/client';
+import type { User, UserPreferences, UserRole } from '@prisma/client';
 
 /**
  * Create a new user
  */
 export async function createUser(data: {
-  username: string;
-  password: string;
-  isOwner?: boolean;
+  username?: string;
+  passphraseHash?: string;
+  role?: UserRole;
 }): Promise<User> {
-  throw new Error('Not implemented');
+  return prisma.user.create({
+    data: {
+      username: data.username,
+      passphraseHash: data.passphraseHash,
+      role: data.role || 'VISITOR',
+    },
+  });
 }
 
 /**
  * Get user by ID
  */
 export async function getUserById(userId: string): Promise<User | null> {
-  throw new Error('Not implemented');
+  return prisma.user.findUnique({
+    where: { id: userId },
+  });
 }
 
 /**
  * Get user by username
  */
 export async function getUserByUsername(username: string): Promise<User | null> {
-  throw new Error('Not implemented');
+  return prisma.user.findUnique({
+    where: { username },
+  });
 }
 
 /**
  * Get the owner user (there should only be one)
  */
 export async function getOwnerUser(): Promise<User | null> {
-  throw new Error('Not implemented');
+  return prisma.user.findFirst({
+    where: { role: 'OWNER' },
+  });
 }
 
 /**
  * Check if an owner already exists
  */
 export async function ownerExists(): Promise<boolean> {
-  throw new Error('Not implemented');
+  const owner = await prisma.user.findFirst({
+    where: { role: 'OWNER' },
+  });
+  return !!owner;
 }
 
 /**
- * Update user's visitor mode setting
+ * Delete a user
  */
-export async function updateVisitorMode(
-  userId: string,
-  allowVisitorMode: boolean
-): Promise<User> {
-  throw new Error('Not implemented');
+export async function deleteUser(userId: string): Promise<void> {
+  await prisma.user.delete({
+    where: { id: userId },
+  });
 }
 
 /**
@@ -56,7 +70,17 @@ export async function updateVisitorMode(
 export async function getUserPreferences(
   userId: string
 ): Promise<UserPreferences> {
-  throw new Error('Not implemented');
+  let prefs = await prisma.userPreferences.findUnique({
+    where: { userId },
+  });
+
+  if (!prefs) {
+    prefs = await prisma.userPreferences.create({
+      data: { userId },
+    });
+  }
+
+  return prefs;
 }
 
 /**
@@ -66,5 +90,9 @@ export async function updateUserPreferences(
   userId: string,
   data: Partial<Omit<UserPreferences, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>
 ): Promise<UserPreferences> {
-  throw new Error('Not implemented');
+  return prisma.userPreferences.upsert({
+    where: { userId },
+    create: { userId, ...data },
+    update: data,
+  });
 }

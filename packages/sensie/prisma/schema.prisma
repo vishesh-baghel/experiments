@@ -11,16 +11,18 @@ datasource db {
 // USER & AUTH
 // ============================================================================
 
-model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  password  String   // bcrypt hashed
-  isOwner   Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum UserRole {
+  OWNER
+  VISITOR
+}
 
-  // Visitor mode flag
-  allowVisitorMode Boolean @default(true)
+model User {
+  id             String    @id @default(cuid())
+  username       String?   @unique // Optional for visitors
+  passphraseHash String?   // bcrypt hashed, only for owner
+  role           UserRole  @default(VISITOR)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   // Relationships
   topics           Topic[]
@@ -32,7 +34,7 @@ model User {
   badges           Badge[]
   analytics        LearningAnalytics[]
 
-  @@index([username])
+  @@index([role])
 }
 
 // ============================================================================

@@ -1,5 +1,7 @@
 import { prisma } from './client';
-import type { LearningSession, Message, MessageRole } from '@prisma/client';
+import type { LearningSession, Message, MessageRole, Prisma } from '@prisma/client';
+
+const MAX_SKIPS = 3;
 
 /**
  * Create a new learning session
@@ -10,7 +12,15 @@ export async function createSession(data: {
   currentSubtopicId?: string;
   currentConceptId?: string;
 }): Promise<LearningSession> {
-  throw new Error('Not implemented');
+  return prisma.learningSession.create({
+    data: {
+      userId: data.userId,
+      topicId: data.topicId,
+      currentSubtopicId: data.currentSubtopicId,
+      currentConceptId: data.currentConceptId,
+      isActive: true,
+    },
+  });
 }
 
 /**
@@ -18,9 +28,12 @@ export async function createSession(data: {
  */
 export async function getSessionById(
   sessionId: string,
-  includeMessages?: boolean
+  includeMessages: boolean = false
 ): Promise<LearningSession | null> {
-  throw new Error('Not implemented');
+  return prisma.learningSession.findUnique({
+    where: { id: sessionId },
+    include: includeMessages ? { messages: { orderBy: { createdAt: 'asc' } } } : undefined,
+  });
 }
 
 /**
@@ -29,7 +42,9 @@ export async function getSessionById(
 export async function getActiveSession(
   topicId: string
 ): Promise<LearningSession | null> {
-  throw new Error('Not implemented');
+  return prisma.learningSession.findUnique({
+    where: { topicId },
+  });
 }
 
 /**
@@ -38,7 +53,10 @@ export async function getActiveSession(
 export async function getActiveSessionsByUser(
   userId: string
 ): Promise<LearningSession[]> {
-  throw new Error('Not implemented');
+  return prisma.learningSession.findMany({
+    where: { userId, isActive: true },
+    orderBy: { lastActivity: 'desc' },
+  });
 }
 
 /**
@@ -54,7 +72,13 @@ export async function updateSessionState(
     hintsUsed?: number;
   }
 ): Promise<LearningSession> {
-  throw new Error('Not implemented');
+  return prisma.learningSession.update({
+    where: { id: sessionId },
+    data: {
+      ...data,
+      lastActivity: new Date(),
+    },
+  });
 }
 
 /**
@@ -64,14 +88,34 @@ export async function useSkip(
   sessionId: string,
   questionId: string
 ): Promise<LearningSession> {
-  throw new Error('Not implemented');
+  const session = await prisma.learningSession.findUnique({
+    where: { id: sessionId },
+  });
+
+  if (!session) throw new Error('Session not found');
+  if (session.skipsUsed >= MAX_SKIPS) throw new Error('No skips remaining');
+
+  return prisma.learningSession.update({
+    where: { id: sessionId },
+    data: {
+      skipsUsed: { increment: 1 },
+      skippedQuestionIds: [...session.skippedQuestionIds, questionId],
+      lastActivity: new Date(),
+    },
+  });
 }
 
 /**
  * End a session
  */
 export async function endSession(sessionId: string): Promise<LearningSession> {
-  throw new Error('Not implemented');
+  return prisma.learningSession.update({
+    where: { id: sessionId },
+    data: {
+      isActive: false,
+      endedAt: new Date(),
+    },
+  });
 }
 
 /**
@@ -83,7 +127,14 @@ export async function addMessage(data: {
   content: string;
   metadata?: Record<string, unknown>;
 }): Promise<Message> {
-  throw new Error('Not implemented');
+  return prisma.message.create({
+    data: {
+      sessionId: data.sessionId,
+      role: data.role,
+      content: data.content,
+      metadata: data.metadata as Prisma.InputJsonValue,
+    },
+  });
 }
 
 /**
@@ -93,14 +144,24 @@ export async function getSessionMessages(
   sessionId: string,
   limit?: number
 ): Promise<Message[]> {
-  throw new Error('Not implemented');
+  return prisma.message.findMany({
+    where: { sessionId },
+    orderBy: { createdAt: 'asc' },
+    take: limit,
+  });
 }
 
 /**
  * Reset skip count (for new subtopic)
  */
 export async function resetSkips(sessionId: string): Promise<LearningSession> {
-  throw new Error('Not implemented');
+  return prisma.learningSession.update({
+    where: { id: sessionId },
+    data: {
+      skipsUsed: 0,
+      skippedQuestionIds: [],
+    },
+  });
 }
 
 /**
@@ -109,5 +170,8 @@ export async function resetSkips(sessionId: string): Promise<LearningSession> {
 export async function updateLastActivity(
   sessionId: string
 ): Promise<LearningSession> {
-  throw new Error('Not implemented');
+  return prisma.learningSession.update({
+    where: { id: sessionId },
+    data: { lastActivity: new Date() },
+  });
 }

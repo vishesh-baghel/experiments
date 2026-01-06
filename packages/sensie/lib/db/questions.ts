@@ -13,7 +13,17 @@ export async function createQuestion(data: {
   hints?: string[];
   followUpPrompts?: string[];
 }): Promise<Question> {
-  throw new Error('Not implemented');
+  return prisma.question.create({
+    data: {
+      conceptId: data.conceptId,
+      text: data.text,
+      type: data.type,
+      difficulty: data.difficulty || 2,
+      expectedElements: data.expectedElements || [],
+      hints: data.hints || [],
+      followUpPrompts: data.followUpPrompts || [],
+    },
+  });
 }
 
 /**
@@ -30,7 +40,22 @@ export async function createQuestions(
     followUpPrompts?: string[];
   }>
 ): Promise<Question[]> {
-  throw new Error('Not implemented');
+  const created = await prisma.$transaction(
+    questions.map((q) =>
+      prisma.question.create({
+        data: {
+          conceptId,
+          text: q.text,
+          type: q.type,
+          difficulty: q.difficulty || 2,
+          expectedElements: q.expectedElements || [],
+          hints: q.hints || [],
+          followUpPrompts: q.followUpPrompts || [],
+        },
+      })
+    )
+  );
+  return created;
 }
 
 /**
@@ -40,7 +65,13 @@ export async function getQuestionsByConcept(
   conceptId: string,
   difficulty?: number
 ): Promise<Question[]> {
-  throw new Error('Not implemented');
+  return prisma.question.findMany({
+    where: {
+      conceptId,
+      ...(difficulty !== undefined && { difficulty }),
+    },
+    orderBy: { difficulty: 'asc' },
+  });
 }
 
 /**
@@ -49,7 +80,9 @@ export async function getQuestionsByConcept(
 export async function getQuestionById(
   questionId: string
 ): Promise<Question | null> {
-  throw new Error('Not implemented');
+  return prisma.question.findUnique({
+    where: { id: questionId },
+  });
 }
 
 /**
@@ -59,7 +92,22 @@ export async function getRandomQuestion(
   conceptId: string,
   difficulty: number
 ): Promise<Question | null> {
-  throw new Error('Not implemented');
+  // Get questions at or near the target difficulty
+  const questions = await prisma.question.findMany({
+    where: {
+      conceptId,
+      difficulty: {
+        gte: difficulty - 1,
+        lte: difficulty + 1,
+      },
+    },
+  });
+
+  if (questions.length === 0) return null;
+
+  // Return random question
+  const randomIndex = Math.floor(Math.random() * questions.length);
+  return questions[randomIndex];
 }
 
 /**
@@ -69,7 +117,15 @@ export async function getQuestionsForQuiz(
   conceptIds: string[],
   count: number
 ): Promise<Question[]> {
-  throw new Error('Not implemented');
+  const questions = await prisma.question.findMany({
+    where: {
+      conceptId: { in: conceptIds },
+    },
+  });
+
+  // Shuffle and take requested count
+  const shuffled = questions.sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
 }
 
 /**
@@ -78,5 +134,7 @@ export async function getQuestionsForQuiz(
 export async function getQuestionWithHints(
   questionId: string
 ): Promise<Question | null> {
-  throw new Error('Not implemented');
+  return prisma.question.findUnique({
+    where: { id: questionId },
+  });
 }

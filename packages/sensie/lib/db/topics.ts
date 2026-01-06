@@ -1,6 +1,8 @@
 import { prisma } from './client';
 import type { Topic, TopicStatus } from '@prisma/client';
 
+const MAX_ACTIVE_TOPICS = 3;
+
 /**
  * Create a new topic for a user
  */
@@ -9,7 +11,14 @@ export async function createTopic(data: {
   name: string;
   description?: string;
 }): Promise<Topic> {
-  throw new Error('Not implemented');
+  return prisma.topic.create({
+    data: {
+      userId: data.userId,
+      name: data.name,
+      description: data.description,
+      status: 'QUEUED',
+    },
+  });
 }
 
 /**
@@ -19,7 +28,13 @@ export async function getTopicsByUser(
   userId: string,
   status?: TopicStatus
 ): Promise<Topic[]> {
-  throw new Error('Not implemented');
+  return prisma.topic.findMany({
+    where: {
+      userId,
+      ...(status && { status }),
+    },
+    orderBy: { updatedAt: 'desc' },
+  });
 }
 
 /**
@@ -27,23 +42,38 @@ export async function getTopicsByUser(
  */
 export async function getTopicById(
   topicId: string,
-  includeSubtopics?: boolean
+  includeSubtopics: boolean = false
 ): Promise<Topic | null> {
-  throw new Error('Not implemented');
+  return prisma.topic.findUnique({
+    where: { id: topicId },
+    include: includeSubtopics ? { subtopics: { orderBy: { order: 'asc' } } } : undefined,
+  });
 }
 
 /**
  * Get active topics for a user (max 3)
  */
 export async function getActiveTopics(userId: string): Promise<Topic[]> {
-  throw new Error('Not implemented');
+  return prisma.topic.findMany({
+    where: {
+      userId,
+      status: 'ACTIVE',
+    },
+    orderBy: { updatedAt: 'desc' },
+    take: MAX_ACTIVE_TOPICS,
+  });
 }
 
 /**
  * Count active topics for a user
  */
 export async function countActiveTopics(userId: string): Promise<number> {
-  throw new Error('Not implemented');
+  return prisma.topic.count({
+    where: {
+      userId,
+      status: 'ACTIVE',
+    },
+  });
 }
 
 /**
@@ -53,7 +83,10 @@ export async function updateTopicStatus(
   topicId: string,
   status: TopicStatus
 ): Promise<Topic> {
-  throw new Error('Not implemented');
+  return prisma.topic.update({
+    where: { id: topicId },
+    data: { status },
+  });
 }
 
 /**
@@ -63,33 +96,53 @@ export async function updateTopicMastery(
   topicId: string,
   masteryPercentage: number
 ): Promise<Topic> {
-  throw new Error('Not implemented');
+  return prisma.topic.update({
+    where: { id: topicId },
+    data: { masteryPercentage: Math.min(100, Math.max(0, masteryPercentage)) },
+  });
 }
 
 /**
  * Start a topic (set status to ACTIVE, set startedAt)
  */
 export async function startTopic(topicId: string): Promise<Topic> {
-  throw new Error('Not implemented');
+  return prisma.topic.update({
+    where: { id: topicId },
+    data: {
+      status: 'ACTIVE',
+      startedAt: new Date(),
+    },
+  });
 }
 
 /**
  * Complete a topic (set status to COMPLETED, set completedAt)
  */
 export async function completeTopic(topicId: string): Promise<Topic> {
-  throw new Error('Not implemented');
+  return prisma.topic.update({
+    where: { id: topicId },
+    data: {
+      status: 'COMPLETED',
+      completedAt: new Date(),
+    },
+  });
 }
 
 /**
  * Archive a topic
  */
 export async function archiveTopic(topicId: string): Promise<Topic> {
-  throw new Error('Not implemented');
+  return prisma.topic.update({
+    where: { id: topicId },
+    data: { status: 'ARCHIVED' },
+  });
 }
 
 /**
  * Delete a topic and all related data
  */
 export async function deleteTopic(topicId: string): Promise<void> {
-  throw new Error('Not implemented');
+  await prisma.topic.delete({
+    where: { id: topicId },
+  });
 }

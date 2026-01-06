@@ -13,14 +13,30 @@ export async function createSubtopics(
     isLocked?: boolean;
   }>
 ): Promise<Subtopic[]> {
-  throw new Error('Not implemented');
+  const created = await prisma.$transaction(
+    subtopics.map((subtopic) =>
+      prisma.subtopic.create({
+        data: {
+          topicId,
+          name: subtopic.name,
+          description: subtopic.description,
+          order: subtopic.order,
+          isLocked: subtopic.isLocked ?? subtopic.order > 0, // First subtopic unlocked by default
+        },
+      })
+    )
+  );
+  return created;
 }
 
 /**
  * Get all subtopics for a topic (ordered)
  */
 export async function getSubtopicsByTopic(topicId: string): Promise<Subtopic[]> {
-  throw new Error('Not implemented');
+  return prisma.subtopic.findMany({
+    where: { topicId },
+    orderBy: { order: 'asc' },
+  });
 }
 
 /**
@@ -28,9 +44,12 @@ export async function getSubtopicsByTopic(topicId: string): Promise<Subtopic[]> 
  */
 export async function getSubtopicById(
   subtopicId: string,
-  includeConcepts?: boolean
+  includeConcepts: boolean = false
 ): Promise<Subtopic | null> {
-  throw new Error('Not implemented');
+  return prisma.subtopic.findUnique({
+    where: { id: subtopicId },
+    include: includeConcepts ? { concepts: true } : undefined,
+  });
 }
 
 /**
@@ -39,14 +58,23 @@ export async function getSubtopicById(
 export async function getNextLockedSubtopic(
   topicId: string
 ): Promise<Subtopic | null> {
-  throw new Error('Not implemented');
+  return prisma.subtopic.findFirst({
+    where: {
+      topicId,
+      isLocked: true,
+    },
+    orderBy: { order: 'asc' },
+  });
 }
 
 /**
  * Unlock a subtopic
  */
 export async function unlockSubtopic(subtopicId: string): Promise<Subtopic> {
-  throw new Error('Not implemented');
+  return prisma.subtopic.update({
+    where: { id: subtopicId },
+    data: { isLocked: false },
+  });
 }
 
 /**
@@ -56,14 +84,23 @@ export async function updateSubtopicMastery(
   subtopicId: string,
   masteryPercentage: number
 ): Promise<Subtopic> {
-  throw new Error('Not implemented');
+  return prisma.subtopic.update({
+    where: { id: subtopicId },
+    data: { masteryPercentage: Math.min(100, Math.max(0, masteryPercentage)) },
+  });
 }
 
 /**
  * Complete a subtopic
  */
 export async function completeSubtopic(subtopicId: string): Promise<Subtopic> {
-  throw new Error('Not implemented');
+  return prisma.subtopic.update({
+    where: { id: subtopicId },
+    data: {
+      masteryPercentage: 100,
+      completedAt: new Date(),
+    },
+  });
 }
 
 /**
@@ -72,5 +109,13 @@ export async function completeSubtopic(subtopicId: string): Promise<Subtopic> {
 export async function calculateSubtopicMastery(
   subtopicId: string
 ): Promise<number> {
-  throw new Error('Not implemented');
+  const concepts = await prisma.concept.findMany({
+    where: { subtopicId },
+    select: { isMastered: true },
+  });
+
+  if (concepts.length === 0) return 0;
+
+  const masteredCount = concepts.filter((c) => c.isMastered).length;
+  return Math.round((masteredCount / concepts.length) * 100);
 }

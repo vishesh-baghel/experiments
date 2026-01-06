@@ -1,6 +1,8 @@
 import { prisma } from './client';
 import type { Review, ReviewType, ReviewStatus } from '@prisma/client';
 
+const MAX_REVIEWS_PER_SESSION = 20;
+
 /**
  * Create a new review item
  */
@@ -12,7 +14,17 @@ export async function createReview(data: {
   type: ReviewType;
   nextReview: Date;
 }): Promise<Review> {
-  throw new Error('Not implemented');
+  return prisma.review.create({
+    data: {
+      userId: data.userId,
+      topicId: data.topicId,
+      subtopicId: data.subtopicId,
+      conceptId: data.conceptId,
+      type: data.type,
+      nextReview: data.nextReview,
+      status: 'NEW',
+    },
+  });
 }
 
 /**
@@ -20,23 +32,37 @@ export async function createReview(data: {
  */
 export async function getReviewsDue(
   userId: string,
-  limit?: number
+  limit: number = MAX_REVIEWS_PER_SESSION
 ): Promise<Review[]> {
-  throw new Error('Not implemented');
+  return prisma.review.findMany({
+    where: {
+      userId,
+      nextReview: { lte: new Date() },
+    },
+    orderBy: { nextReview: 'asc' },
+    take: limit,
+  });
 }
 
 /**
  * Get review by ID
  */
 export async function getReviewById(reviewId: string): Promise<Review | null> {
-  throw new Error('Not implemented');
+  return prisma.review.findUnique({
+    where: { id: reviewId },
+  });
 }
 
 /**
  * Count reviews due for a user
  */
 export async function countReviewsDue(userId: string): Promise<number> {
-  throw new Error('Not implemented');
+  return prisma.review.count({
+    where: {
+      userId,
+      nextReview: { lte: new Date() },
+    },
+  });
 }
 
 /**
@@ -58,7 +84,10 @@ export async function updateReviewAfterRating(
     status: ReviewStatus;
   }
 ): Promise<Review> {
-  throw new Error('Not implemented');
+  return prisma.review.update({
+    where: { id: reviewId },
+    data,
+  });
 }
 
 /**
@@ -68,7 +97,10 @@ export async function getReviewsByStatus(
   userId: string,
   status: ReviewStatus
 ): Promise<Review[]> {
-  throw new Error('Not implemented');
+  return prisma.review.findMany({
+    where: { userId, status },
+    orderBy: { nextReview: 'asc' },
+  });
 }
 
 /**
@@ -80,7 +112,15 @@ export async function reviewExistsForItem(
   subtopicId?: string,
   conceptId?: string
 ): Promise<boolean> {
-  throw new Error('Not implemented');
+  const review = await prisma.review.findFirst({
+    where: {
+      userId,
+      topicId,
+      ...(subtopicId && { subtopicId }),
+      ...(conceptId && { conceptId }),
+    },
+  });
+  return !!review;
 }
 
 /**
@@ -92,5 +132,32 @@ export async function getReviewStats(userId: string): Promise<{
   completed: number;
   averageRetention: number;
 }> {
-  throw new Error('Not implemented');
+  const now = new Date();
+  const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+  const endOfDay = new Date(now.setHours(23, 59, 59, 999));
+
+  const [totalReviews, dueToday, graduated] = await Promise.all([
+    prisma.review.count({ where: { userId } }),
+    prisma.review.count({
+      where: {
+        userId,
+        nextReview: { gte: startOfDay, lte: endOfDay },
+      },
+    }),
+    prisma.review.count({
+      where: { userId, status: 'GRADUATED' },
+    }),
+  ]);
+
+  // Calculate average retention based on graduated vs total
+  const averageRetention = totalReviews > 0
+    ? Math.round((graduated / totalReviews) * 100)
+    : 0;
+
+  return {
+    totalReviews,
+    dueToday,
+    completed: graduated,
+    averageRetention,
+  };
 }

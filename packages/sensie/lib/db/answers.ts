@@ -15,14 +15,29 @@ export async function createAnswer(data: {
   timeToAnswer?: number;
   attemptNumber?: number;
 }): Promise<Answer> {
-  throw new Error('Not implemented');
+  return prisma.answer.create({
+    data: {
+      questionId: data.questionId,
+      userId: data.userId,
+      sessionId: data.sessionId,
+      text: data.text,
+      isCorrect: data.isCorrect,
+      depth: data.depth,
+      hintsUsed: data.hintsUsed || 0,
+      timeToAnswer: data.timeToAnswer,
+      attemptNumber: data.attemptNumber || 1,
+    },
+  });
 }
 
 /**
  * Get all answers for a session
  */
 export async function getAnswersBySession(sessionId: string): Promise<Answer[]> {
-  throw new Error('Not implemented');
+  return prisma.answer.findMany({
+    where: { sessionId },
+    orderBy: { createdAt: 'asc' },
+  });
 }
 
 /**
@@ -32,7 +47,10 @@ export async function getAnswersByQuestion(
   questionId: string,
   userId: string
 ): Promise<Answer[]> {
-  throw new Error('Not implemented');
+  return prisma.answer.findMany({
+    where: { questionId, userId },
+    orderBy: { createdAt: 'desc' },
+  });
 }
 
 /**
@@ -40,23 +58,31 @@ export async function getAnswersByQuestion(
  */
 export async function getRecentAnswers(
   userId: string,
-  limit?: number
+  limit: number = 20
 ): Promise<Answer[]> {
-  throw new Error('Not implemented');
+  return prisma.answer.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
 }
 
 /**
  * Count correct answers for a session
  */
 export async function countCorrectAnswers(sessionId: string): Promise<number> {
-  throw new Error('Not implemented');
+  return prisma.answer.count({
+    where: { sessionId, isCorrect: true },
+  });
 }
 
 /**
  * Count total answers for a session
  */
 export async function countTotalAnswers(sessionId: string): Promise<number> {
-  throw new Error('Not implemented');
+  return prisma.answer.count({
+    where: { sessionId },
+  });
 }
 
 /**
@@ -64,14 +90,27 @@ export async function countTotalAnswers(sessionId: string): Promise<number> {
  */
 export async function getRecentAccuracy(
   userId: string,
-  limit?: number
+  limit: number = 20
 ): Promise<number> {
-  throw new Error('Not implemented');
+  const answers = await prisma.answer.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    select: { isCorrect: true },
+  });
+
+  if (answers.length === 0) return 0;
+
+  const correct = answers.filter((a) => a.isCorrect).length;
+  return Math.round((correct / answers.length) * 100);
 }
 
 /**
  * Mark answer as private (for visitor mode)
  */
 export async function markAnswerPrivate(answerId: string): Promise<Answer> {
-  throw new Error('Not implemented');
+  return prisma.answer.update({
+    where: { id: answerId },
+    data: { isPrivate: true },
+  });
 }
