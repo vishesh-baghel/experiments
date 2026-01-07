@@ -131,7 +131,10 @@ export async function getUserFromSession(
 /**
  * Setup owner account (first-time setup)
  */
-export async function setupOwner(passphrase: string): Promise<AuthResult> {
+export async function setupOwner(
+  passphrase: string,
+  username?: string
+): Promise<AuthResult> {
   // Check if owner already exists
   const existingOwner = await prisma.user.findFirst({
     where: { role: 'OWNER' },
@@ -151,7 +154,7 @@ export async function setupOwner(passphrase: string): Promise<AuthResult> {
   const passphraseHash = await hashPassphrase(passphrase);
   const owner = await prisma.user.create({
     data: {
-      username: 'owner',
+      username: username || 'owner',
       role: 'OWNER',
       passphraseHash,
     },

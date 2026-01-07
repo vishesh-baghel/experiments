@@ -114,8 +114,7 @@ describe('auth API routes', () => {
       const { destroySession } = await import('@/lib/auth/session');
       (destroySession as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
 
-      const request = createMockRequest();
-      const response = await logoutHandler(request);
+      const response = await logoutHandler();
 
       expect(response.status).toBe(200);
       expect(destroySession).toHaveBeenCalled();

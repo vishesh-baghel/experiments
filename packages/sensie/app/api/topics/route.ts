@@ -21,7 +21,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const url = new URL(request.url);
     const status = url.searchParams.get('status') as TopicStatus | null;
 
-    const topics = await getTopicsByUser(session.userId, status || undefined);
+    const rawTopics = await getTopicsByUser(session.userId, status || undefined);
+
+    // Transform subtopics to match UI expected format
+    const topics = rawTopics.map(topic => ({
+      ...topic,
+      subtopics: topic.subtopics?.map(st => ({
+        id: st.id,
+        name: st.name,
+        isLocked: st.isLocked,
+        mastery: st.masteryPercentage,
+      })),
+    }));
 
     return NextResponse.json({ topics });
   } catch (error) {

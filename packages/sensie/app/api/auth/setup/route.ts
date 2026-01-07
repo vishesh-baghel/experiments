@@ -9,7 +9,7 @@ import { createSession } from '@/lib/auth/session';
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body = await request.json();
-    const { passphrase } = body;
+    const { passphrase, username } = body;
 
     if (!passphrase) {
       return NextResponse.json(
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const result = await setupOwner(passphrase);
+    const result = await setupOwner(passphrase, username);
     if (!result.success || !result.user) {
       return NextResponse.json(
         { error: result.error || 'Setup failed' },

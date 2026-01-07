@@ -96,6 +96,17 @@ describe('topics db module', () => {
       expect(result).toEqual(mockTopics);
       expect(prisma.topic.findMany).toHaveBeenCalledWith({
         where: { userId: 'user-123' },
+        include: {
+          subtopics: {
+            orderBy: { order: 'asc' },
+            select: {
+              id: true,
+              name: true,
+              isLocked: true,
+              masteryPercentage: true,
+            },
+          },
+        },
         orderBy: { updatedAt: 'desc' },
       });
     });
@@ -110,6 +121,17 @@ describe('topics db module', () => {
       expect(result).toEqual(mockTopics);
       expect(prisma.topic.findMany).toHaveBeenCalledWith({
         where: { userId: 'user-123', status: 'ACTIVE' },
+        include: {
+          subtopics: {
+            orderBy: { order: 'asc' },
+            select: {
+              id: true,
+              name: true,
+              isLocked: true,
+              masteryPercentage: true,
+            },
+          },
+        },
         orderBy: { updatedAt: 'desc' },
       });
     });

@@ -22,16 +22,27 @@ export async function createTopic(data: {
 }
 
 /**
- * Get all topics for a user
+ * Get all topics for a user with subtopics
  */
 export async function getTopicsByUser(
   userId: string,
   status?: TopicStatus
-): Promise<Topic[]> {
+) {
   return prisma.topic.findMany({
     where: {
       userId,
       ...(status && { status }),
+    },
+    include: {
+      subtopics: {
+        orderBy: { order: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          isLocked: true,
+          masteryPercentage: true,
+        },
+      },
     },
     orderBy: { updatedAt: 'desc' },
   });
