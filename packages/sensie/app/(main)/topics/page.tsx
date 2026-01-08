@@ -294,26 +294,41 @@ export default function TopicsPage() {
               placeholder="Learning goal (optional, e.g., Build a CLI tool)"
               className="w-full mt-2 px-3 py-2 text-sm bg-[hsl(var(--background))] border border-[hsl(var(--border))] rounded-md focus:outline-none focus:border-[hsl(var(--foreground))/0.2]"
             />
-            <div className="flex justify-end gap-2 mt-3">
-              <button
-                onClick={() => {
-                  setShowNewTopic(false);
-                  setNewTopicName('');
-                  setNewTopicGoal('');
-                }}
-                className="px-3 py-1.5 text-sm text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateTopic}
-                disabled={!newTopicName.trim() || creating}
-                className="px-3 py-1.5 text-sm font-medium bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] rounded-md disabled:opacity-40 flex items-center gap-2"
-              >
-                {creating && <Loader2 className="w-3 h-3 animate-spin" />}
-                Create
-              </button>
-            </div>
+            {creating ? (
+              <div className="mt-4 p-3 bg-[hsl(var(--muted))] rounded-md">
+                <div className="flex items-center gap-3">
+                  <Loader2 className="w-5 h-5 animate-spin text-[hsl(var(--foreground))]" />
+                  <div>
+                    <p className="text-sm font-medium text-[hsl(var(--foreground))]">
+                      Generating your skill tree...
+                    </p>
+                    <p className="text-xs text-[hsl(var(--muted-foreground))] mt-0.5">
+                      This takes about 20-30 seconds. You can wait or come back shortly.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-end gap-2 mt-3">
+                <button
+                  onClick={() => {
+                    setShowNewTopic(false);
+                    setNewTopicName('');
+                    setNewTopicGoal('');
+                  }}
+                  className="px-3 py-1.5 text-sm text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateTopic}
+                  disabled={!newTopicName.trim()}
+                  className="px-3 py-1.5 text-sm font-medium bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] rounded-md disabled:opacity-40"
+                >
+                  Create
+                </button>
+              </div>
+            )}
           </div>
         )}
 

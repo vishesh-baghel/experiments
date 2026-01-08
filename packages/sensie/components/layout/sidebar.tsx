@@ -61,7 +61,7 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'h-screen border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-all duration-300 flex flex-col',
+        'h-screen sticky top-0 border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-all duration-300 flex flex-col',
         collapsed ? 'w-16' : 'w-56'
       )}
     >
