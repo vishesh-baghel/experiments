@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { requireAuth } from '@/lib/auth/auth';
-import { getTopicsByUser, createTopic, countActiveTopics } from '@/lib/db/topics';
+import { getTopicsByUser, countActiveTopics } from '@/lib/db/topics';
+import { generatePath, createTopicFromPath } from '@/lib/learning/learning-path-generator';
+import { topicsLogger } from '@/lib/observability/logger';
 import type { TopicStatus } from '@prisma/client';
 
 const MAX_ACTIVE_TOPICS = 3;
@@ -21,6 +23,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const url = new URL(request.url);
     const status = url.searchParams.get('status') as TopicStatus | null;
 
+    topicsLogger.info('Fetching topics', { userId: session.userId, status: status || 'all' });
+
     const rawTopics = await getTopicsByUser(session.userId, status || undefined);
 
     // Transform subtopics to match UI expected format
@@ -34,9 +38,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       })),
     }));
 
+    topicsLogger.info('Topics fetched successfully', { userId: session.userId, count: topics.length });
+
     return NextResponse.json({ topics });
   } catch (error) {
-    console.error('Get topics error:', error);
+    topicsLogger.error('Failed to fetch topics', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -46,7 +52,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 /**
  * POST /api/topics
- * Create a new topic (generates learning path)
+ * Create a new topic with auto-generated learning path and subtopics
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -57,7 +63,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const body = await request.json();
-    const { name, description } = body;
+    const { name, goal } = body;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json(
@@ -66,37 +72,55 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Check active topic limit for visitors
-    if (session.role === 'visitor') {
-      const activeCount = await countActiveTopics(session.userId);
-      if (activeCount >= 1) {
-        return NextResponse.json(
-          { error: 'Visitors can only have 1 active topic. Complete or archive your current topic first.' },
-          { status: 403 }
-        );
-      }
-    }
+    topicsLogger.info('Creating new topic', { userId: session.userId, topicName: name.trim() });
 
-    // Check active topic limit for owner (3 max)
+    // Check active topic count to determine if new topic should be queued
     const activeCount = await countActiveTopics(session.userId);
-    if (activeCount >= MAX_ACTIVE_TOPICS) {
-      return NextResponse.json(
-        { error: `Maximum ${MAX_ACTIVE_TOPICS} active topics allowed. Complete or archive a topic first.` },
-        { status: 403 }
-      );
+    const maxActive = session.role === 'visitor' ? 1 : MAX_ACTIVE_TOPICS;
+    const shouldQueue = activeCount >= maxActive;
+
+    if (shouldQueue) {
+      topicsLogger.info('Topic will be queued', { userId: session.userId, activeCount, maxActive });
     }
 
-    const topic = await createTopic({
-      userId: session.userId,
-      name: name.trim(),
-      description: description?.trim(),
+    // Generate learning path with subtopics using LLM
+    topicsLogger.info('Generating learning path', { topicName: name.trim(), goal });
+    const learningPath = await generatePath(name.trim(), goal?.trim());
+
+    topicsLogger.info('Learning path generated', {
+      topicName: name.trim(),
+      domain: learningPath.domain,
+      subtopicCount: learningPath.subtopics.length,
+      estimatedHours: learningPath.estimatedHours,
     });
 
-    return NextResponse.json({ topic }, { status: 201 });
+    // Create topic with subtopics and concepts in database
+    // If user has max active topics, the new topic will be queued
+    const topic = await createTopicFromPath(learningPath, session.userId, shouldQueue);
+
+    topicsLogger.info('Topic created successfully', {
+      userId: session.userId,
+      topicId: topic.id,
+      topicName: topic.name,
+      subtopicCount: topic.subtopics?.length || 0,
+    });
+
+    // Transform for UI
+    const transformedTopic = {
+      ...topic,
+      subtopics: topic.subtopics?.map(st => ({
+        id: st.id,
+        name: st.name,
+        isLocked: st.isLocked,
+        mastery: st.masteryPercentage,
+      })),
+    };
+
+    return NextResponse.json({ topic: transformedTopic }, { status: 201 });
   } catch (error) {
-    console.error('Create topic error:', error);
+    topicsLogger.error('Failed to create topic', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to create topic. Please try again.' },
       { status: 500 }
     );
   }

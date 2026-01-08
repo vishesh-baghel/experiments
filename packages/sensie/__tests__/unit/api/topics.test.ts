@@ -138,11 +138,31 @@ describe('topics API routes', () => {
   });
 
   describe('POST /api/topics', () => {
-    it('should create topic', async () => {
-      const { createTopic: dbCreateTopic, countActiveTopics } = await import('@/lib/db/topics');
+    it('should create topic with auto-generated subtopics', async () => {
+      const { countActiveTopics } = await import('@/lib/db/topics');
+      const { generatePath, createTopicFromPath } = await import('@/lib/learning/learning-path-generator');
+
       (countActiveTopics as ReturnType<typeof vi.fn>).mockResolvedValue(1);
-      const mockTopic = { id: 't1', name: 'Rust Programming', status: 'ACTIVE' };
-      (dbCreateTopic as ReturnType<typeof vi.fn>).mockResolvedValue(mockTopic);
+
+      const mockPath = {
+        topicName: 'Rust Programming',
+        domain: 'technical',
+        estimatedHours: 10,
+        subtopics: [
+          { name: 'Basics', order: 1, concepts: [{ name: 'Variables' }] },
+        ],
+      };
+      (generatePath as ReturnType<typeof vi.fn>).mockResolvedValue(mockPath);
+
+      const mockTopic = {
+        id: 't1',
+        name: 'Rust Programming',
+        status: 'ACTIVE',
+        subtopics: [
+          { id: 's1', name: 'Basics', isLocked: false, masteryPercentage: 0 },
+        ],
+      };
+      (createTopicFromPath as ReturnType<typeof vi.fn>).mockResolvedValue(mockTopic);
 
       const request = createMockRequest('http://localhost:3000/api/topics', {
         method: 'POST',
@@ -152,20 +172,43 @@ describe('topics API routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(201);
-      expect(data.topic).toEqual(mockTopic);
+      expect(data.topic.name).toBe('Rust Programming');
+      expect(data.topic.subtopics).toHaveLength(1);
+      expect(generatePath).toHaveBeenCalledWith('Rust Programming', 'Build CLI tools');
     });
 
-    it('should reject if max active topics reached', async () => {
+    it('should queue topic when max active topics reached', async () => {
       const { countActiveTopics } = await import('@/lib/db/topics');
+      const { generatePath, createTopicFromPath } = await import('@/lib/learning/learning-path-generator');
       (countActiveTopics as ReturnType<typeof vi.fn>).mockResolvedValue(3);
+
+      const mockPath = {
+        topicName: 'Another Topic',
+        domain: 'technical',
+        estimatedHours: 5,
+        subtopics: [{ name: 'Sub1', description: 'Desc', order: 1, concepts: [] }],
+      };
+      (generatePath as ReturnType<typeof vi.fn>).mockResolvedValue(mockPath);
+
+      const mockQueuedTopic = {
+        id: 't2',
+        name: 'Another Topic',
+        status: 'QUEUED',
+        subtopics: [],
+      };
+      (createTopicFromPath as ReturnType<typeof vi.fn>).mockResolvedValue(mockQueuedTopic);
 
       const request = createMockRequest('http://localhost:3000/api/topics', {
         method: 'POST',
         body: { name: 'Another Topic' },
       });
       const response = await createTopic(request);
+      const data = await response.json();
 
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(201);
+      expect(data.topic.status).toBe('QUEUED');
+      // Verify createTopicFromPath was called with shouldQueue=true
+      expect(createTopicFromPath).toHaveBeenCalledWith(mockPath, 'user-123', true);
     });
 
     it('should reject empty topic name', async () => {

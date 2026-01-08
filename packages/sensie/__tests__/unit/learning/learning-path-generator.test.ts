@@ -23,24 +23,23 @@ vi.mock('@/lib/db/client', () => ({
   },
 }));
 
-// Mock AI SDK
-vi.mock('ai', () => ({
-  generateObject: vi.fn().mockResolvedValue({
-    object: {
-      domain: 'technical',
-      subtopics: [
-        { name: 'Fundamentals', order: 1, concepts: ['Concept 1', 'Concept 2', 'Concept 3'] },
-        { name: 'Intermediate', order: 2, concepts: ['Concept 4', 'Concept 5'] },
-        { name: 'Advanced', order: 3, concepts: ['Concept 6', 'Concept 7'] },
-      ],
-      prerequisites: ['Basic programming'],
-      reasoning: 'These are needed...',
-    },
-  }),
-}));
-
-vi.mock('@ai-sdk/anthropic', () => ({
-  anthropic: vi.fn().mockReturnValue('mock-model'),
+// Mock sensieAgent - now used for LLM calls
+vi.mock('@/lib/mastra/agents/sensie', () => ({
+  sensieAgent: {
+    generate: vi.fn().mockResolvedValue({
+      text: 'Mock response',
+      object: {
+        domain: 'technical',
+        subtopics: [
+          { name: 'Fundamentals', order: 1, concepts: ['Concept 1', 'Concept 2', 'Concept 3'] },
+          { name: 'Intermediate', order: 2, concepts: ['Concept 4', 'Concept 5'] },
+          { name: 'Advanced', order: 3, concepts: ['Concept 6', 'Concept 7'] },
+        ],
+        prerequisites: ['Basic programming'],
+        reasoning: 'These are needed...',
+      },
+    }),
+  },
 }));
 
 describe('learning-path-generator', () => {
@@ -104,7 +103,6 @@ describe('learning-path-generator', () => {
   describe('createTopicFromPath', () => {
     it('should create topic and subtopics in database', async () => {
       const { prisma } = await import('@/lib/db/client');
-      (prisma.topic.count as ReturnType<typeof vi.fn>).mockResolvedValue(0);
       (prisma.topic.create as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 'topic-123',
         name: 'Rust Programming',
@@ -117,12 +115,44 @@ describe('learning-path-generator', () => {
       expect(prisma.topic.create).toHaveBeenCalled();
     });
 
-    it('should enforce max 3 active topics', async () => {
+    it('should create topic with ACTIVE status by default', async () => {
       const { prisma } = await import('@/lib/db/client');
-      (prisma.topic.count as ReturnType<typeof vi.fn>).mockResolvedValue(3);
+      (prisma.topic.create as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'topic-123',
+        name: 'Rust Programming',
+        status: 'ACTIVE',
+        subtopics: [],
+      });
 
-      await expect(createTopicFromPath(mockPath, 'user-123')).rejects.toThrow(
-        'Maximum 3 active topics allowed'
+      await createTopicFromPath(mockPath, 'user-123');
+
+      expect(prisma.topic.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'ACTIVE',
+          }),
+        })
+      );
+    });
+
+    it('should create topic with QUEUED status when shouldQueue is true', async () => {
+      const { prisma } = await import('@/lib/db/client');
+      (prisma.topic.create as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'topic-123',
+        name: 'Rust Programming',
+        status: 'QUEUED',
+        subtopics: [],
+      });
+
+      await createTopicFromPath(mockPath, 'user-123', true);
+
+      expect(prisma.topic.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'QUEUED',
+            startedAt: null,
+          }),
+        })
       );
     });
   });

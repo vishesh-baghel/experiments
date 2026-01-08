@@ -3,7 +3,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, ChevronRight, Check, Lock, MoreHorizontal, Archive, Loader2, RefreshCw } from 'lucide-react';
+import { Plus, ChevronRight, Check, Lock, MoreHorizontal, Archive, ArchiveRestore, Loader2, RefreshCw, Trash2, PlayCircle, CheckCircle } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 /**
@@ -30,7 +37,7 @@ interface Topic {
   updatedAt: string;
 }
 
-type FilterType = 'all' | 'ACTIVE' | 'COMPLETED' | 'QUEUED';
+type FilterType = 'ACTIVE' | 'COMPLETED' | 'QUEUED' | 'ARCHIVED';
 
 export default function TopicsPage() {
   const router = useRouter();
@@ -38,7 +45,7 @@ export default function TopicsPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterType>('all');
+  const [filter, setFilter] = useState<FilterType>('ACTIVE');
   const [showNewTopic, setShowNewTopic] = useState(false);
   const [newTopicName, setNewTopicName] = useState('');
   const [newTopicGoal, setNewTopicGoal] = useState('');
@@ -47,8 +54,7 @@ export default function TopicsPage() {
     try {
       setLoading(true);
       setError(null);
-      const statusParam = filter !== 'all' ? `?status=${filter}` : '';
-      const response = await fetch(`/api/topics${statusParam}`);
+      const response = await fetch(`/api/topics?status=${filter}`);
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -71,9 +77,8 @@ export default function TopicsPage() {
     fetchTopics();
   }, [fetchTopics]);
 
-  const filteredTopics = topics.filter(
-    (topic) => filter === 'all' || topic.status === filter
-  );
+  // Topics are already filtered by the API based on status
+  const filteredTopics = topics;
 
   const handleCreateTopic = async () => {
     if (!newTopicName.trim()) return;
@@ -121,11 +126,49 @@ export default function TopicsPage() {
         throw new Error('Failed to archive topic');
       }
 
-      setTopics(topics.map(t =>
-        t.id === topicId ? { ...t, status: 'ARCHIVED' as TopicStatus } : t
-      ));
+      // Remove from current list since we filter by status
+      setTopics(topics.filter(t => t.id !== topicId));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to archive topic');
+    }
+  };
+
+  const handleUnarchiveTopic = async (topicId: string) => {
+    try {
+      const response = await fetch(`/api/topics/${topicId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'QUEUED' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to unarchive topic');
+      }
+
+      // Remove from current list since status changed
+      setTopics(topics.filter(t => t.id !== topicId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to unarchive topic');
+    }
+  };
+
+  const handleMarkCompleted = async (topicId: string) => {
+    try {
+      const response = await fetch(`/api/topics/${topicId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'COMPLETED' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to mark topic as completed');
+      }
+
+      setTopics(topics.map(t =>
+        t.id === topicId ? { ...t, status: 'COMPLETED' as TopicStatus } : t
+      ));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update topic');
     }
   };
 
@@ -208,20 +251,20 @@ export default function TopicsPage() {
           </div>
         )}
 
-        {/* Filters */}
-        <div className="flex gap-1 mb-6">
-          {(['all', 'ACTIVE', 'COMPLETED', 'QUEUED'] as const).map((f) => (
+        {/* Filter Tabs */}
+        <div className="flex gap-1 mb-6 border-b border-[hsl(var(--border))] pb-3">
+          {(['ACTIVE', 'QUEUED', 'COMPLETED', 'ARCHIVED'] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
               className={cn(
-                'px-3 py-1.5 text-sm font-medium rounded-md transition-colors capitalize',
+                'px-4 py-2 text-sm font-medium rounded-md transition-colors capitalize',
                 filter === f
                   ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]'
                   : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
               )}
             >
-              {f === 'all' ? 'All' : f.toLowerCase()}
+              {f.toLowerCase()}
             </button>
           ))}
         </div>
@@ -291,7 +334,9 @@ export default function TopicsPage() {
                 getSubtopicStatus={getSubtopicStatus}
                 formatLastActive={formatLastActive}
                 onArchive={() => handleArchiveTopic(topic.id)}
+                onUnarchive={() => handleUnarchiveTopic(topic.id)}
                 onStart={() => handleStartTopic(topic.id)}
+                onMarkCompleted={() => handleMarkCompleted(topic.id)}
               />
             ))}
           </div>
@@ -300,9 +345,8 @@ export default function TopicsPage() {
         {!loading && filteredTopics.length === 0 && (
           <div className="text-center py-12">
             <p className="text-[hsl(var(--muted-foreground))]">
-              {filter === 'all'
-                ? "No topics yet. Create one to start learning!"
-                : `No ${filter.toLowerCase()} topics.`}
+              No {filter.toLowerCase()} topics.
+              {filter === 'ACTIVE' && " Create one to start learning!"}
             </p>
           </div>
         )}
@@ -316,10 +360,12 @@ interface TopicCardProps {
   getSubtopicStatus: (subtopic: Subtopic) => SubtopicStatus;
   formatLastActive: (dateStr: string) => string;
   onArchive: () => void;
+  onUnarchive: () => void;
   onStart: () => void;
+  onMarkCompleted: () => void;
 }
 
-function TopicCard({ topic, getSubtopicStatus, formatLastActive, onArchive, onStart }: TopicCardProps) {
+function TopicCard({ topic, getSubtopicStatus, formatLastActive, onArchive, onUnarchive, onStart, onMarkCompleted }: TopicCardProps) {
   const completedSubtopics = topic.subtopics?.filter(
     (s) => !s.isLocked && s.mastery >= 80
   ).length || 0;
@@ -357,9 +403,54 @@ function TopicCard({ topic, getSubtopicStatus, formatLastActive, onArchive, onSt
                 {topic.masteryPercentage}%
               </span>
             </div>
-            <button className="p-1.5 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] rounded-md">
-              <MoreHorizontal className="w-4 h-4" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-1.5 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] rounded-md">
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {topic.status === 'QUEUED' && (
+                  <DropdownMenuItem onClick={onStart}>
+                    <PlayCircle className="w-4 h-4" />
+                    Start learning
+                  </DropdownMenuItem>
+                )}
+                {topic.status === 'ACTIVE' && (
+                  <>
+                    <DropdownMenuItem onClick={onStart}>
+                      <PlayCircle className="w-4 h-4" />
+                      Continue learning
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={onMarkCompleted}>
+                      <CheckCircle className="w-4 h-4" />
+                      Mark as completed
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {topic.status === 'COMPLETED' && (
+                  <DropdownMenuItem onClick={onStart}>
+                    <RefreshCw className="w-4 h-4" />
+                    Review topic
+                  </DropdownMenuItem>
+                )}
+                {topic.status === 'ARCHIVED' && (
+                  <DropdownMenuItem onClick={onUnarchive}>
+                    <ArchiveRestore className="w-4 h-4" />
+                    Unarchive topic
+                  </DropdownMenuItem>
+                )}
+                {topic.status !== 'ARCHIVED' && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={onArchive} variant="destructive">
+                      <Archive className="w-4 h-4" />
+                      Archive topic
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 

@@ -1,10 +1,10 @@
-import { generateObject } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
 import { z } from 'zod';
 import type { LearningPath, LearningPathSubtopic, Topic } from '@/lib/types';
 import { LearningPathSchema, DomainClassificationSchema } from '@/lib/mastra/schemas';
 import { SENSIE_SYSTEM_PROMPT } from '@/lib/mastra/prompts';
+import { sensieAgent } from '@/lib/mastra/agents/sensie';
 import { prisma } from '@/lib/db/client';
+import { learningLogger } from '@/lib/observability/logger';
 
 /**
  * LearningPathGenerator - Creates structured learning paths from topics
@@ -34,11 +34,19 @@ export async function generatePath(
   topicName: string,
   userGoal?: string
 ): Promise<LearningPath> {
+  learningLogger.info('Starting learning path generation', { topicName, userGoal });
+
   // First identify the domain
   const domain = await identifyDomain(topicName);
+  learningLogger.info('Domain identified', { topicName, domain });
 
   // Generate subtopics with concepts
   const subtopics = await generateSubtopics(topicName, domain, userGoal);
+  learningLogger.info('Subtopics generated', {
+    topicName,
+    subtopicCount: subtopics.length,
+    totalConcepts: subtopics.reduce((sum, st) => sum + st.concepts.length, 0),
+  });
 
   // Calculate estimated hours based on subtopics and concepts
   const estimatedHours = subtopics.reduce((total, st) => {
@@ -57,22 +65,17 @@ export async function generatePath(
 
 /**
  * Create topic and subtopics in database from path
+ * @param path - The generated learning path
+ * @param userId - The user ID
+ * @param shouldQueue - If true, create topic with QUEUED status instead of ACTIVE
  */
 export async function createTopicFromPath(
   path: LearningPath,
-  userId: string
+  userId: string,
+  shouldQueue: boolean = false
 ): Promise<Topic> {
-  // Check topic limit (max 3 active)
-  const activeTopicCount = await prisma.topic.count({
-    where: {
-      userId,
-      status: 'ACTIVE',
-    },
-  });
-
-  if (activeTopicCount >= 3) {
-    throw new Error('Maximum 3 active topics allowed. Complete or archive existing topics first.');
-  }
+  const status = shouldQueue ? 'QUEUED' : 'ACTIVE';
+  learningLogger.info('Creating topic from path', { userId, topicName: path.topicName, status });
 
   // Create the topic
   const topic = await prisma.topic.create({
@@ -80,7 +83,8 @@ export async function createTopicFromPath(
       userId,
       name: path.topicName,
       description: `Learning path for ${path.topicName} (${path.domain})`,
-      status: 'ACTIVE',
+      status,
+      startedAt: shouldQueue ? null : new Date(),
       subtopics: {
         create: path.subtopics.map((subtopic, index) => ({
           name: subtopic.name,
@@ -98,6 +102,7 @@ export async function createTopicFromPath(
     },
     include: {
       subtopics: {
+        orderBy: { order: 'asc' },
         include: {
           concepts: true,
         },
@@ -105,20 +110,23 @@ export async function createTopicFromPath(
     },
   });
 
+  learningLogger.info('Topic created in database', {
+    topicId: topic.id,
+    topicName: topic.name,
+    subtopicCount: topic.subtopics.length,
+  });
+
   return topic as Topic;
 }
 
 /**
- * Identify the domain of a topic
+ * Identify the domain of a topic using sensieAgent
  */
 export async function identifyDomain(
   topicName: string
 ): Promise<'technical' | 'soft-skills' | 'career'> {
-  const { object } = await generateObject({
-    model: anthropic('claude-sonnet-4-20250514'),
-    schema: DomainClassificationSchema,
-    system: SENSIE_SYSTEM_PROMPT,
-    prompt: `Classify this learning topic into a domain:
+  const result = await sensieAgent.generate(
+    `Classify this learning topic into a domain:
 
 Topic: "${topicName}"
 
@@ -128,9 +136,10 @@ Domains:
 - career: Job searching, interviews, career transitions, professional development
 
 Which domain best fits this topic? Consider the primary skills being developed.`,
-  });
+    { output: DomainClassificationSchema }
+  );
 
-  return object.domain;
+  return result.object?.domain || 'technical';
 }
 
 /**
@@ -209,11 +218,8 @@ export async function getPrerequisites(
     reasoning: z.string().describe('Why these prerequisites are needed'),
   });
 
-  const { object } = await generateObject({
-    model: anthropic('claude-sonnet-4-20250514'),
-    schema: prerequisitesSchema,
-    system: SENSIE_SYSTEM_PROMPT,
-    prompt: `What prerequisite knowledge should someone have before learning "${topicName}"?
+  const result = await sensieAgent.generate(
+    `What prerequisite knowledge should someone have before learning "${topicName}"?
 
 List 2-5 prerequisite topics that would help them succeed. Consider:
 - Foundational concepts they need
@@ -221,9 +227,10 @@ List 2-5 prerequisite topics that would help them succeed. Consider:
 - Related topics that provide context
 
 Keep the list focused on truly helpful prerequisites, not an exhaustive list.`,
-  });
+    { output: prerequisitesSchema }
+  );
 
-  return object.prerequisites;
+  return result.object?.prerequisites || [];
 }
 
 /**
@@ -299,18 +306,15 @@ export async function adjustPathForUser(
 }
 
 /**
- * Generate subtopics for a topic
+ * Generate subtopics for a topic using sensieAgent
  */
 export async function generateSubtopics(
   topicName: string,
   domain: 'technical' | 'soft-skills' | 'career',
   userGoal?: string
 ): Promise<LearningPathSubtopic[]> {
-  const { object } = await generateObject({
-    model: anthropic('claude-sonnet-4-20250514'),
-    schema: LearningPathSchema,
-    system: SENSIE_SYSTEM_PROMPT,
-    prompt: `Create a comprehensive learning path for this topic:
+  const result = await sensieAgent.generate(
+    `Create a comprehensive learning path for this topic:
 
 Topic: "${topicName}"
 Domain: ${domain}
@@ -325,10 +329,15 @@ Generate ${PATH_CONSTRAINTS.MIN_SUBTOPICS}-${PATH_CONSTRAINTS.MAX_SUBTOPICS} sub
 For each subtopic, include ${PATH_CONSTRAINTS.MIN_CONCEPTS_PER_SUBTOPIC}-${PATH_CONSTRAINTS.MAX_CONCEPTS_PER_SUBTOPIC} specific concepts to learn.
 
 The learning path should enable someone to go from beginner to competent in this topic.`,
-  });
+    { output: LearningPathSchema }
+  );
+
+  if (!result.object?.subtopics) {
+    throw new Error('Failed to generate learning path subtopics');
+  }
 
   // Transform to our format
-  return object.subtopics.map((st, index) => ({
+  return result.object.subtopics.map((st, index) => ({
     name: st.name,
     description: `Subtopic ${index + 1}: ${st.name}`,
     order: st.order || index + 1,
@@ -356,15 +365,14 @@ export async function previewPath(
     subtopics: z.array(z.string()).describe('Subtopic names only'),
   });
 
-  const { object } = await generateObject({
-    model: anthropic('claude-sonnet-4-20250514'),
-    schema: subtopicsPreviewSchema,
-    system: SENSIE_SYSTEM_PROMPT,
-    prompt: `List ${PATH_CONSTRAINTS.MIN_SUBTOPICS}-${PATH_CONSTRAINTS.MAX_SUBTOPICS} subtopics for learning "${topicName}".
+  const result = await sensieAgent.generate(
+    `List ${PATH_CONSTRAINTS.MIN_SUBTOPICS}-${PATH_CONSTRAINTS.MAX_SUBTOPICS} subtopics for learning "${topicName}".
 Just the names, in learning order. Be concise.`,
-  });
+    { output: subtopicsPreviewSchema }
+  );
 
-  const subtopicCount = object.subtopics.length;
+  const subtopics = result.object?.subtopics || [];
+  const subtopicCount = subtopics.length;
 
   // Rough estimate: 1-1.5 hours per subtopic
   const estimatedHours = Math.round(subtopicCount * 1.25 * 10) / 10;
@@ -373,6 +381,6 @@ Just the names, in learning order. Be concise.`,
     domain,
     subtopicCount,
     estimatedHours,
-    subtopicNames: object.subtopics,
+    subtopicNames: subtopics,
   };
 }
