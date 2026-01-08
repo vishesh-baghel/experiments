@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { Message } from 'ai';
+import type { UIMessage } from '@ai-sdk/react';
 import { cn } from '@/lib/utils';
 
 interface MessageListProps {
-  messages: Message[];
+  messages: UIMessage[];
   isLoading?: boolean;
 }
 
@@ -39,11 +39,17 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
 }
 
 interface MessageBubbleProps {
-  message: Message;
+  message: UIMessage;
 }
 
 function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
+
+  // Extract text content from parts (AI SDK v6 format)
+  const textContent = message.parts
+    .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+    .map((part) => part.text)
+    .join('');
 
   return (
     <div
@@ -60,8 +66,8 @@ function MessageBubble({ message }: MessageBubbleProps) {
             : 'bg-[hsl(var(--card))] border border-[hsl(var(--border))]'
         )}
       >
-        <div className="prose prose-sm max-w-none dark:prose-invert">
-          {message.content}
+        <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap">
+          {textContent}
         </div>
       </div>
       <p className={cn(

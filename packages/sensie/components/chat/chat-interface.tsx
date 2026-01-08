@@ -1,6 +1,8 @@
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
 import { MessageList } from './message-list';
 import { InputArea } from './input-area';
 
@@ -17,13 +19,26 @@ export function ChatInterface({
   subtopicName,
   mastery,
 }: ChatInterfaceProps) {
-  const { messages, isLoading, append, error } = useChat({
-    api: '/api/chat/message',
-    body: { topicId },
+  const [inputValue, setInputValue] = useState('');
+  const { messages, status, sendMessage, error } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat/message',
+      prepareSendMessagesRequest({ messages }) {
+        return {
+          body: {
+            messages,
+            topicId,
+          },
+        };
+      },
+    }),
   });
 
+  const isLoading = status === 'streaming' || status === 'submitted';
+
   const handleSend = (content: string) => {
-    append({ role: 'user', content });
+    sendMessage({ text: content });
+    setInputValue('');
   };
 
   return (
