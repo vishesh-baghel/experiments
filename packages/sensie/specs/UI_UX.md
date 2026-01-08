@@ -2,1093 +2,663 @@
 
 ## Design Philosophy
 
-**Goal:** Create a learning-focused interface that feels fundamentally different from ChatGPT/Claude while maintaining familiarity and usability.
+**Visual Direction:** Clean Sci-Fi minimalism inspired by Vercel, Linear, and Cursor.
+
+**Core Principle:** The UI disappears. Sensie's personality lives entirely in the *words*, not the visuals. The interface is a tool, not a decoration.
+
+**Target Audience:** Software engineers who value clarity, efficiency, and information density.
 
 **Key Differentiators:**
 1. **Learning-First Layout:** Not a pure chat interface, but a guided learning environment
 2. **Persistent Context:** Current learning topic always visible, no thread switching
-3. **Progress-Driven:** Visual progress indicators everywhere
+3. **Progress-Driven:** Visual progress indicators - subtle and functional
 4. **Command-Friendly:** Keyboard shortcuts and slash commands for power users
-5. **Distraction-Free:** Minimal chrome, focus on current conversation
-6. **Gamified Elements:** Mastery levels, unlocks, achievements (subtle, not overwhelming)
+5. **Distraction-Free:** Minimal chrome, maximum focus
+6. **No Visual Gimmicks:** No avatars, no emojis in UI, no decorative elements
 
-## Core UI Layout
+## Visual Design System
 
-### Main Layout Structure
+### Color Palette
+
+**Light Mode (Primary):**
+```
+Background:     #FFFFFF (pure white)
+Surface:        #FAFAFA (cards, elevated surfaces)
+Border:         #E5E5E5 (subtle dividers)
+Border Hover:   #D4D4D4
+
+Text Primary:   #0A0A0A (near black)
+Text Secondary: #737373 (muted)
+Text Tertiary:  #A3A3A3 (disabled, hints)
+
+Accent:         #F97316 (warm orange - Sensie's subtle signature)
+Accent Muted:   #FED7AA (very light orange for backgrounds)
+Accent Hover:   #EA580C (darker orange)
+
+Success:        #22C55E
+Warning:        #EAB308
+Error:          #EF4444
+```
+
+**Dark Mode (Optional, respects system preference):**
+```
+Background:     #0A0A0A
+Surface:        #171717
+Border:         #262626
+Border Hover:   #404040
+
+Text Primary:   #FAFAFA
+Text Secondary: #A3A3A3
+Text Tertiary:  #737373
+
+Accent:         #FB923C (slightly lighter for dark bg)
+```
+
+### Typography
+
+**Font Stack:**
+```
+Sans:  Geist Sans, system-ui, -apple-system, sans-serif
+Mono:  Geist Mono, ui-monospace, 'SF Mono', monospace
+```
+
+**Scale:**
+```
+xs:    12px / 1.5
+sm:    14px / 1.5
+base:  16px / 1.6
+lg:    18px / 1.5
+xl:    20px / 1.4
+2xl:   24px / 1.3
+3xl:   30px / 1.2
+```
+
+**Usage:**
+- Body text: Geist Sans, base size
+- Code, technical content: Geist Mono
+- Headings: Geist Sans, medium weight
+- Numbers, stats: Geist Mono (for alignment)
+
+### Spacing & Layout
+
+**Spacing Scale (4px base):**
+```
+1:  4px
+2:  8px
+3:  12px
+4:  16px
+5:  20px
+6:  24px
+8:  32px
+10: 40px
+12: 48px
+16: 64px
+```
+
+**Border Radius:**
+```
+none: 0
+sm:   2px
+md:   4px
+lg:   6px
+xl:   8px (max for most elements)
+```
+
+**Shadows:**
+Minimal to none. Use borders for separation.
+```
+sm: 0 1px 2px rgba(0,0,0,0.04)
+md: 0 2px 4px rgba(0,0,0,0.04)
+```
+
+### Interaction States
+
+**Buttons:**
+```
+Default:  bg-white, border-gray-200
+Hover:    bg-gray-50, border-gray-300
+Active:   bg-gray-100
+Disabled: opacity-50, cursor-not-allowed
+
+Primary:  bg-gray-900, text-white
+P-Hover:  bg-gray-800
+P-Active: bg-gray-950
+```
+
+**Inputs:**
+```
+Default:  bg-white, border-gray-200
+Focus:    border-gray-400, ring-1 ring-gray-200
+Error:    border-red-500, ring-1 ring-red-200
+```
+
+## Core Layout Structure
+
+### Main Layout
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  [Sensie Logo]         [Current Topic]         [User Menu] │ ← Header
+│  sensie          [Current Topic]              [cmd] [user]  │ ← Header (48px)
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  ┌────────────┐  ┌──────────────────────────────────────┐ │
-│  │            │  │                                       │ │
-│  │  Topic     │  │        Chat Area                     │ │
-│  │  Progress  │  │        (Current Learning Session)    │ │
-│  │  Sidebar   │  │                                       │ │
-│  │            │  │                                       │ │
-│  │  (Can hide)│  │                                       │ │
-│  │            │  │                                       │ │
-│  │            │  │                                       │ │
-│  └────────────┘  │                                       │ │
-│                  │                                       │ │
-│                  └───────────────────────────────────────┘ │
-│                  ┌───────────────────────────────────────┐ │
-│                  │  Input Area + Commands               │ │
-│                  └───────────────────────────────────────┘ │
+│  ┌────────────┐  ┌──────────────────────────────────────┐  │
+│  │            │  │                                      │  │
+│  │  Topics    │  │        Chat / Learning Area          │  │
+│  │  Sidebar   │  │                                      │  │
+│  │            │  │                                      │  │
+│  │  240px     │  │                                      │  │
+│  │  (collapse │  │                                      │  │
+│  │  to 0)     │  │                                      │  │
+│  │            │  │                                      │  │
+│  └────────────┘  │                                      │  │
+│                  │                                      │  │
+│                  └──────────────────────────────────────┘  │
+│                  ┌──────────────────────────────────────┐  │
+│                  │  Input                               │  │
+│                  └──────────────────────────────────────┘  │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Key Differences from ChatGPT/Claude
+### Header
 
-| Aspect | ChatGPT/Claude | Sensie |
-|--------|----------------|--------|
-| **Layout** | Sidebar with threads + Chat | Topic sidebar + Chat + Progress |
-| **Context** | Thread-based, switch threads | Topic-based, single focused session |
-| **History** | Visible in sidebar, clickable | Searchable archive, not in main view |
-| **Progress** | None | Prominent progress indicators |
-| **Commands** | Limited | Extensive slash commands |
-| **Navigation** | Thread switching | Topic progression (linear unlocking) |
-
-## Detailed Component Design
-
-### 1. Header
-
-**Layout:**
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  🎴 Sensie  |  🔥 Rust Ownership (65%)  |  [/] [🔔] [👤]   │
+│  sensie         Rust Ownership · 75%           ⌘K    ●      │
 └─────────────────────────────────────────────────────────────┘
+   ↑               ↑                              ↑     ↑
+   Logo           Topic + Progress             Cmd    User
+   (home link)    (click for details)          palette menu
 ```
 
 **Components:**
-- **Logo:** "🎴 Sensie" (clickable → home)
-- **Current Topic Badge:** Shows active learning topic + mastery %
-  - Animated progress ring around topic name
-  - Click → Topic details modal
-- **Command Palette:** `/` button → Opens command search
-- **Notifications:** `🔔` → Review reminders, achievements
-- **User Menu:** `👤` → Profile, settings, logout
+- **Logo:** Text "sensie" in lowercase, medium weight. Links to home.
+- **Current Topic:** Topic name + mastery percentage. Click opens topic details.
+- **Command Palette:** `⌘K` button or keyboard shortcut
+- **User Menu:** Simple circle indicator, click for settings/logout
+
+### Topic Sidebar
+
+```
+┌────────────────────────────┐
+│  Topics              [−]   │ ← Collapse button
+├────────────────────────────┤
+│                            │
+│  ACTIVE                    │
+│  ──────────────────────── │
+│  Rust Programming    75%   │
+│    Ownership         ✓     │
+│    Borrowing         ○     │
+│    Lifetimes         ·     │
+│                            │
+│  System Design       30%   │
+│    Caching           ✓     │
+│    Load Balancing    ○     │
+│    CAP Theorem       ·     │
+│                            │
+│  COMPLETED                 │
+│  ──────────────────────── │
+│  TypeScript          92%   │
+│                            │
+│  QUEUED                    │
+│  ──────────────────────── │
+│  Distributed Systems       │
+│                            │
+│  ──────────────────────── │
+│  + New topic               │
+│                            │
+└────────────────────────────┘
+
+Legend:
+✓  Completed subtopic
+○  In progress (current)
+·  Locked (prerequisites not met)
+```
 
 **Behavior:**
-- Header is sticky (always visible)
-- Current topic updates as user progresses
-- Progress ring animates on mastery increase
+- Click topic → Switch context
+- Click subtopic → Jump to that subtopic
+- Collapse → Sidebar hidden, more space for chat
+- New topic → Opens inline input or modal
 
-### 2. Topic Progress Sidebar (Collapsible)
-
-**Layout:**
-```
-┌────────────────┐
-│  Topics        │
-│  [Hide] ──     │
-├────────────────┤
-│                │
-│ 🔥 Active      │
-│  Rust (65%)    │
-│  ├─ Ownership ✅│
-│  ├─ Borrowing 🔄│
-│  └─ Lifetimes 🔒│
-│                │
-│ ✅ Completed   │
-│  JS (90%)      │
-│                │
-│ 📚 Queued      │
-│  Sys Design    │
-│  Distributed   │
-│                │
-│ [+ New Topic]  │
-│                │
-└────────────────┘
-```
-
-**Features:**
-- **Active Topics:** Currently learning (max 2-3)
-  - Subtopics shown with status (✅ completed, 🔄 in progress, 🔒 locked)
-  - Click subtopic → Continue learning
-- **Completed Topics:** Mastered topics (80%+)
-  - Click → View summary, start review
-- **Queued Topics:** Saved for later
-  - Click → Start learning
-- **Add Topic:** Quick add new topic to queue
-
-**States:**
-- **Expanded (default):** Full sidebar visible
-- **Collapsed:** Icons only, hover to expand
-- **Hidden:** More screen space for chat
-
-**Mobile:**
-- Becomes bottom sheet (swipe up to access)
-- Quick topic switcher at top
-
-### 3. Chat Area (Main Focus)
-
-**Design Principles:**
-- **Clean:** No clutter, focus on conversation
-- **Contextual:** Shows current concept being taught
-- **Interactive:** Questions are visually distinct
-- **Progressive:** Shows learning path (where you are)
-
-**Layout:**
-```
-┌──────────────────────────────────────────────────────┐
-│                                                      │
-│  [Concept: Ownership Basics]                        │
-│  Progress: 2/5 questions ████░░                     │
-│                                                      │
-│  ┌────────────────────────────────────────────────┐ │
-│  │ Sensie:                                        │ │
-│  │ Excellent choice, young apprentice!            │ │
-│  │                                                │ │
-│  │ Ownership in Rust means each value has        │ │
-│  │ exactly one owner...                           │ │
-│  │                                                │ │
-│  │ ❓ Question 1/5:                               │ │
-│  │ What happens when you pass a value to a       │ │
-│  │ function in Rust?                              │ │
-│  │                                                │ │
-│  │ [Request Hint] [Skip]                          │ │
-│  └────────────────────────────────────────────────┘ │
-│                                                      │
-│  ┌────────────────────────────────────────────────┐ │
-│  │ You:                                           │ │
-│  │ The function takes ownership of the value...   │ │
-│  └────────────────────────────────────────────────┘ │
-│                                                      │
-│  ┌────────────────────────────────────────────────┐ │
-│  │ Sensie:                                        │ │
-│  │ ✅ Excellent work, apprentice!                 │ │
-│  │                                                │ │
-│  │ You're absolutely right. Now let's dig        │ │
-│  │ deeper...                                      │ │
-│  │                                                │ │
-│  │ ❓ Question 2/5:                               │ │
-│  │ What if the original variable tries to use... │ │
-│  └────────────────────────────────────────────────┘ │
-│                                                      │
-│  ... (conversation continues)                        │
-│                                                      │
-└──────────────────────────────────────────────────────┘
-```
+### Chat Area
 
 **Message Types:**
 
 **Sensie Message:**
 ```
-┌────────────────────────────────────────────────┐
-│ 🎴 Sensie                                      │
-│                                                │
-│ [Message content]                              │
-│                                                │
-│ [Optional: Code examples, diagrams]            │
-└────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                                                          │
+│  Ah, an excellent question, apprentice!                  │
+│                                                          │
+│  Ownership in Rust means each value has exactly one      │
+│  owner at any given time. When the owner goes out of     │
+│  scope, the value is dropped.                            │
+│                                                          │
+│  ```rust                                                 │
+│  let s1 = String::from("hello");                         │
+│  let s2 = s1; // s1 is now invalid                      │
+│  ```                                                     │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
 ```
 
 **User Message:**
 ```
-┌────────────────────────────────────────────────┐
-│                                      You 👤    │
-│                                                │
-│                     [Message content]          │
-└────────────────────────────────────────────────┘
+                    ┌──────────────────────────────────────┐
+                    │                                      │
+                    │  So the original variable can't be   │
+                    │  used after the move?                │
+                    │                                      │
+                    └──────────────────────────────────────┘
 ```
 
-**Question Card (Special Message Type):**
+**Question Card:**
 ```
-┌────────────────────────────────────────────────┐
-│ ❓ Question 3/5                        Lvl 2    │
-├────────────────────────────────────────────────┤
-│                                                │
-│ Compare ownership in Rust vs garbage          │
-│ collection in JavaScript. What are the        │
-│ trade-offs?                                    │
-│                                                │
-├────────────────────────────────────────────────┤
-│ [💡 Hint] [⏭️ Skip] [📖 Re-read Concept]       │
-└────────────────────────────────────────────────┘
-```
-
-**Feedback Card (After Answer):**
-```
-┌────────────────────────────────────────────────┐
-│ ✅ Correct! (+10 points)                       │
-├────────────────────────────────────────────────┤
-│ Well done! You understand the core difference.│
-│ Now, let's explore the performance            │
-│ implications...                                │
-└────────────────────────────────────────────────┘
-
-OR
-
-┌────────────────────────────────────────────────┐
-│ ⚠️ Not quite...                                │
-├────────────────────────────────────────────────┤
-│ You're thinking in the right direction, but   │
-│ consider this: [guiding question]             │
-│                                                │
-│ [Try Again] [Get Hint]                         │
-└────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  Question 2 of 5                              Difficulty 3│
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  What happens when you try to use a variable after       │
+│  its ownership has been moved to another variable?       │
+│                                                          │
+├──────────────────────────────────────────────────────────┤
+│  Hint (1/3)                                        Skip  │
+└──────────────────────────────────────────────────────────┘
 ```
 
-**Concept Completion Card:**
+**Feedback (Correct):**
 ```
-┌────────────────────────────────────────────────┐
-│ 🎉 Concept Mastered!                           │
-│                                                │
-│ Ownership Basics ████████████ 100%            │
-│                                                │
-│ • 5/5 questions correct                        │
-│ • No hints used                                │
-│ • Mastery: 65% → 75%                           │
-│                                                │
-│ Next: Borrowing 🔓 Unlocked!                   │
-│                                                │
-│ [Continue Learning] [Take a Break]             │
-└────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  ✓ Correct                                               │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  Precisely! The compiler will throw an error. This is    │
+│  Rust's way of preventing use-after-move bugs at         │
+│  compile time rather than runtime.                       │
+│                                                          │
+│  Let's dig deeper...                                     │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
 ```
 
-**Learning Path Preview Card (Topic Start):**
+**Feedback (Incorrect):**
 ```
-┌────────────────────────────────────────────────┐
-│ 📚 Your Training Journey: Rust Ownership       │
-├────────────────────────────────────────────────┤
-│                                                │
-│ I've mapped out your path to mastery:          │
-│                                                │
-│  ○ 1. Memory Addresses (foundation)            │
-│  ○ 2. Stack vs Heap (foundation)               │
-│  ○ 3. Ownership Basics                         │
-│  ○ 4. Move Semantics                           │
-│  ○ 5. Borrowing                                │
-│  ○ 6. Lifetimes                                │
-│                                                │
-│  Estimated time: ~3-4 hours                    │
-│                                                │
-├────────────────────────────────────────────────┤
-│ 💬 What's your goal? (optional)                │
-│ ┌────────────────────────────────────────────┐ │
-│ │ e.g., "Building CLI tools" or "Learning   │ │
-│ │ for job interviews"                        │ │
-│ └────────────────────────────────────────────┘ │
-│                                                │
-│            [Begin Training →]                  │
-└────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  Not quite                                               │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  You're on the right track, but consider: what does      │
+│  "ownership" mean for memory safety?                     │
+│                                                          │
+│  Think about what would happen if both variables         │
+│  could access the same memory...                         │
+│                                                          │
+├──────────────────────────────────────────────────────────┤
+│  Try again                                    Get hint   │
+└──────────────────────────────────────────────────────────┘
 ```
 
-**Design Principle: Trust the Sensei**
-- Path is **view-only** - user cannot edit/skip subtopics
-- User doesn't know what they don't know - that's why they're learning
-- Optional goal input helps Sensie tailor examples, not skip foundations
-- Sensie controls prerequisites - user controls when to start
+### Input Area
 
-### 4. Input Area
-
-**Layout:**
 ```
-┌──────────────────────────────────────────────────────┐
-│  [Type your answer or use /commands]                │
-│  ────────────────────────────────────────────────── │
-│                                                      │
-│  [/]  Type / for commands                   [Send]  │
-└──────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  Type your answer...                              ↵ Send │
+├──────────────────────────────────────────────────────────┤
+│  /hint · /skip · /progress · /review                     │
+└──────────────────────────────────────────────────────────┘
 ```
 
 **Features:**
-- **Auto-expanding textarea:** Grows with content
-- **Command palette:** Type `/` to see commands
-- **Keyboard shortcuts:** `Enter` to send, `Shift+Enter` for newline
-- **Typing indicator:** Shows "Sensie is thinking..." when processing
+- Auto-expanding textarea
+- `/` triggers command autocomplete
+- `Enter` sends, `Shift+Enter` for newline
+- Subtle command hints below input
 
-**Command Palette (Triggered by `/`):**
+**Command Palette (triggered by `/`):**
 ```
-┌──────────────────────────────────────────────────────┐
-│  /progress      Show current topic progress         │
-│  /topics        List all learning topics             │
-│  /quiz          Start a quiz on current topic        │
-│  /review        Begin spaced repetition review       │
-│  /hint          Request a hint for current question  │
-│  /explain       Get detailed explanation             │
-│  /skip          Skip current question                │
-│  /break         Take a break, save progress          │
-└──────────────────────────────────────────────────────┘
-```
-
-**Smart Contextual Commands:**
-- If user is answering a question → Show `/hint`, `/skip`
-- If user completed a concept → Show `/quiz`, `/review`
-- Always available: `/progress`, `/topics`, `/break`
-
-### 5. Progress Visualizations
-
-**Mastery Gauge (In Topic Sidebar & Progress View):**
-```
-┌────────────────┐
-│  Rust          │
-│                │
-│      75%       │
-│   ████████░░   │
-│                │
-│  Proficient    │
-└────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  / commands                                              │
+├──────────────────────────────────────────────────────────┤
+│  /hint        Get a hint for the current question        │
+│  /skip        Skip this question (3 remaining)           │
+│  /progress    Show detailed progress                     │
+│  /topics      Manage learning topics                     │
+│  /review      Start spaced repetition review             │
+│  /quiz        Quick quiz on current topic                │
+│  /break       Save progress and take a break             │
+└──────────────────────────────────────────────────────────┘
 ```
 
-**Subtopic Tree (Expandable):**
-```
-Rust (75%)
-├─ ✅ Ownership Basics (100%)
-│  ├─ ✅ Memory Addresses
-│  ├─ ✅ Stack vs Heap
-│  └─ ✅ Move Semantics
-├─ 🔄 Borrowing (60%)
-│  ├─ ✅ Immutable Borrows
-│  ├─ 🔄 Mutable Borrows (in progress)
-│  └─ 🔒 Borrow Checker (locked)
-└─ 🔒 Lifetimes (locked)
-```
+## Pages
 
-**Review Calendar (Spaced Repetition View):**
-```
-┌────────────────────────────────────────────────────┐
-│  Review Schedule                                   │
-├────────────────────────────────────────────────────┤
-│                                                    │
-│  Today (3)                                         │
-│  • Ownership Basics                                │
-│  • JavaScript Closures                             │
-│  • SQL Indexes                                     │
-│                                                    │
-│  Tomorrow (1)                                      │
-│  • System Design Caching                           │
-│                                                    │
-│  Next Week (5)                                     │
-│  [Show all]                                        │
-│                                                    │
-│  [Start Reviews]                                   │
-└────────────────────────────────────────────────────┘
-```
-
-## Hybrid Chat Interface Design
-
-**The Problem with Traditional Threads:**
-- Context switching breaks learning flow
-- Hard to maintain single learning context
-- Past conversations clutter interface
-
-**The Problem with Endless Chat:**
-- Overwhelming scroll
-- Hard to find specific past topics
-- Context window management
-
-**Sensie's Hybrid Solution:**
-
-### Current Topic Focus
+### Home / Dashboard
 
 ```
-Active Learning Session (in main chat):
-- Only shows current topic's conversation
-- No thread switching needed
-- Linear progression through subtopics
-- Can pause and resume later
+┌──────────────────────────────────────────────────────────┐
+│                                                          │
+│  Welcome back.                                           │
+│                                                          │
+│  CONTINUE                                                │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │  Rust Programming                             75%  │ │
+│  │  ████████████████████░░░░░░                       │ │
+│  │  Next: Borrowing · Mutable references             │ │
+│  │                                       Continue →  │ │
+│  └────────────────────────────────────────────────────┘ │
+│                                                          │
+│  REVIEWS DUE                                             │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │  3 items due today                                │ │
+│  │  Ownership basics · JS closures · SQL indexes     │ │
+│  │                                    Start review → │ │
+│  └────────────────────────────────────────────────────┘ │
+│                                                          │
+│  THIS WEEK                                               │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐    │
+│  │  5           │ │  3           │ │  12          │    │
+│  │  concepts    │ │  topics      │ │  reviews     │    │
+│  │  mastered    │ │  active      │ │  completed   │    │
+│  └──────────────┘ └──────────────┘ └──────────────┘    │
+│                                                          │
+│  + Start new topic                                       │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
 ```
 
-### Searchable History
+### Topics Page
 
 ```
-Archive (accessible via search):
-- All past conversations searchable
-- Organized by topic and date
-- Can reference past learnings
-- Not visible in main view (reduces clutter)
+┌──────────────────────────────────────────────────────────┐
+│  Topics                                      + New topic │
+│                                                          │
+│  All    Active    Completed    Queued                    │
+│  ───    ──────    ─────────    ──────                   │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │  Rust Programming                                  │ │
+│  │  ████████████████████░░░░░░                   75%  │ │
+│  │  2/5 subtopics · Last active 2h ago               │ │
+│  │                                          Continue  │ │
+│  └────────────────────────────────────────────────────┘ │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │  System Design                                     │ │
+│  │  ██████░░░░░░░░░░░░░░░░░░░░                   30%  │ │
+│  │  1/8 subtopics · Last active 1d ago               │ │
+│  │                                          Continue  │ │
+│  └────────────────────────────────────────────────────┘ │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │  TypeScript                                        │ │
+│  │  ████████████████████████████████████████████ 92%  │ │
+│  │  Completed · Review in 5 days                     │ │
+│  │                                   Review   Archive │ │
+│  └────────────────────────────────────────────────────┘ │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
 ```
 
-### Implementation
-
-**Chat State:**
-```typescript
-interface ChatState {
-  // Active session (visible in main chat)
-  activeSession: {
-    topicId: string;
-    subtopicId?: string;
-    messages: Message[];
-    startedAt: Date;
-    lastActivity: Date;
-  };
-
-  // Archived sessions (searchable)
-  archivedSessions: {
-    id: string;
-    topicName: string;
-    summary: string;
-    completedAt: Date;
-  }[];
-}
-```
-
-**Navigation:**
-- **Continue Current Topic:** Main chat shows active session
-- **Start New Topic:** Archives current session, starts new one
-- **Search History:** Cmd+K → Search all past sessions
-- **Review Past Topic:** Loads archived session in read-only mode
-
-**Example Flow:**
-```
-User learning Rust Ownership (active session)
-  ↓
-User: "I want to learn System Design now"
-  ↓
-Sensie: "Save progress on Rust and start System Design?
-        Current progress: 75%, Next up: Lifetimes"
-  ↓
-User: "Yes"
-  ↓
-Rust session archived
-System Design session starts (becomes active)
-Main chat now shows System Design conversation
-```
-
-## Command System
-
-### Slash Commands
-
-**Primary Commands:**
-
-**`/progress`**
-```
-Shows current topic progress with details:
-- Mastery percentage
-- Subtopics completed
-- Next concept to learn
-- Scheduled reviews
-```
-
-**`/topics`**
-```
-Lists all topics:
-- Active (currently learning)
-- Completed (mastered)
-- Queued (saved for later)
-- Option to switch topic
-```
-
-**`/quiz`**
-```
-Starts quiz on current topic:
-- Generates 5-10 questions
-- Adaptive difficulty
-- Shows score at end
-- Updates mastery based on performance
-```
-
-**`/review`**
-```
-Starts spaced repetition review:
-- Shows topics due for review
-- Quick quiz format
-- Updates review schedule
-- Identifies concepts to re-learn
-```
-
-**`/hint`**
-```
-Provides hint for current question (3 PROGRESSIVE LEVELS):
-
-Hint 1: Related concept reminder / thinking direction
-  "Think about what happens to the original variable after the move..."
-
-Hint 2: Partial answer structure with blanks
-  "The function takes ___ of the value, meaning the original variable becomes ___"
-
-Hint 3: Narrow down to key insight
-  "The key concept here is 'move semantics' - the value is transferred, not copied"
-
-After 3 hints: No more hints available
-  Sensie: "You've used all your hints, apprentice. Give it your best attempt
-           - even a partial answer helps me understand your thinking!"
-```
-
-**`/explain`**
-```
-Provides detailed explanation:
-- Use when truly stuck
-- Sensie explains concept thoroughly
-- Immediately asks simpler question to verify
-```
-
-**`/skip`**
-```
-Skips current question (LIMITED):
-- 3 skips max per learning session
-- Skipped questions marked for revisiting at end of subtopic
-- After 3 skips, Sensie refuses:
-  "No more skips remaining, apprentice. Face this challenge!"
-- Skips reset when session ends or topic changes
-
-Revisit Flow:
-- Skipped questions must be answered before unlocking next subtopic
-- If user fails skipped questions: loop on those questions only (no reteach)
-- User does NOT get additional skips during revisit
-- After 5 attempts per question, mark for review and proceed (don't block)
-```
-
-**`/break`**
-```
-Saves progress and pauses learning:
-- Session archived
-- Progress saved
-- Resume anytime
-```
-
-### Keyboard Shortcuts
-
-- **`/`** → Open command palette
-- **`Cmd+K`** → Search history
-- **`Cmd+P`** → View progress
-- **`Cmd+Enter`** → Send message (alternative to button)
-- **`Esc`** → Close modals/overlays
-
-## Views & Screens
-
-### 1. Home/Dashboard
-
-**Purpose:** Overview of learning journey
-
-**Layout:**
-```
-┌──────────────────────────────────────────────────────┐
-│  Welcome back, apprentice!                           │
-│                                                      │
-│  🔥 Continue Learning                                │
-│  ┌────────────────────────────────────────────────┐ │
-│  │  Rust Ownership (75%)                          │ │
-│  │  Next: Borrowing - Mutable Borrows            │ │
-│  │                                                │ │
-│  │  [Continue Learning →]                         │ │
-│  └────────────────────────────────────────────────┘ │
-│                                                      │
-│  📅 Reviews Due Today (3)                            │
-│  • Ownership Basics                                  │
-│  • JavaScript Closures                               │
-│  • SQL Indexes                                       │
-│                                                      │
-│  [Start Reviews]                                     │
-│                                                      │
-│  📊 This Week                                        │
-│  • 5 concepts mastered                               │
-│  • 3 topics in progress                              │
-│  • 12 reviews completed                              │
-│                                                      │
-│  📚 All Topics  →                                    │
-│                                                      │
-└──────────────────────────────────────────────────────┘
-```
-
-### 2. Learning View (Main Chat Interface)
-
-See "Chat Area" section above.
-
-### 3. Topics View
-
-**Purpose:** Manage all learning topics
-
-**Layout:**
-```
-┌──────────────────────────────────────────────────────┐
-│  Learning Topics                                     │
-│                                                      │
-│  [All] [Active] [Completed] [Queued]  [+ New Topic] │
-│                                                      │
-│  🔥 Active (2)                                       │
-│  ┌────────────────────────────────────────────────┐ │
-│  │  Rust (75%)                                    │ │
-│  │  ████████████░░░░                              │ │
-│  │  Subtopics: 2/5 completed                     │ │
-│  │  [Continue]                                    │ │
-│  └────────────────────────────────────────────────┘ │
-│                                                      │
-│  ┌────────────────────────────────────────────────┐ │
-│  │  System Design (30%)                           │ │
-│  │  ██████░░░░░░░░░░                              │ │
-│  │  Subtopics: 1/8 completed                     │ │
-│  │  [Continue]                                    │ │
-│  └────────────────────────────────────────────────┘ │
-│                                                      │
-│  ✅ Completed (3)                                    │
-│  [Show all]                                          │
-│                                                      │
-│  📚 Queued (5)                                       │
-│  [Show all]                                          │
-│                                                      │
-└──────────────────────────────────────────────────────┘
-```
-
-### 4. Progress View (Detailed Analytics)
-
-**Purpose:** Deep dive into learning progress
-
-**Layout:**
-```
-┌──────────────────────────────────────────────────────┐
-│  Rust - Progress Details                             │
-│                                                      │
-│  Overall Mastery: 75%                                │
-│  ████████████████████████░░░░░░░░                   │
-│                                                      │
-│  Subtopics:                                          │
-│  ├─ Ownership Basics (100%) ✅                       │
-│  ├─ Borrowing (60%) 🔄                               │
-│  └─ Lifetimes (0%) 🔒                                │
-│                                                      │
-│  Statistics:                                         │
-│  • Questions answered: 45                            │
-│  • Correct: 38 (84%)                                 │
-│  • Hints used: 7                                     │
-│  • Current difficulty: Level 3                       │
-│                                                      │
-│  Review Schedule:                                    │
-│  • Next review: Tomorrow                             │
-│  • Reviews completed: 3                              │
-│  • Success rate: 100%                                │
-│                                                      │
-│  Learning Path:                                      │
-│  [Visual tree showing completed and upcoming]        │
-│                                                      │
-└──────────────────────────────────────────────────────┘
-```
-
-### 5. Settings View
-
-**Purpose:** Configure learning preferences and mastery thresholds
-
-**Layout:**
-```
-┌──────────────────────────────────────────────────────┐
-│  Settings                                            │
-│                                                      │
-│  🎯 Learning Preferences                              │
-│  ┌────────────────────────────────────────────────┐ │
-│  │                                                │ │
-│  │  Mastery Threshold                             │ │
-│  │  When is a topic considered "mastered"?       │ │
-│  │  ────────────────────────●────────────        │ │
-│  │              50%        80%       100%        │ │
-│  │  Current: 80%                                 │ │
-│  │                                                │ │
-│  │  Daily Learning Goal                           │ │
-│  │  [15 min] [30 min] [45 min] [60 min]          │ │
-│  │                                                │ │
-│  │  Difficulty Starting Level                     │ │
-│  │  [1-Beginner] [2] [3-Default] [4] [5-Expert]  │ │
-│  │                                                │ │
-│  └────────────────────────────────────────────────┘ │
-│                                                      │
-│  🎴 Personality                                       │
-│  ┌────────────────────────────────────────────────┐ │
-│  │                                                │ │
-│  │  Sensie's Personality Level                    │ │
-│  │  ○ Full Master Roshi Energy (default)         │ │
-│  │  ○ Balanced (occasional humor)                │ │
-│  │  ○ Minimal (professional tone)                │ │
-│  │                                                │ │
-│  └────────────────────────────────────────────────┘ │
-│                                                      │
-│  🔔 Notifications (In-App Only)                      │
-│  ┌────────────────────────────────────────────────┐ │
-│  │                                                │ │
-│  │  Review Reminders         [ON]                │ │
-│  │  (Badge appears when reviews are due)          │ │
-│  │                                                │ │
-│  │  Achievement Celebrations [ON]                │ │
-│  │  (Confetti when you master a concept)         │ │
-│  │                                                │ │
-│  └────────────────────────────────────────────────┘ │
-│                                                      │
-│  🤖 AI Model                                         │
-│  ┌────────────────────────────────────────────────┐ │
-│  │                                                │ │
-│  │  Provider                                      │ │
-│  │  [Anthropic ▾] [OpenAI ▾]                     │ │
-│  │                                                │ │
-│  │  Model                                         │ │
-│  │  ○ Auto (Sonnet for teaching, Haiku for hints)│ │
-│  │  ○ Claude Sonnet (balanced)                   │ │
-│  │  ○ Claude Haiku (faster, cheaper)             │ │
-│  │  ○ Claude Opus (best quality, expensive)      │ │
-│  │                                                │ │
-│  │  ℹ️ Requires your own API key in .env          │ │
-│  │                                                │ │
-│  └────────────────────────────────────────────────┘ │
-│                                                      │
-│  🌙 Appearance                                       │
-│  ┌────────────────────────────────────────────────┐ │
-│  │                                                │ │
-│  │  Theme                                         │ │
-│  │  [Dark] [Light] [System]                      │ │
-│  │                                                │ │
-│  └────────────────────────────────────────────────┘ │
-│                                                      │
-│  [Save Changes]                                      │
-│                                                      │
-└──────────────────────────────────────────────────────┘
-```
-
-**Configurable Mastery Threshold:**
-- User chooses when a topic is "complete" (50%, 70%, 80%, 90%, 100%)
-- Default: 80% (balanced rigor)
-- Affects:
-  - When Feynman technique is triggered
-  - When topic moves to "Completed" status
-  - Review scheduling intensity
-
-### 6. Review Session View
-
-**Purpose:** Spaced repetition review interface
-
-**Layout:**
-```
-┌──────────────────────────────────────────────────────┐
-│  Review Session                                      │
-│  Progress: 2/5 ████░░                                │
-│                                                      │
-│  Topic: Rust - Ownership Basics                      │
-│                                                      │
-│  ❓ What happens when ownership is transferred?      │
-│                                                      │
-│  [Your answer...]                                    │
-│                                                      │
-│  [Submit]                                            │
-│                                                      │
-│  Reviewing: Last studied 7 days ago                  │
-│                                                      │
-└──────────────────────────────────────────────────────┘
-```
-
-**Post-Review Summary:**
-```
-┌──────────────────────────────────────────────────────┐
-│  Review Complete! 🎉                                 │
-│                                                      │
-│  Score: 4/5 (80%)                                    │
-│                                                      │
-│  ✅ Ownership Basics → Next review in 14 days        │
-│  ✅ JavaScript Closures → Next review in 14 days     │
-│  ⚠️  SQL Indexes → Re-learn needed (review in 1 day) │
-│                                                      │
-│  Keep up the great work, apprentice!                 │
-│                                                      │
-│  [Back to Dashboard]                                 │
-└──────────────────────────────────────────────────────┘
-```
-
-## Mobile Responsive Design
-
-**Adaptations for Mobile:**
-
-- **Single column layout:** No sidebar, use bottom sheet
-- **Topic switcher:** Bottom nav with current topic
-- **Swipe gestures:**
-  - Swipe up → Topic list
-  - Swipe down → Command palette
-  - Swipe right → Progress view
-- **Simplified progress:** Circular progress instead of bars
-- **Touch-friendly:** Larger tap targets for commands
-
-## Accessibility
-
-**Requirements:**
-
-- **Keyboard Navigation:** Full app navigable via keyboard
-- **Screen Reader:** All components properly labeled
-- **Color Contrast:** WCAG AA compliance
-- **Focus Indicators:** Clear focus states
-- **Alternative Text:** Images and icons have alt text
-- **Reduced Motion:** Respect `prefers-reduced-motion`
-
-## Visual Design
-
-**Color Palette:**
+### Progress Page
 
 ```
-Primary: Sensei Red (#E53935) - For active elements, progress
-Secondary: Wisdom Gold (#FBC02D) - For achievements, highlights
-Background: Dark (#1A1A1A) or Light (#F5F5F5) - Theme toggle
-Surface: Card (#2A2A2A or #FFFFFF)
-Text: High contrast (#FFFFFF or #1A1A1A)
-Muted: Low contrast (#888888)
-Success: Green (#4CAF50)
-Warning: Orange (#FF9800)
-Error: Red (#F44336)
+┌──────────────────────────────────────────────────────────┐
+│  Rust Programming                                        │
+│                                                          │
+│  75%  ████████████████████████████████░░░░░░░░░░        │
+│       Proficient                                         │
+│                                                          │
+│  SUBTOPICS                                               │
+│  ├─ Ownership Basics          ████████████████████ 100% │
+│  │  └─ 5/5 questions · 0 hints                         │
+│  ├─ Borrowing                 ████████████░░░░░░░░  60% │
+│  │  └─ 3/5 questions · in progress                     │
+│  └─ Lifetimes                 ░░░░░░░░░░░░░░░░░░░░   0% │
+│     └─ Locked · requires Borrowing                      │
+│                                                          │
+│  STATISTICS                                              │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐    │
+│  │  45          │ │  84%         │ │  7           │    │
+│  │  questions   │ │  accuracy    │ │  hints used  │    │
+│  └──────────────┘ └──────────────┘ └──────────────┘    │
+│                                                          │
+│  REVIEW SCHEDULE                                         │
+│  Next review: Tomorrow                                   │
+│  Reviews completed: 3                                    │
+│  Success rate: 100%                                      │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
 ```
 
-**Typography:**
+### Review Session
 
 ```
-Headings: Inter Bold
-Body: Inter Regular
-Code: Fira Code
-Sensei Voice: Inter Semi-Bold (slightly playful)
+┌──────────────────────────────────────────────────────────┐
+│  Review · 2/5                                            │
+│  ██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │  Rust · Ownership Basics                           │ │
+│  │  Last reviewed: 7 days ago                         │ │
+│  ├────────────────────────────────────────────────────┤ │
+│  │                                                    │ │
+│  │  What happens to the original variable when        │ │
+│  │  ownership is transferred to another variable?     │ │
+│  │                                                    │ │
+│  └────────────────────────────────────────────────────┘ │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │  Type your answer...                               │ │
+│  └────────────────────────────────────────────────────┘ │
+│                                                          │
+│                                              Show answer │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+
+After revealing answer:
+
+┌──────────────────────────────────────────────────────────┐
+│  How well did you recall this?                           │
+│                                                          │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │
+│  │  Again   │ │  Hard    │ │  Good    │ │  Easy    │   │
+│  │  <1min   │ │  ~10min  │ │  ~1day   │ │  ~4days  │   │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘   │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
 ```
 
-**Animations:**
+### Login Page
 
-- **Progress bars:** Smooth fill animation
-- **Mastery level up:** Confetti + bounce
-- **Concept unlock:** Fade in + slide up
-- **Message appearance:** Fade in (fast, 150ms)
-- **All animations:** Respect `prefers-reduced-motion`
-
-## Session Preferences
-
-**Learning Mode: Deep Dives**
-
-Sensie is designed for focused, deep learning sessions rather than quick topic switching.
-
-**Approach:**
-- Stay on one topic until concepts are well understood
-- No arbitrary time limits - learn until mastery
-- Subtopics flow naturally into each other
-- User decides when to take breaks (`/break` command)
-
-**Session Flow:**
 ```
-Start topic → Learn subtopic 1 → Questions until mastery →
-Auto-unlock subtopic 2 → Continue or /break →
-Resume exactly where you left off
+┌──────────────────────────────────────────────────────────┐
+│                                                          │
+│                        sensie                            │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │                                                    │ │
+│  │  Owner                            Visitor          │ │
+│  │  ─────                            ───────          │ │
+│  │                                                    │ │
+│  │  ┌──────────────────────────────────────────────┐ │ │
+│  │  │  Passphrase                                  │ │ │
+│  │  └──────────────────────────────────────────────┘ │ │
+│  │                                                    │ │
+│  │                                       Enter →      │ │
+│  │                                                    │ │
+│  └────────────────────────────────────────────────────┘ │
+│                                                          │
+│  Or continue as visitor (limited features)               │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
 ```
 
-**Why Deep Dives:**
-- Context switching breaks learning flow
-- True understanding requires sustained focus
-- Mastery over completion - quality over quantity
+### Settings Page
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  Settings                                                │
+│                                                          │
+│  LEARNING                                                │
+│  ─────────────────────────────────────────────────────  │
+│                                                          │
+│  Mastery threshold                                       │
+│  When is a topic considered complete?                    │
+│  ○ 50%   ○ 70%   ● 80%   ○ 90%   ○ 100%                │
+│                                                          │
+│  Difficulty starting level                               │
+│  ○ 1 (Beginner)  ○ 2  ● 3 (Default)  ○ 4  ○ 5 (Expert) │
+│                                                          │
+│  PERSONALITY                                             │
+│  ─────────────────────────────────────────────────────  │
+│                                                          │
+│  Sensie's teaching style                                 │
+│  ● Full personality (default)                           │
+│  ○ Balanced (occasional character)                      │
+│  ○ Minimal (direct, professional)                       │
+│                                                          │
+│  MODEL                                                   │
+│  ─────────────────────────────────────────────────────  │
+│                                                          │
+│  Provider                                                │
+│  [Anthropic ▾]                                          │
+│                                                          │
+│  Model                                                   │
+│  ● Auto (Sonnet for teaching, Haiku for hints)          │
+│  ○ Claude Sonnet                                        │
+│  ○ Claude Haiku                                         │
+│  ○ Claude Opus                                          │
+│                                                          │
+│  APPEARANCE                                              │
+│  ─────────────────────────────────────────────────────  │
+│                                                          │
+│  Theme                                                   │
+│  ● System   ○ Light   ○ Dark                            │
+│                                                          │
+│                                            Save changes  │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+```
 
 ## First-Time Experience
 
-**When user opens Sensie with no topics, Sensie initiates the conversation:**
+**Empty state - Sensie initiates:**
 
 ```
-┌──────────────────────────────────────────────────────┐
-│              🎴                                       │
-│                                                      │
-│  Sensie:                                             │
-│  "Welcome, young apprentice! I am Sensie, your      │
-│  personal learning sensei.                           │
-│                                                      │
-│  I can help you master anything - from Rust and     │
-│  system design to giving feedback and leading       │
-│  teams.                                              │
-│                                                      │
-│  What would you like to learn?"                      │
-│                                                      │
-│  ┌────────────────────────────────────────────────┐ │
-│  │ Type what you want to learn...                 │ │
-│  └────────────────────────────────────────────────┘ │
-│                                                      │
-└──────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                                                          │
+│  Welcome, apprentice.                                    │
+│                                                          │
+│  I'm Sensie, your personal learning guide. I don't      │
+│  give you answers - I help you discover them through     │
+│  questions. True mastery comes from understanding,       │
+│  not memorization.                                       │
+│                                                          │
+│  What would you like to learn?                           │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │  e.g., "Rust ownership", "system design",          │ │
+│  │  "giving feedback to teammates"                     │ │
+│  └────────────────────────────────────────────────────┘ │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
 ```
-
-**User responds, Sensie creates the learning path:**
-```
-User: "I want to learn how to give better feedback to my teammates"
-
-Sensie: "An excellent choice, apprentice! Giving feedback is an art
-that separates good teammates from great ones.
-
-I've mapped out your training journey:
-○ 1. Understanding Feedback Types
-○ 2. Timing and Setting
-○ 3. The SBI Model (Situation-Behavior-Impact)
-○ 4. Receiving Feedback Gracefully
-○ 5. Difficult Conversations
-
-Estimated time: ~2-3 hours
-
-💬 Any specific goal? (optional)
-┌────────────────────────────────────────────────┐
-│ e.g., "Preparing for performance review season"│
-└────────────────────────────────────────────────┘
-
-            [Begin Training →]"
-```
-
-## Empty States
-
-**No Active Topic (Returning User):**
-```
-┌──────────────────────────────────────────────────────┐
-│              🎴                                       │
-│                                                      │
-│  Sensie:                                             │
-│  "Welcome back, apprentice! Ready for more           │
-│  training?                                           │
-│                                                      │
-│  What would you like to learn today?"                │
-│                                                      │
-│  ┌────────────────────────────────────────────────┐ │
-│  │ Type what you want to learn...                 │ │
-│  └────────────────────────────────────────────────┘ │
-│                                                      │
-│  Or continue where you left off:                     │
-│  [Resume: Rust Ownership (75%)]                      │
-│                                                      │
-└──────────────────────────────────────────────────────┘
-```
-
-**No Reviews Due:**
-```
-┌──────────────────────────────────────────────────────┐
-│  📅 No reviews due!                                   │
-│                                                      │
-│  Your memory remains sharp, apprentice.              │
-│  Rest well. I shall summon you when review time     │
-│  comes.                                              │
-│                                                      │
-│  Next review: Tomorrow                               │
-│                                                      │
-└──────────────────────────────────────────────────────┘
-```
-
-## Visitor Mode UI
-
-**Philosophy:** Complete authenticity. Visitors see real usage, not marketing material.
-
-**What Visitors See:**
-- All topics, subtopics, mastery percentages
-- Real questions and answers (unless marked private)
-- XP, streaks, badges
-- Full conversation history
-- Read-only access (cannot submit answers)
-
-**Privacy Control (Owner Only):**
-
-Owners can mark specific answers as private:
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│ You:                                                         │
-│ [Answer text about company-specific context...]              │
-│                                                    [•••]     │ ← More menu
-└──────────────────────────────────────────────────────────────┘
-
-More Menu:
-┌─────────────────────────┐
-│ 🔒 Mark as Private      │ ← Hides from visitors
-│ 📋 Copy Answer          │
-│ 🔗 Share Link           │
-└─────────────────────────┘
-```
-
-**Private Answer Indicator (Owner View):**
-```
-┌──────────────────────────────────────────────────────────────┐
-│ You:                                              🔒 Private │
-│ [Answer text about company-specific context...]              │
-└──────────────────────────────────────────────────────────────┘
-```
-
-Visitors will not see answers marked as private.
 
 ## Error States
 
-**Design Principle:** Stay fully in character + provide helpful debug info.
-
-**Retry Strategy:** All LLM errors are retried 2-3 times silently before showing user-facing error.
-
-Sensie never breaks character, but includes technical details for debugging.
+**Design principle:** Stay in character, but provide technical debug info.
 
 **Network Error:**
 ```
-┌──────────────────────────────────────────────────────┐
-│  ⚠️  Connection Lost                                 │
-│                                                      │
-│  The spirits are displeased, apprentice! My          │
-│  connection to the wisdom realm has been severed.    │
-│                                                      │
-│  Your progress is saved. Try again when the          │
-│  connection returns.                                 │
-│                                                      │
-│  [Retry]                                             │
-│                                                      │
-│  ┌────────────────────────────────────────────────┐ │
-│  │ 🔧 Debug: NetworkError - Failed to fetch       │ │
-│  │    Status: offline | Last success: 2m ago     │ │
-│  └────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  Connection lost                                         │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  The connection has been interrupted. Your progress      │
+│  is saved.                                               │
+│                                                          │
+│                                                  Retry   │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │  Debug: NetworkError · Last success: 2m ago        │ │
+│  └────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────┘
 ```
 
 **API Error:**
 ```
-┌──────────────────────────────────────────────────────┐
-│  ⚠️  The Wisdom Spirits Are Confused                 │
-│                                                      │
-│  Hmm, something went wrong on my end, apprentice.    │
-│  Even senseis make mistakes! Let me try again...     │
-│                                                      │
-│  [Retry] [Report Issue]                              │
-│                                                      │
-│  ┌────────────────────────────────────────────────┐ │
-│  │ 🔧 Debug: API Error 500                        │ │
-│  │    Endpoint: /api/chat                         │ │
-│  │    Request ID: abc-123-xyz                     │ │
-│  │    Message: Internal server error              │ │
-│  └────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  Something went wrong                                    │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  Even this old sensei makes mistakes sometimes.          │
+│  Let me try again...                                     │
+│                                                          │
+│                                        Retry   Report    │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │  Debug: API 500 · /api/chat · req_abc123          │ │
+│  └────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────┘
 ```
 
-**Rate Limit:**
+## Keyboard Shortcuts
+
 ```
-┌──────────────────────────────────────────────────────┐
-│  ⏸️  Take a Break, Young One                         │
-│                                                      │
-│  Even the greatest masters need rest! You've         │
-│  trained hard today. The wisdom spirits need a       │
-│  moment to recharge.                                 │
-│                                                      │
-│  Return in 15 minutes to continue your journey.      │
-│  Learning is a marathon, not a sprint!               │
-│                                                      │
-│  ┌────────────────────────────────────────────────┐ │
-│  │ 🔧 Debug: Rate limit exceeded                  │ │
-│  │    Provider: Anthropic | Retry after: 15m     │ │
-│  │    Requests today: 150/150                     │ │
-│  └────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────┘
+⌘K       Command palette
+⌘P       View progress
+⌘/       Focus input
+Enter    Send message
+⇧Enter   New line in input
+Esc      Close modals
 ```
 
-**LLM Provider Error:**
+## Responsive Design
+
+**Breakpoints:**
 ```
-┌──────────────────────────────────────────────────────┐
-│  ⚠️  The Oracle Is Sleeping                          │
-│                                                      │
-│  My connection to the AI wisdom source is            │
-│  temporarily disrupted. This happens sometimes!      │
-│                                                      │
-│  Try again in a moment, or switch providers in       │
-│  Settings if this persists.                          │
-│                                                      │
-│  [Retry] [Change Provider]                           │
-│                                                      │
-│  ┌────────────────────────────────────────────────┐ │
-│  │ 🔧 Debug: Provider unavailable                 │ │
-│  │    Provider: Anthropic | Model: claude-sonnet │ │
-│  │    Error: ServiceUnavailableError              │ │
-│  │    Suggestion: Try OpenAI as backup           │ │
-│  └────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────┘
+sm:  640px   Mobile landscape
+md:  768px   Tablet
+lg:  1024px  Desktop
+xl:  1280px  Large desktop
 ```
+
+**Mobile (<768px):**
+- Sidebar collapses to bottom sheet
+- Single column layout
+- Swipe gestures for navigation
+- Simplified progress indicators
+
+## Accessibility
+
+**Requirements:**
+- WCAG AA contrast ratios
+- Full keyboard navigation
+- Screen reader support
+- Focus indicators on all interactive elements
+- Respect `prefers-reduced-motion`
+- Respect `prefers-color-scheme`
+
+## Animations
+
+**Principles:**
+- Subtle, functional animations only
+- 150-200ms duration for micro-interactions
+- Ease-out for entrances, ease-in for exits
+- Respect reduced motion preferences
+
+**Allowed animations:**
+- Progress bar fills
+- Card hover states (subtle scale or border change)
+- Message appearance (fade-in, 150ms)
+- Page transitions (fade, 200ms)
+
+**Not allowed:**
+- Confetti
+- Bouncing elements
+- Decorative particles
+- Excessive spring animations
 
 ---
 
-**Implementation Checklist:**
-- [ ] Build responsive layout (mobile-first)
-- [ ] Implement command palette
-- [ ] Create progress visualizations
-- [ ] Design message components
-- [ ] Build topic sidebar
-- [ ] Implement keyboard shortcuts
-- [ ] Add animations (with reduced-motion support)
-- [ ] Test accessibility (WCAG AA)
-- [ ] Mobile gestures
-- [ ] Empty and error states
-
-**Last Updated:** 2026-01-05
+**Last Updated:** 2025-01-06

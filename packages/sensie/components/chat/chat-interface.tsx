@@ -1,0 +1,108 @@
+'use client';
+
+import { useChat } from 'ai/react';
+import { MessageList } from './message-list';
+import { InputArea } from './input-area';
+
+interface ChatInterfaceProps {
+  topicId?: string;
+  topicName?: string;
+  subtopicName?: string;
+  mastery?: number;
+}
+
+export function ChatInterface({
+  topicId,
+  topicName,
+  subtopicName,
+  mastery,
+}: ChatInterfaceProps) {
+  const { messages, isLoading, append, error } = useChat({
+    api: '/api/chat/message',
+    body: { topicId },
+  });
+
+  const handleSend = (content: string) => {
+    append({ role: 'user', content });
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-[hsl(var(--background))]">
+      {/* Header */}
+      {topicName && (
+        <header className="border-b border-[hsl(var(--border))] px-4 py-3">
+          <div className="max-w-3xl mx-auto flex items-center justify-between">
+            <div>
+              <h1 className="text-sm font-medium text-[hsl(var(--foreground))]">
+                {topicName}
+                {subtopicName && (
+                  <span className="text-[hsl(var(--muted-foreground))]">
+                    {' '}/{' '}{subtopicName}
+                  </span>
+                )}
+              </h1>
+            </div>
+            {typeof mastery === 'number' && (
+              <div className="flex items-center gap-3">
+                <div className="w-24 h-1 bg-[hsl(var(--muted))] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[hsl(var(--foreground))] transition-all duration-300"
+                    style={{ width: `${mastery}%` }}
+                  />
+                </div>
+                <span className="text-sm font-mono text-[hsl(var(--muted-foreground))]">
+                  {mastery}%
+                </span>
+              </div>
+            )}
+          </div>
+        </header>
+      )}
+
+      {/* Messages */}
+      <div className="flex-1 overflow-hidden">
+        <div className="max-w-3xl mx-auto h-full">
+          {messages.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <MessageList messages={messages} isLoading={isLoading} />
+          )}
+        </div>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="px-4 py-2 bg-[hsl(var(--destructive))/0.1] border-t border-[hsl(var(--destructive))/0.2]">
+          <p className="max-w-3xl mx-auto text-sm text-[hsl(var(--destructive))]">
+            Something went wrong. Please try again.
+          </p>
+        </div>
+      )}
+
+      {/* Input */}
+      <InputArea onSend={handleSend} disabled={isLoading} />
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center h-full px-4 py-12">
+      <div className="max-w-md text-center">
+        <h2 className="text-lg font-medium text-[hsl(var(--foreground))] mb-2">
+          Welcome, apprentice.
+        </h2>
+        <p className="text-[hsl(var(--muted-foreground))] text-[15px] leading-relaxed">
+          I&apos;m Sensie, your learning guide. I don&apos;t give answers —
+          I help you discover them through questions. True mastery comes from
+          understanding, not memorization.
+        </p>
+        <p className="text-[hsl(var(--muted-foreground))] text-[15px] mt-4">
+          What would you like to learn?
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default ChatInterface;
