@@ -1,8 +1,9 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import type { UIMessage } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { MessageList } from './message-list';
 import { InputArea } from './input-area';
 
@@ -11,6 +12,7 @@ interface ChatInterfaceProps {
   topicName?: string;
   subtopicName?: string;
   mastery?: number;
+  initialMessages?: UIMessage[];
 }
 
 export function ChatInterface({
@@ -18,20 +20,30 @@ export function ChatInterface({
   topicName,
   subtopicName,
   mastery,
+  initialMessages = [],
 }: ChatInterfaceProps) {
   const [inputValue, setInputValue] = useState('');
-  const { messages, status, sendMessage, error } = useChat({
-    transport: new DefaultChatTransport({
-      api: '/api/chat/message',
-      prepareSendMessagesRequest({ messages }) {
-        return {
-          body: {
-            messages,
-            topicId,
-          },
-        };
-      },
-    }),
+
+  // Create transport with topicId in closure
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: '/api/chat/message',
+        prepareSendMessagesRequest({ messages }) {
+          return {
+            body: {
+              messages,
+              topicId,
+            },
+          };
+        },
+      }),
+    [topicId]
+  );
+
+  const { messages, status, sendMessage, error, setMessages } = useChat({
+    transport,
+    messages: initialMessages,
   });
 
   const isLoading = status === 'streaming' || status === 'submitted';
@@ -45,7 +57,7 @@ export function ChatInterface({
     <div className="flex flex-col h-full bg-[hsl(var(--background))]">
       {/* Header */}
       {topicName && (
-        <header className="border-b border-[hsl(var(--border))] px-4 py-3">
+        <header className="flex-shrink-0 border-b border-[hsl(var(--border))] px-4 py-3">
           <div className="max-w-3xl mx-auto flex items-center justify-between">
             <div>
               <h1 className="text-sm font-medium text-[hsl(var(--foreground))]">
@@ -74,9 +86,9 @@ export function ChatInterface({
         </header>
       )}
 
-      {/* Messages */}
-      <div className="flex-1 overflow-hidden">
-        <div className="max-w-3xl mx-auto h-full">
+      {/* Messages - flex-1 with min-h-0 enables scrolling in flex containers */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="max-w-3xl mx-auto h-full flex flex-col">
           {messages.length === 0 ? (
             <EmptyState />
           ) : (
@@ -95,7 +107,9 @@ export function ChatInterface({
       )}
 
       {/* Input */}
-      <InputArea onSend={handleSend} disabled={isLoading} />
+      <div className="flex-shrink-0">
+        <InputArea onSend={handleSend} disabled={isLoading} />
+      </div>
     </div>
   );
 }

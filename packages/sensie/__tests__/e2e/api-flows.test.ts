@@ -369,3 +369,240 @@ describe('Topic Start Flow', () => {
     await apiRequest('/api/auth/logout', { method: 'POST' });
   });
 });
+
+describe('Complete Learning Flow', () => {
+  const TEST_TIMEOUT = 180000; // 3 minutes for LLM calls
+  let topicId: string | null = null;
+  let sessionId: string | null = null;
+
+  beforeAll(async () => {
+    serverAvailable = await isServerRunning();
+    if (!serverAvailable) {
+      return;
+    }
+    // Login as visitor
+    await apiRequest('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ mode: 'visitor' }),
+    });
+  });
+
+  beforeEach(async ({ skip }) => {
+    if (!serverAvailable) {
+      skip();
+    }
+  });
+
+  it('should complete a full learning cycle: create topic -> start -> chat -> get progress', async () => {
+    // Step 1: Create topic
+    const createResponse = await apiRequest('/api/topics', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'React Hooks',
+        goal: 'Learn useState and useEffect',
+      }),
+    });
+
+    if (createResponse.status === 403) {
+      console.log('⚠️  Topic limit reached, skipping learning flow test');
+      return;
+    }
+
+    expect(createResponse.status).toBe(201);
+    const createData = await createResponse.json();
+    topicId = createData.topic.id;
+    expect(createData.topic.subtopics.length).toBeGreaterThan(0);
+
+    console.log('✅ Step 1: Created topic with', createData.topic.subtopics.length, 'subtopics');
+
+    // Step 2: Start learning session
+    const startResponse = await apiRequest(`/api/topics/${topicId}/start`, {
+      method: 'POST',
+    });
+
+    expect(startResponse.status).toBe(200);
+    const startData = await startResponse.json();
+    sessionId = startData.session?.id;
+    expect(startData.success).toBe(true);
+    expect(startData.teaching).toBeDefined();
+
+    console.log('✅ Step 2: Started learning session');
+
+    // Step 3: Send a chat message about the topic
+    const chatResponse = await apiRequest('/api/chat/message', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [
+          { role: 'user', content: 'Can you explain what useState does in React?' }
+        ],
+        topicId,
+      }),
+    });
+
+    expect(chatResponse.status).toBe(200);
+    // Response is a stream, just verify it's valid
+    const contentType = chatResponse.headers.get('content-type');
+    expect(contentType).toBeTruthy();
+
+    console.log('✅ Step 3: Sent chat message and received streamed response');
+
+    // Step 4: Get progress
+    const progressResponse = await apiRequest(`/api/progress?topicId=${topicId}`);
+
+    expect(progressResponse.status).toBe(200);
+    const progressData = await progressResponse.json();
+    expect(progressData.progress).toBeDefined();
+
+    console.log('✅ Step 4: Retrieved progress');
+    console.log('   Topic mastery:', progressData.progress.topicMastery + '%');
+
+  }, TEST_TIMEOUT);
+
+  afterAll(async () => {
+    if (topicId) {
+      await apiRequest(`/api/topics/${topicId}`, { method: 'DELETE' });
+      console.log('🧹 Cleaned up test topic');
+    }
+    await apiRequest('/api/auth/logout', { method: 'POST' });
+  });
+});
+
+describe('Review Session Flow', () => {
+  const TEST_TIMEOUT = 120000;
+
+  beforeAll(async () => {
+    serverAvailable = await isServerRunning();
+    if (!serverAvailable) {
+      return;
+    }
+    // Login as visitor
+    await apiRequest('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ mode: 'visitor' }),
+    });
+  });
+
+  beforeEach(async ({ skip }) => {
+    if (!serverAvailable) {
+      skip();
+    }
+  });
+
+  it('should get due reviews (may be empty for new user)', async () => {
+    const response = await apiRequest('/api/review/due');
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+
+    expect(data.reviews).toBeDefined();
+    expect(Array.isArray(data.reviews)).toBe(true);
+
+    console.log('✅ Retrieved due reviews:', data.reviews.length);
+  });
+
+  it('should handle starting a review session', async () => {
+    // First check if there are reviews due
+    const dueResponse = await apiRequest('/api/review/due');
+    const dueData = await dueResponse.json();
+
+    if (dueData.reviews.length === 0) {
+      console.log('⚠️  No reviews due, skipping start review test');
+      return;
+    }
+
+    const response = await apiRequest('/api/review/start', {
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+
+    expect(data.success).toBe(true);
+    expect(data.review).toBeDefined();
+
+    console.log('✅ Started review session');
+  }, TEST_TIMEOUT);
+
+  afterAll(async () => {
+    await apiRequest('/api/auth/logout', { method: 'POST' });
+  });
+});
+
+describe('Topic Limits Enforcement E2E', () => {
+  const TEST_TIMEOUT = 180000;
+  const createdTopicIds: string[] = [];
+
+  beforeAll(async () => {
+    serverAvailable = await isServerRunning();
+    if (!serverAvailable) {
+      return;
+    }
+    // Login as visitor (1 active topic limit)
+    await apiRequest('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ mode: 'visitor' }),
+    });
+  });
+
+  beforeEach(async ({ skip }) => {
+    if (!serverAvailable) {
+      skip();
+    }
+  });
+
+  it('should enforce topic limits for visitor (1 active max)', async () => {
+    // Create first topic - should succeed
+    const firstResponse = await apiRequest('/api/topics', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'First Topic',
+        goal: 'Test topic limits',
+      }),
+    });
+
+    if (firstResponse.status === 403) {
+      console.log('⚠️  User already has active topics, skipping limit test');
+      return;
+    }
+
+    expect(firstResponse.status).toBe(201);
+    const firstData = await firstResponse.json();
+    createdTopicIds.push(firstData.topic.id);
+
+    console.log('✅ Created first topic (ACTIVE)');
+
+    // Create second topic - should be QUEUED for visitor
+    const secondResponse = await apiRequest('/api/topics', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Second Topic',
+        goal: 'Should be queued',
+      }),
+    });
+
+    // Visitor max is 1, so this should either be queued (201) or rejected (403)
+    expect([201, 403]).toContain(secondResponse.status);
+
+    if (secondResponse.status === 201) {
+      const secondData = await secondResponse.json();
+      createdTopicIds.push(secondData.topic.id);
+
+      // For visitor, second topic should be QUEUED
+      expect(secondData.topic.status).toBe('QUEUED');
+      console.log('✅ Second topic created as QUEUED');
+    } else {
+      console.log('✅ Second topic rejected (topic limit reached)');
+    }
+  }, TEST_TIMEOUT);
+
+  afterAll(async () => {
+    // Cleanup all created topics
+    for (const topicId of createdTopicIds) {
+      await apiRequest(`/api/topics/${topicId}`, { method: 'DELETE' });
+    }
+    if (createdTopicIds.length > 0) {
+      console.log('🧹 Cleaned up', createdTopicIds.length, 'test topics');
+    }
+    await apiRequest('/api/auth/logout', { method: 'POST' });
+  });
+});

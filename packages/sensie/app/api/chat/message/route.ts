@@ -70,10 +70,29 @@ export async function POST(request: NextRequest) {
     // Build context for Sensie
     const instructions = buildInstructions(topic?.name, topic?.masteryPercentage);
 
+    // Capture sessionId for onFinish callback
+    const sessionId = learningSession?.id;
+
     // Use Mastra's sensieAgent for streaming with AI SDK v6 compatible format
+    // Use onFinish callback to save assistant response after streaming completes
     const stream = await sensieAgent.stream(messages, {
       instructions,
       format: 'aisdk',
+      onFinish: async ({ text }) => {
+        if (sessionId && text?.trim()) {
+          try {
+            console.log('[chat] Saving Sensie response:', text.substring(0, 100) + '...');
+            await addMessage({
+              sessionId,
+              role: 'SENSIE',
+              content: text.trim(),
+            });
+            console.log('[chat] Sensie response saved successfully');
+          } catch (error) {
+            console.error('[chat] Failed to save Sensie response:', error);
+          }
+        }
+      },
     });
 
     // Return AI SDK v6 compatible streaming response
