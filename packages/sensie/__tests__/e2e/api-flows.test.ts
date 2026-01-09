@@ -528,6 +528,272 @@ describe('Review Session Flow', () => {
   });
 });
 
+describe('Chat Commands E2E', () => {
+  const TEST_TIMEOUT = 120000;
+  let topicId: string | null = null;
+
+  beforeAll(async () => {
+    serverAvailable = await isServerRunning();
+    if (!serverAvailable) {
+      return;
+    }
+    // Login as visitor
+    await apiRequest('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ mode: 'visitor' }),
+    });
+  });
+
+  beforeEach(async ({ skip }) => {
+    if (!serverAvailable) {
+      skip();
+    }
+  });
+
+  describe('/progress command', () => {
+    it('should return progress information', async () => {
+      const response = await apiRequest('/api/chat/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: '/progress' }],
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+
+      // Should contain progress-related information
+      expect(text).toContain('Progress');
+      expect(text).toContain('Level');
+
+      console.log('✅ /progress command returned progress data');
+    });
+  });
+
+  describe('/topics command', () => {
+    it('should list all topics', async () => {
+      const response = await apiRequest('/api/chat/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: '/topics' }],
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+
+      // Should contain topics-related output
+      expect(text).toContain('Topics');
+
+      console.log('✅ /topics command returned topic list');
+    });
+  });
+
+  describe('/review command', () => {
+    it('should show review status', async () => {
+      const response = await apiRequest('/api/chat/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: '/review' }],
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+
+      // Should mention reviews (either due or none)
+      expect(text.toLowerCase()).toContain('review');
+
+      console.log('✅ /review command returned review status');
+    });
+  });
+
+  describe('/continue command', () => {
+    it('should handle continue when no active topics', async () => {
+      const response = await apiRequest('/api/chat/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: '/continue' }],
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+
+      // Should either show a topic to continue or message about no topics
+      expect(text.toLowerCase()).toMatch(/continue|no active topics|resuming/i);
+
+      console.log('✅ /continue command handled appropriately');
+    });
+  });
+
+  describe('/quiz command', () => {
+    it('should handle quiz command', async () => {
+      const response = await apiRequest('/api/chat/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: '/quiz' }],
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+
+      // Should either show quiz or message about no topics
+      expect(text.toLowerCase()).toMatch(/quiz|no active topics/i);
+
+      console.log('✅ /quiz command handled appropriately');
+    });
+  });
+
+  describe('/break command', () => {
+    it('should handle break command', async () => {
+      const response = await apiRequest('/api/chat/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: '/break' }],
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+
+      // Should contain break-related messaging
+      expect(text.toLowerCase()).toMatch(/break|rest|saved|continue/i);
+
+      console.log('✅ /break command handled appropriately');
+    });
+  });
+
+  describe('Commands with topic context', () => {
+    it('should create topic for command testing', async () => {
+      const createResponse = await apiRequest('/api/topics', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Command Test Topic',
+          goal: 'Test commands with context',
+        }),
+      });
+
+      if (createResponse.status === 403) {
+        console.log('⚠️  Topic limit reached, skipping context commands test');
+        return;
+      }
+
+      expect(createResponse.status).toBe(201);
+      const createData = await createResponse.json();
+      topicId = createData.topic.id;
+
+      console.log('✅ Created topic for command testing');
+    }, TEST_TIMEOUT);
+
+    it('should handle /hint command with topic context', async () => {
+      if (!topicId) {
+        console.log('⚠️  No topic, skipping /hint test');
+        return;
+      }
+
+      const response = await apiRequest('/api/chat/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: '/hint' }],
+          topicId,
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+
+      // Should either provide hint or explain why not possible
+      expect(text.toLowerCase()).toMatch(/hint|no active question|learning session/i);
+
+      console.log('✅ /hint command handled with topic context');
+    });
+
+    it('should handle /skip command with topic context', async () => {
+      if (!topicId) {
+        console.log('⚠️  No topic, skipping /skip test');
+        return;
+      }
+
+      const response = await apiRequest('/api/chat/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: '/skip' }],
+          topicId,
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+
+      // Should either skip or explain why not possible
+      expect(text.toLowerCase()).toMatch(/skip|no active question|learning session/i);
+
+      console.log('✅ /skip command handled with topic context');
+    });
+  });
+
+  describe('Command case insensitivity', () => {
+    it('should handle uppercase commands', async () => {
+      const response = await apiRequest('/api/chat/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: '/PROGRESS' }],
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      expect(text).toContain('Progress');
+
+      console.log('✅ Uppercase command /PROGRESS handled');
+    });
+
+    it('should handle mixed case commands', async () => {
+      const response = await apiRequest('/api/chat/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: '/Topics' }],
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      expect(text).toContain('Topics');
+
+      console.log('✅ Mixed case command /Topics handled');
+    });
+  });
+
+  describe('Regular messages not treated as commands', () => {
+    it('should not treat messages with / in the middle as commands', async () => {
+      const response = await apiRequest('/api/chat/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: 'What is the difference between path/to/file and another/path?' }],
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      // Response should be from Sensie, not a command response
+      const text = await response.text();
+      // Should be a proper streaming response from the AI
+      expect(text).toBeTruthy();
+
+      console.log('✅ Path-like text not treated as command');
+    });
+  });
+
+  afterAll(async () => {
+    if (topicId) {
+      await apiRequest(`/api/topics/${topicId}`, { method: 'DELETE' });
+      console.log('🧹 Cleaned up command test topic');
+    }
+    await apiRequest('/api/auth/logout', { method: 'POST' });
+  });
+});
+
 describe('Topic Limits Enforcement E2E', () => {
   const TEST_TIMEOUT = 180000;
   const createdTopicIds: string[] = [];

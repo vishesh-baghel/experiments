@@ -1,10 +1,12 @@
 import { NextRequest } from 'next/server';
+import { createUIMessageStream, createUIMessageStreamResponse } from 'ai';
 import { getSession } from '@/lib/auth/session';
 import { requireAuth } from '@/lib/auth/auth';
 import { getActiveSession, createSession, addMessage } from '@/lib/db/sessions';
 import { getTopicById } from '@/lib/db/topics';
 import { sensieAgent } from '@/lib/mastra/agents/sensie';
 import { SENSIE_SYSTEM_PROMPT } from '@/lib/mastra/prompts';
+import { isCommand, parseCommand, executeCommand } from '@/lib/chat/commands';
 
 /**
  * POST /api/chat/message
@@ -29,6 +31,17 @@ export async function POST(request: NextRequest) {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
+    }
+
+    // Extract the last user message content
+    const lastUserMessage = messages[messages.length - 1];
+    const messageContent = lastUserMessage?.role === 'user'
+      ? extractMessageContent(lastUserMessage)
+      : null;
+
+    // Check if the message is a command
+    if (messageContent && isCommand(messageContent)) {
+      return handleCommandMessage(session, messageContent, topicId);
     }
 
     // Get or create learning session if topicId provided
@@ -144,4 +157,87 @@ function extractMessageContent(message: {
   }
 
   return null;
+}
+
+/**
+ * Handle command messages
+ * Returns a streaming response that mimics the AI SDK format
+ */
+async function handleCommandMessage(
+  session: { userId: string },
+  messageContent: string,
+  topicId?: string
+): Promise<Response> {
+  const { command, args } = parseCommand(messageContent);
+
+  if (!command) {
+    return createCommandResponse("I didn't recognize that command. Try /hint, /skip, /progress, /topics, /review, /quiz, /break, or /continue.");
+  }
+
+  // Get learning session if we have a topicId
+  let learningSessionId: string | undefined;
+  if (topicId) {
+    const learningSession = await getActiveSession(topicId);
+    learningSessionId = learningSession?.id;
+  }
+
+  // Execute the command
+  const result = await executeCommand(command, {
+    userId: session.userId,
+    topicId,
+    sessionId: learningSessionId,
+  }, args);
+
+  return createCommandResponse(result.message, result.data, result.action, result.navigateTo);
+}
+
+/**
+ * Create a streaming response for command results
+ * Uses AI SDK's createUIMessageStream and createUIMessageStreamResponse for proper formatting
+ */
+function createCommandResponse(
+  message: string,
+  _data?: unknown,
+  _action?: string,
+  _navigateTo?: string
+): Response {
+  // Generate unique IDs
+  const messageId = `cmd-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  const textId = 'txt-0';
+
+  // Create the stream with our command response - following the full protocol
+  const stream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      // Start the message
+      writer.write({ type: 'start', messageId });
+
+      // Start a step
+      writer.write({ type: 'start-step' });
+
+      // Start text part
+      writer.write({ type: 'text-start', id: textId });
+
+      // Write the text delta
+      writer.write({ type: 'text-delta', delta: message, id: textId });
+
+      // End text part
+      writer.write({ type: 'text-end', id: textId });
+
+      // Finish step
+      writer.write({ type: 'finish-step' });
+
+      // Finish message
+      writer.write({ type: 'finish', finishReason: 'stop' });
+    },
+    onError: (error: unknown) => {
+      console.error('[command] Error in stream:', error);
+      return 'An error occurred processing the command.';
+    },
+  });
+
+  // Return the response with the stream
+  return createUIMessageStreamResponse({
+    status: 200,
+    stream,
+  });
 }

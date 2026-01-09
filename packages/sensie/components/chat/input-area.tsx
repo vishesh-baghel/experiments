@@ -16,7 +16,9 @@ const COMMANDS = [
   { cmd: '/progress', description: 'Show detailed progress' },
   { cmd: '/topics', description: 'Manage learning topics' },
   { cmd: '/review', description: 'Start spaced repetition' },
+  { cmd: '/quiz', description: 'Start a quiz on current topic' },
   { cmd: '/break', description: 'Save and take a break' },
+  { cmd: '/continue', description: 'Continue last studied topic' },
 ];
 
 export function InputArea({ onSend, disabled, placeholder }: InputAreaProps) {
@@ -52,8 +54,8 @@ export function InputArea({ onSend, disabled, placeholder }: InputAreaProps) {
       } else if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         if (filteredCommands[selectedIndex]) {
-          setInput(filteredCommands[selectedIndex].cmd + ' ');
-          setShowCommands(false);
+          // Auto-send the command when selected
+          sendCommand(filteredCommands[selectedIndex].cmd);
         }
       } else if (e.key === 'Escape') {
         setShowCommands(false);
@@ -64,10 +66,15 @@ export function InputArea({ onSend, disabled, placeholder }: InputAreaProps) {
     }
   };
 
-  const selectCommand = (cmd: string) => {
-    setInput(cmd + ' ');
+  const sendCommand = (cmd: string) => {
+    onSend(cmd);
+    setInput('');
     setShowCommands(false);
-    textareaRef.current?.focus();
+  };
+
+  const selectCommand = (cmd: string) => {
+    // Auto-send the command when clicked
+    sendCommand(cmd);
   };
 
   return (
