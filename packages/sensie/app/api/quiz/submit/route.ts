@@ -153,7 +153,7 @@ Evaluate whether the answer demonstrates understanding.
     // Update analytics
     await updateTodayAnalytics(session.userId, {
       questionsAnswered: evaluations.length,
-      correctAnswers: correctCount,
+      questionsCorrect: correctCount,
     });
 
     // Update topic mastery

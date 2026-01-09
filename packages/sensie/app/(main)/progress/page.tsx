@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Check, Lock, ArrowRight, Loader2, TrendingUp, Calendar, Flame } from 'lucide-react';
@@ -81,7 +81,7 @@ interface TopicDetail {
   }>;
 }
 
-export default function ProgressPage() {
+function ProgressPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const topicId = searchParams.get('topic');
@@ -186,6 +186,20 @@ export default function ProgressPage() {
   }
 
   return null;
+}
+
+export default function ProgressPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[hsl(var(--background))] flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-[hsl(var(--muted-foreground))]" />
+        </div>
+      }
+    >
+      <ProgressPageContent />
+    </Suspense>
+  );
 }
 
 interface TopicProgressViewProps {

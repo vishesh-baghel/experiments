@@ -94,6 +94,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         let reviewQuestion = null;
         if (concept) {
           const context: SocraticContext = {
+            topicId: review.topicId,
+            subtopicId: review.subtopicId || concept.subtopicId,
             conceptId: concept.id,
             userLevel: 5,
             previousAnswers: [],

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { ChatInterface } from '@/components/chat/chat-interface';
@@ -27,7 +27,7 @@ interface Topic {
   }>;
 }
 
-export default function ChatPage() {
+function ChatPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const topicId = searchParams.get('topic');
@@ -127,5 +127,19 @@ export default function ChatPage() {
         initialMessages={initialMessages}
       />
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-screen flex items-center justify-center bg-[hsl(var(--background))]">
+          <Loader2 className="w-6 h-6 animate-spin text-[hsl(var(--muted-foreground))]" />
+        </div>
+      }
+    >
+      <ChatPageContent />
+    </Suspense>
   );
 }
