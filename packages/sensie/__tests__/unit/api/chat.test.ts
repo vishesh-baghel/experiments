@@ -31,21 +31,21 @@ vi.mock('@/lib/mastra/prompts', () => ({
   SENSIE_SYSTEM_PROMPT: 'You are Sensie, a wise teacher...',
 }));
 
-// Mock AI SDK
-vi.mock('ai', () => ({
-  streamText: vi.fn().mockReturnValue({
-    toDataStreamResponse: vi.fn().mockReturnValue(
-      new Response('data: {"content":"Hello!"}\n', {
-        status: 200,
-        headers: { 'Content-Type': 'text/event-stream' },
+// Mock sensieAgent - inline mock to avoid hoisting issues
+// Creates a mock that returns AI SDK v6 compatible response
+vi.mock('@/lib/mastra/agents/sensie', () => ({
+  sensieAgent: {
+    stream: vi.fn().mockImplementation(() =>
+      Promise.resolve({
+        toUIMessageStreamResponse: vi.fn().mockReturnValue(
+          new Response('data: {"type":"text-delta","delta":"Hello from Sensie!"}\n\ndata: [DONE]\n', {
+            status: 200,
+            headers: { 'Content-Type': 'text/event-stream' },
+          })
+        ),
       })
     ),
-  }),
-  convertToCoreMessages: vi.fn().mockImplementation((messages) => messages),
-}));
-
-vi.mock('@ai-sdk/anthropic', () => ({
-  anthropic: vi.fn().mockReturnValue('mock-model'),
+  },
 }));
 
 function createMockRequest(body: object): NextRequest {

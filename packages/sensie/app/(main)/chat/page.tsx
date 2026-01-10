@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { ChatInterface } from '@/components/chat/chat-interface';
+import type { UIMessage } from '@ai-sdk/react';
 
 /**
  * Chat Page - Main learning interface
@@ -26,17 +27,18 @@ interface Topic {
   }>;
 }
 
-export default function ChatPage() {
+function ChatPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const topicId = searchParams.get('topic');
 
   const [loading, setLoading] = useState(!!topicId);
   const [topic, setTopic] = useState<Topic | null>(null);
+  const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchTopic() {
+    async function fetchTopicAndMessages() {
       if (!topicId) {
         setLoading(false);
         return;
@@ -46,24 +48,36 @@ export default function ChatPage() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/topics/${topicId}`);
+        // Fetch topic and messages in parallel
+        const [topicResponse, messagesResponse] = await Promise.all([
+          fetch(`/api/topics/${topicId}`),
+          fetch(`/api/chat/messages?topicId=${topicId}`),
+        ]);
 
-        if (!response.ok) {
-          if (response.status === 401) {
+        if (!topicResponse.ok) {
+          if (topicResponse.status === 401) {
             router.push('/login');
             return;
           }
-          if (response.status === 404) {
+          if (topicResponse.status === 404) {
             throw new Error('Topic not found');
           }
-          if (response.status === 403) {
+          if (topicResponse.status === 403) {
             throw new Error('Access denied');
           }
           throw new Error('Failed to load topic');
         }
 
-        const data = await response.json();
-        setTopic(data.topic);
+        const topicData = await topicResponse.json();
+        setTopic(topicData.topic);
+
+        // Load messages if available
+        if (messagesResponse.ok) {
+          const messagesData = await messagesResponse.json();
+          if (messagesData.messages && messagesData.messages.length > 0) {
+            setInitialMessages(messagesData.messages);
+          }
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load topic');
       } finally {
@@ -71,7 +85,7 @@ export default function ChatPage() {
       }
     }
 
-    fetchTopic();
+    fetchTopicAndMessages();
   }, [topicId, router]);
 
   if (loading) {
@@ -110,7 +124,22 @@ export default function ChatPage() {
         topicName={topic?.name}
         subtopicName={currentSubtopic?.name}
         mastery={topic?.masteryPercentage}
+        initialMessages={initialMessages}
       />
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-screen flex items-center justify-center bg-[hsl(var(--background))]">
+          <Loader2 className="w-6 h-6 animate-spin text-[hsl(var(--muted-foreground))]" />
+        </div>
+      }
+    >
+      <ChatPageContent />
+    </Suspense>
   );
 }

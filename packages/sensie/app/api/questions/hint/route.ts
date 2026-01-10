@@ -95,15 +95,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       followUpPrompts: question.followUpPrompts,
     };
 
-    // Build concept object
-    const conceptForHint: Concept = {
-      id: concept.id,
-      name: concept.name,
-      explanation: concept.explanation || undefined,
-      codeExamples: concept.codeExamples as string[] | undefined,
-      keyPoints: concept.keyPoints as string[] | undefined,
-      isMastered: concept.isMastered,
-    };
+    // Build concept object - use the concept directly since it's already the right type
+    const conceptForHint: Concept = concept;
 
     // Generate hints if not already in the question
     let hints: string[];

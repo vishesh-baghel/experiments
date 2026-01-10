@@ -6,13 +6,14 @@ on:
       - main
     paths:
       - 'packages/jack-x-agent/**'
-      # Add more agent paths here as needed
-      # - 'packages/sensie/**'
+      - 'packages/sensie/**'
+      - 'packages/gary/**'
 
 jobs:
   sync-jack-x-agent:
     runs-on: ubuntu-latest
-    
+    if: contains(toJSON(github.event.commits.*.modified), 'packages/jack-x-agent') || contains(toJSON(github.event.commits.*.added), 'packages/jack-x-agent')
+
     steps:
       - name: Checkout monorepo
         uses: actions/checkout@v4
@@ -30,26 +31,44 @@ jobs:
           target-branch: main
           commit-message: 'sync: update from experiments monorepo'
 
-  # Add more sync jobs for other agents as needed
-  # sync-sensie:
-  #   runs-on: ubuntu-latest
-  #   if: |
-  #     github.event_name == 'workflow_dispatch' && (github.event.inputs.agent == '' || github.event.inputs.agent == 'sensie') ||
-  #     github.event_name == 'push' && contains(toJSON(github.event.commits.*.modified), 'packages/sensie')
-  #   
-  #   steps:
-  #     - name: Checkout monorepo
-  #       uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0
-  #
-  #     - name: Sync to template repo
-  #       uses: cpina/github-action-push-to-another-repository@main
-  #       env:
-  #         SSH_DEPLOY_KEY: ${{ secrets.SENSIE_TEMPLATE_DEPLOY_KEY }}
-  #       with:
-  #         source-directory: 'packages/sensie'
-  #         destination-github-username: 'vishesh-baghel'
-  #         destination-repository-name: 'sensie-template'
-  #         target-branch: main
-  #         commit-message: 'sync: update from experiments monorepo'
+  sync-sensie:
+    runs-on: ubuntu-latest
+    if: contains(toJSON(github.event.commits.*.modified), 'packages/sensie') || contains(toJSON(github.event.commits.*.added), 'packages/sensie')
+
+    steps:
+      - name: Checkout monorepo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sync to template repo
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          SSH_DEPLOY_KEY: ${{ secrets.SENSIE_TEMPLATE_DEPLOY_KEY }}
+        with:
+          source-directory: 'packages/sensie'
+          destination-github-username: 'vishesh-baghel'
+          destination-repository-name: 'sensie'
+          target-branch: main
+          commit-message: 'sync: update from experiments monorepo'
+
+  sync-gary:
+    runs-on: ubuntu-latest
+    if: contains(toJSON(github.event.commits.*.modified), 'packages/gary') || contains(toJSON(github.event.commits.*.added), 'packages/gary')
+
+    steps:
+      - name: Checkout monorepo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sync to template repo
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          SSH_DEPLOY_KEY: ${{ secrets.GARY_TEMPLATE_DEPLOY_KEY }}
+        with:
+          source-directory: 'packages/gary'
+          destination-github-username: 'vishesh-baghel'
+          destination-repository-name: 'gary'
+          target-branch: main
+          commit-message: 'sync: update from experiments monorepo'

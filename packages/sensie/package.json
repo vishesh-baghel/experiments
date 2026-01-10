@@ -20,8 +20,10 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^1.2.12",
-    "@ai-sdk/openai": "^1.3.24",
+    "@ai-sdk/anthropic": "^3.0.9",
+    "@ai-sdk/openai": "^3.0.7",
+    "@ai-sdk/react": "^3.0.22",
+    "@mastra/ai-sdk": "^0.3.3",
     "@mastra/core": "^0.24.2",
     "@mastra/memory": "^0.15.11",
     "@prisma/client": "^6.19.0",
@@ -36,7 +38,7 @@
     "@radix-ui/react-tabs": "^1.1.1",
     "@radix-ui/react-toast": "^1.2.4",
     "@radix-ui/react-tooltip": "^1.2.8",
-    "ai": "^4.3.19",
+    "ai": "^6.0.22",
     "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -47,8 +49,8 @@
     "lucide-react": "^0.468.0",
     "next": "16.0.10",
     "next-themes": "^0.4.6",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "ts-fsrs": "^4.0.0",
@@ -72,13 +74,13 @@
     "happy-dom": "^16.8.0",
     "prisma": "^6.19.0",
     "tailwindcss": "^4",
+    "tsx": "^4.20.6",
     "typescript": "^5",
     "vitest": "^2.1.8"
   },
   "pnpm": {
     "overrides": {
-      "zod": "^3.23.8",
-      "ai": "^4.3.19"
+      "zod": "^3.23.8"
     }
   }
 }

@@ -13,7 +13,7 @@ import { prisma } from '@/lib/db/client';
 const scheduler = fsrs();
 
 // Maximum reviews per session to prevent fatigue
-const MAX_REVIEWS_PER_SESSION = 20;
+export const MAX_REVIEWS_PER_SESSION = 20;
 
 /**
  * Create a new card for spaced repetition

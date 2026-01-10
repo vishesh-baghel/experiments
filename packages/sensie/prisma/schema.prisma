@@ -433,3 +433,77 @@ model ConceptCache {
 
   @@index([conceptId])
 }
+
+// ============================================================================
+// FEYNMAN TECHNIQUE
+// ============================================================================
+
+model FeynmanExercise {
+  id     String @id @default(cuid())
+  userId String
+
+  // What's being explained
+  topicId    String
+  subtopicId String?
+  conceptId  String?
+  conceptName String
+
+  // Exercise state
+  status         FeynmanStatus @default(IN_PROGRESS)
+  targetAudience String        @default("child") // child, beginner, peer
+  explanation    String        @db.Text // User's current explanation
+  previousAttempts String[]    // Previous explanation attempts
+  attempts       Int           @default(0)
+
+  // Evaluation (stored as JSON)
+  evaluation Json? // FeynmanEvaluation type
+
+  // Metadata
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  @@index([userId, status])
+  @@index([userId, topicId])
+}
+
+enum FeynmanStatus {
+  PENDING         // Not started
+  IN_PROGRESS     // User is writing explanation
+  NEEDS_REFINEMENT // Evaluated but not approved
+  COMPLETED       // Explanation approved
+}
+
+// ============================================================================
+// ADVANCED GAP DETECTION
+// ============================================================================
+
+model KnowledgeGapRecord {
+  id     String @id @default(cuid())
+  userId String
+  topicId String
+
+  // Gap details
+  conceptId   String?
+  subtopicId  String?
+  gapType     String   // misconception, missing_prerequisite, shallow_understanding
+  severity    String   // minor, moderate, critical
+  description String   @db.Text
+  evidence    String   @db.Text // What indicated this gap
+
+  // Tracking
+  frequency     Int      @default(1) // How often this gap has been detected
+  lastOccurrence DateTime @default(now())
+  isResolved    Boolean  @default(false)
+  resolvedAt    DateTime?
+
+  // Related data
+  relatedMisconceptions String[]
+  suggestedResources    String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, topicId])
+  @@index([userId, isResolved])
+}

@@ -10,6 +10,7 @@ import {
   getAgentById,
   jackAgent,
   sensieAgent,
+  garyAgent,
 } from "@/config/agents";
 
 describe("agents configuration", () => {
@@ -114,12 +115,76 @@ describe("agents configuration", () => {
   });
 
   describe("sensieAgent", () => {
-    it("should have status 'coming-soon'", () => {
-      expect(sensieAgent.status).toBe("coming-soon");
+    it("should have status 'available'", () => {
+      expect(sensieAgent.status).toBe("available");
+    });
+
+    it("should have neon integration", () => {
+      expect(sensieAgent.integrations).toContain("neon");
+    });
+
+    it("should have required environment variables", () => {
+      const requiredEnvVars = sensieAgent.envVars.filter((v) => v.required);
+      expect(requiredEnvVars.length).toBeGreaterThanOrEqual(2);
+
+      const envVarKeys = requiredEnvVars.map((v) => v.key);
+      expect(envVarKeys).toContain("DATABASE_URL");
+      expect(envVarKeys).toContain("AI_GATEWAY_API_KEY");
     });
 
     it("should have valid sourceRepo URL", () => {
       expect(sensieAgent.sourceRepo).toMatch(/^https:\/\/github\.com\//);
+    });
+
+    it("should have demoUrl", () => {
+      expect(sensieAgent.demoUrl).toBeDefined();
+      expect(sensieAgent.demoUrl).toMatch(/^https?:\/\//);
+    });
+
+    it("should have at least 3 features", () => {
+      expect(sensieAgent.features.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it("should have at least 2 requirements", () => {
+      expect(sensieAgent.requirements.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("should have deploy instructions", () => {
+      expect(sensieAgent.deployInstructions.length).toBeGreaterThan(0);
+    });
+
+    it("should have guide steps", () => {
+      expect(sensieAgent.guideSteps.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("garyAgent", () => {
+    it("should have status 'coming-soon'", () => {
+      expect(garyAgent.status).toBe("coming-soon");
+    });
+
+    it("should have neon integration", () => {
+      expect(garyAgent.integrations).toContain("neon");
+    });
+
+    it("should have valid sourceRepo URL", () => {
+      expect(garyAgent.sourceRepo).toMatch(/^https:\/\/github\.com\//);
+    });
+
+    it("should have at least 3 features", () => {
+      expect(garyAgent.features.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it("should have at least 2 requirements", () => {
+      expect(garyAgent.requirements.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("should have deploy instructions", () => {
+      expect(garyAgent.deployInstructions.length).toBeGreaterThan(0);
+    });
+
+    it("should have guide steps", () => {
+      expect(garyAgent.guideSteps.length).toBeGreaterThan(0);
     });
   });
 

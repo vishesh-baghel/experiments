@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, Check, Loader2 } from 'lucide-react';
@@ -51,7 +51,7 @@ const RATINGS: { id: Rating; label: string; color: string }[] = [
   { id: 4, label: 'Easy', color: 'text-blue-500' },
 ];
 
-export default function ReviewPage() {
+function ReviewPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const topicId = searchParams.get('topic');
@@ -442,5 +442,19 @@ export default function ReviewPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function ReviewPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[hsl(var(--background))] flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-[hsl(var(--muted-foreground))]" />
+        </div>
+      }
+    >
+      <ReviewPageContent />
+    </Suspense>
   );
 }

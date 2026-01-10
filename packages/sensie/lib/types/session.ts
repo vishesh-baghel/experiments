@@ -54,7 +54,8 @@ export type SessionCommand =
   | '/break'
   | '/review'
   | '/quiz'
-  | '/explain';
+  | '/explain'
+  | '/continue';
 
 export interface CommandResult {
   command: SessionCommand;

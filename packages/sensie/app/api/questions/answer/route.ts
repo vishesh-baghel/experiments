@@ -74,6 +74,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Build Socratic context for evaluation
     const socraticContext: SocraticContext = {
+      topicId: learningSession.topicId,
+      subtopicId: learningSession.currentSubtopicId || '',
       conceptId: question.conceptId,
       userLevel: 5, // Default level, can be enhanced later
       previousAnswers: [],
@@ -124,7 +126,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Update daily analytics
     await updateTodayAnalytics(session.userId, {
       questionsAnswered: 1,
-      correctAnswers: evaluationResult.evaluation.isCorrect ? 1 : 0,
+      questionsCorrect: evaluationResult.evaluation.isCorrect ? 1 : 0,
     });
 
     return NextResponse.json({
