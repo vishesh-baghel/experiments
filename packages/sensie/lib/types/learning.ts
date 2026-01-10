@@ -149,3 +149,119 @@ export interface QuizQuestion {
   expectedAnswer: string;
   scoringCriteria: string[];
 }
+
+// Feynman Technique types
+export interface FeynmanExercise {
+  id: string;
+  userId: string;
+  topicId: string;
+  subtopicId?: string;
+  conceptId?: string;
+  conceptName: string;
+  status: FeynmanStatus;
+  explanation: string; // User's explanation
+  targetAudience: 'child' | 'beginner' | 'peer';
+  evaluation?: FeynmanEvaluation;
+  attempts: number;
+  createdAt: Date;
+  completedAt?: Date;
+}
+
+export type FeynmanStatus = 'PENDING' | 'IN_PROGRESS' | 'NEEDS_REFINEMENT' | 'COMPLETED';
+
+export interface FeynmanEvaluation {
+  score: number; // 0-100
+  clarity: number; // 0-10
+  accuracy: number; // 0-10
+  simplicity: number; // 0-10
+  feedback: string;
+  unclearParts: FeynmanUnclearPart[];
+  probingQuestions: string[];
+  suggestions: string[];
+  isApproved: boolean;
+}
+
+export interface FeynmanUnclearPart {
+  text: string;
+  issue: string;
+  suggestion: string;
+}
+
+export interface FeynmanContext {
+  userId: string;
+  topicId: string;
+  subtopicId?: string;
+  conceptId?: string;
+  conceptName: string;
+  conceptExplanation?: string;
+  targetAudience: 'child' | 'beginner' | 'peer';
+  previousAttempts: string[];
+}
+
+// Learning Analytics types
+export interface LearningAnalyticsSummary {
+  userId: string;
+  period: 'daily' | 'weekly' | 'monthly' | 'all-time';
+  startDate: Date;
+  endDate: Date;
+
+  // Activity metrics
+  totalStudyTime: number; // minutes
+  sessionsCount: number;
+  questionsAnswered: number;
+  questionsCorrect: number;
+  accuracy: number; // percentage
+
+  // Progress metrics
+  topicsMastered: number;
+  subtopicsMastered: number;
+  conceptsLearned: number;
+  reviewsCompleted: number;
+  feynmanExercisesCompleted: number;
+
+  // Gamification
+  xpEarned: number;
+  currentStreak: number;
+  longestStreak: number;
+  badgesEarned: string[];
+
+  // Trends
+  dailyActivity: DailyActivity[];
+}
+
+export interface DailyActivity {
+  date: Date;
+  studyTime: number;
+  questionsAnswered: number;
+  questionsCorrect: number;
+  xpEarned: number;
+}
+
+// Advanced Gap Detection types
+export interface KnowledgeGapAnalysis {
+  userId: string;
+  topicId: string;
+  analyzedAt: Date;
+  gaps: DetailedKnowledgeGap[];
+  recommendedActions: GapRecommendation[];
+  overallStrength: number; // 0-100
+  criticalGapsCount: number;
+}
+
+export interface DetailedKnowledgeGap extends KnowledgeGap {
+  conceptId?: string;
+  subtopicId?: string;
+  frequency: number; // How often this gap appears
+  lastOccurrence: Date;
+  relatedMisconceptions: string[];
+  suggestedResources: string[];
+}
+
+export interface GapRecommendation {
+  type: 'reteach' | 'practice' | 'review' | 'prerequisite';
+  priority: 'high' | 'medium' | 'low';
+  targetConceptId?: string;
+  targetConceptName: string;
+  reason: string;
+  estimatedTime: number; // minutes
+}

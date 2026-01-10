@@ -19,6 +19,9 @@ const COMMANDS = [
   { cmd: '/quiz', description: 'Start a quiz on current topic' },
   { cmd: '/break', description: 'Save and take a break' },
   { cmd: '/continue', description: 'Continue last studied topic' },
+  { cmd: '/feynman', description: 'Explain a concept (Feynman technique)' },
+  { cmd: '/analytics', description: 'View learning statistics' },
+  { cmd: '/gaps', description: 'Analyze knowledge gaps' },
 ];
 
 export function InputArea({ onSend, disabled, placeholder }: InputAreaProps) {

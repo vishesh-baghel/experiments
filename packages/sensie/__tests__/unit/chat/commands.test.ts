@@ -26,6 +26,9 @@ vi.mock('@/lib/db/client', () => ({
     concept: {
       findUnique: vi.fn(),
     },
+    topic: {
+      findUnique: vi.fn(),
+    },
   },
 }));
 
@@ -56,6 +59,24 @@ vi.mock('@/lib/mastra/agents/sensie', () => ({
   generateProgressReport: vi.fn(),
   generateQuiz: vi.fn(),
   handleCommand: vi.fn(),
+}));
+
+// Mock new Phase 2 modules
+vi.mock('@/lib/learning/feynman-engine', () => ({
+  shouldTriggerFeynman: vi.fn(),
+  startFeynmanExercise: vi.fn(),
+  getActiveFeynmanExercise: vi.fn(),
+  getFeynmanPrompt: vi.fn().mockReturnValue('Feynman prompt'),
+  getFeynmanStats: vi.fn(),
+  FEYNMAN_TRIGGER_MASTERY: 80,
+}));
+
+vi.mock('@/lib/learning/analytics-engine', () => ({
+  getLearningAnalytics: vi.fn(),
+}));
+
+vi.mock('@/lib/learning/gap-detector', () => ({
+  analyzeKnowledgeGaps: vi.fn(),
 }));
 
 describe('Chat Commands', () => {
@@ -482,10 +503,13 @@ describe('Chat Commands', () => {
       expect(SUPPORTED_COMMANDS).toContain('/quiz');
       expect(SUPPORTED_COMMANDS).toContain('/break');
       expect(SUPPORTED_COMMANDS).toContain('/continue');
+      expect(SUPPORTED_COMMANDS).toContain('/feynman');
+      expect(SUPPORTED_COMMANDS).toContain('/analytics');
+      expect(SUPPORTED_COMMANDS).toContain('/gaps');
     });
 
-    it('should have 8 commands total', () => {
-      expect(SUPPORTED_COMMANDS.length).toBe(8);
+    it('should have 11 commands total', () => {
+      expect(SUPPORTED_COMMANDS.length).toBe(11);
     });
   });
 
@@ -910,6 +934,206 @@ describe('Chat Commands', () => {
 
       expect(result.action).toBe('navigate');
       expect(result.navigateTo).toBe('/review');
+    });
+  });
+
+  describe('New Commands (Phase 2)', () => {
+    const mockContext: CommandContext = {
+      userId: 'user-123',
+      topicId: 'topic-123',
+      sessionId: 'session-123',
+    };
+
+    describe('/feynman command', () => {
+      it('should show stats when using /feynman status', async () => {
+        const { getFeynmanStats } = await import('@/lib/learning/feynman-engine');
+        (getFeynmanStats as ReturnType<typeof vi.fn>).mockResolvedValue({
+          totalCompleted: 5,
+          totalAttempts: 10,
+          averageScore: 85,
+          topicsWithFeynman: 3,
+        });
+
+        const result = await executeCommand('/feynman', mockContext, 'status');
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('Feynman Stats');
+        expect(result.message).toContain('5');
+        expect(result.message).toContain('85');
+      });
+
+      it('should require topic for new exercise', async () => {
+        const { getActiveFeynmanExercise } = await import('@/lib/learning/feynman-engine');
+        (getActiveFeynmanExercise as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const result = await executeCommand('/feynman', { userId: 'user-123' });
+
+        expect(result.success).toBe(false);
+        expect(result.message).toContain('need to be learning a topic');
+      });
+
+      it('should show active exercise if one exists', async () => {
+        const { getActiveFeynmanExercise, getFeynmanPrompt } = await import('@/lib/learning/feynman-engine');
+        (getActiveFeynmanExercise as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 'ex-1',
+          conceptName: 'Ownership',
+          targetAudience: 'child',
+          status: 'IN_PROGRESS',
+          attempts: 1,
+        });
+
+        const result = await executeCommand('/feynman', mockContext);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('Feynman Exercise in Progress');
+        expect(result.message).toContain('Ownership');
+      });
+
+      it('should require sufficient mastery for new exercise', async () => {
+        const { getActiveFeynmanExercise, shouldTriggerFeynman } = await import('@/lib/learning/feynman-engine');
+        const { getTopicById } = await import('@/lib/db/topics');
+
+        (getActiveFeynmanExercise as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+        (getTopicById as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 'topic-123',
+          name: 'Rust',
+          masteryPercentage: 50, // Below threshold
+        });
+        (shouldTriggerFeynman as ReturnType<typeof vi.fn>).mockResolvedValue({
+          should: false,
+        });
+
+        const result = await executeCommand('/feynman', mockContext);
+
+        expect(result.success).toBe(false);
+        expect(result.message).toContain('Not Ready Yet');
+        expect(result.message).toContain('80%');
+      });
+    });
+
+    describe('/analytics command', () => {
+      it('should show weekly analytics by default', async () => {
+        const { getLearningAnalytics } = await import('@/lib/learning/analytics-engine');
+        (getLearningAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue({
+          totalStudyTime: 120,
+          sessionsCount: 10,
+          questionsAnswered: 50,
+          questionsCorrect: 40,
+          accuracy: 80,
+          topicsMastered: 2,
+          conceptsLearned: 15,
+          reviewsCompleted: 20,
+          feynmanExercisesCompleted: 1,
+          xpEarned: 500,
+          currentStreak: 5,
+          longestStreak: 10,
+          badgesEarned: ['First Steps'],
+        });
+
+        const result = await executeCommand('/analytics', mockContext);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('Learning Analytics');
+        expect(result.message).toContain('Weekly');
+        expect(result.message).toContain('120 minutes');
+        expect(result.message).toContain('80%');
+      });
+
+      it('should show daily analytics when specified', async () => {
+        const { getLearningAnalytics } = await import('@/lib/learning/analytics-engine');
+        (getLearningAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue({
+          totalStudyTime: 30,
+          sessionsCount: 2,
+          questionsAnswered: 10,
+          questionsCorrect: 8,
+          accuracy: 80,
+          topicsMastered: 0,
+          conceptsLearned: 3,
+          reviewsCompleted: 5,
+          feynmanExercisesCompleted: 0,
+          xpEarned: 100,
+          currentStreak: 5,
+          longestStreak: 10,
+          badgesEarned: [],
+        });
+
+        const result = await executeCommand('/analytics', mockContext, 'daily');
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('Daily');
+        expect(result.message).toContain('30 minutes');
+      });
+
+      it('should handle errors gracefully', async () => {
+        const { getLearningAnalytics } = await import('@/lib/learning/analytics-engine');
+        (getLearningAnalytics as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Database error'));
+
+        const result = await executeCommand('/analytics', mockContext);
+
+        expect(result.success).toBe(false);
+        expect(result.message).toContain('Unable to fetch analytics');
+      });
+    });
+
+    describe('/gaps command', () => {
+      it('should require topic to analyze gaps', async () => {
+        const result = await executeCommand('/gaps', { userId: 'user-123' });
+
+        expect(result.success).toBe(false);
+        expect(result.message).toContain('need to be learning a topic');
+      });
+
+      it('should show no gaps message when none found', async () => {
+        const { analyzeKnowledgeGaps } = await import('@/lib/learning/gap-detector');
+        (analyzeKnowledgeGaps as ReturnType<typeof vi.fn>).mockResolvedValue({
+          gaps: [],
+          recommendedActions: [],
+          overallStrength: 90,
+          criticalGapsCount: 0,
+        });
+
+        const result = await executeCommand('/gaps', mockContext);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('No significant knowledge gaps');
+        expect(result.message).toContain('90%');
+      });
+
+      it('should show gaps by severity', async () => {
+        const { analyzeKnowledgeGaps } = await import('@/lib/learning/gap-detector');
+        (analyzeKnowledgeGaps as ReturnType<typeof vi.fn>).mockResolvedValue({
+          gaps: [
+            { concept: 'Ownership', severity: 'critical', evidence: 'Low accuracy', relatedMisconceptions: ['Confused with references'] },
+            { concept: 'Borrowing', severity: 'moderate', evidence: 'Needs practice', relatedMisconceptions: [] },
+            { concept: 'Lifetimes', severity: 'minor', evidence: 'Minor confusion', relatedMisconceptions: [] },
+          ],
+          recommendedActions: [
+            { type: 'reteach', priority: 'high', targetConceptName: 'Ownership', reason: 'Critical gap', estimatedTime: 15 },
+          ],
+          overallStrength: 60,
+          criticalGapsCount: 1,
+        });
+
+        const result = await executeCommand('/gaps', mockContext);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('Knowledge Gap Analysis');
+        expect(result.message).toContain('60%');
+        expect(result.message).toContain('Critical Gaps');
+        expect(result.message).toContain('Ownership');
+        expect(result.message).toContain('Moderate Gaps');
+        expect(result.message).toContain('Recommendations');
+      });
+
+      it('should handle analysis errors gracefully', async () => {
+        const { analyzeKnowledgeGaps } = await import('@/lib/learning/gap-detector');
+        (analyzeKnowledgeGaps as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Analysis failed'));
+
+        const result = await executeCommand('/gaps', mockContext);
+
+        expect(result.success).toBe(false);
+        expect(result.message).toContain('Unable to analyze');
+      });
     });
   });
 });

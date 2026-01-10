@@ -13,6 +13,16 @@ import { getUserProgress, getTodayAnalytics } from '@/lib/db/progress';
 import { generateProgressReport, generateQuiz, handleCommand as agentHandleCommand } from '@/lib/mastra/agents/sensie';
 import { prisma } from '@/lib/db/client';
 import type { SocraticContext } from '@/lib/types';
+import {
+  shouldTriggerFeynman,
+  startFeynmanExercise,
+  getActiveFeynmanExercise,
+  getFeynmanPrompt,
+  getFeynmanStats,
+  FEYNMAN_TRIGGER_MASTERY,
+} from '@/lib/learning/feynman-engine';
+import { getLearningAnalytics } from '@/lib/learning/analytics-engine';
+import { analyzeKnowledgeGaps } from '@/lib/learning/gap-detector';
 
 // All supported commands
 export const SUPPORTED_COMMANDS = [
@@ -24,6 +34,9 @@ export const SUPPORTED_COMMANDS = [
   '/quiz',
   '/break',
   '/continue',
+  '/feynman',
+  '/analytics',
+  '/gaps',
 ] as const;
 
 export type SupportedCommand = (typeof SUPPORTED_COMMANDS)[number];
@@ -103,6 +116,15 @@ export async function executeCommand(
 
     case '/continue':
       return handleContinueCommand(context);
+
+    case '/feynman':
+      return handleFeynmanCommand(context, args);
+
+    case '/analytics':
+      return handleAnalyticsCommand(context, args);
+
+    case '/gaps':
+      return handleGapsCommand(context);
 
     default:
       return {
@@ -571,4 +593,314 @@ async function handleContinueCommand(context: CommandContext): Promise<CommandRe
     action: 'navigate',
     navigateTo: '/topics',
   };
+}
+
+/**
+ * /feynman - Start or continue a Feynman Technique exercise
+ *
+ * The Feynman Technique helps solidify learning by explaining concepts
+ * in simple terms as if teaching to a child/beginner.
+ *
+ * Usage:
+ * - /feynman - Start Feynman exercise for current topic
+ * - /feynman child - Explain to a 10-year-old
+ * - /feynman beginner - Explain to a programming beginner
+ * - /feynman peer - Explain to a fellow developer
+ * - /feynman status - Show Feynman exercise stats
+ */
+async function handleFeynmanCommand(
+  context: CommandContext,
+  args?: string
+): Promise<CommandResult> {
+  // Parse arguments
+  const arg = args?.trim().toLowerCase();
+
+  // Handle status subcommand
+  if (arg === 'status' || arg === 'stats') {
+    const stats = await getFeynmanStats(context.userId);
+    let message = `**Your Feynman Stats**\n\n`;
+    message += `Total exercises completed: ${stats.totalCompleted}\n`;
+    message += `Total attempts: ${stats.totalAttempts}\n`;
+    message += `Average score: ${stats.averageScore}/100\n`;
+    message += `Topics with Feynman exercises: ${stats.topicsWithFeynman}\n`;
+
+    return {
+      success: true,
+      message,
+      data: stats,
+    };
+  }
+
+  // Determine target audience
+  let targetAudience: 'child' | 'beginner' | 'peer' = 'child';
+  if (arg === 'beginner') {
+    targetAudience = 'beginner';
+  } else if (arg === 'peer') {
+    targetAudience = 'peer';
+  }
+
+  // Check if there's already an active Feynman exercise
+  const activeExercise = await getActiveFeynmanExercise(context.userId, context.topicId);
+  if (activeExercise) {
+    const audienceDesc = {
+      child: 'a 10-year-old',
+      beginner: 'a programming beginner',
+      peer: 'a fellow developer',
+    };
+
+    let message = `**Feynman Exercise in Progress**\n\n`;
+    message += `Concept: ${activeExercise.conceptName}\n`;
+    message += `Target audience: ${audienceDesc[activeExercise.targetAudience]}\n`;
+    message += `Attempts: ${activeExercise.attempts}\n\n`;
+
+    if (activeExercise.status === 'NEEDS_REFINEMENT' && activeExercise.evaluation) {
+      message += `Your last explanation scored ${activeExercise.evaluation.score}/100.\n`;
+      message += `Please refine your explanation and submit again.\n\n`;
+    }
+
+    message += getFeynmanPrompt(activeExercise.conceptName, activeExercise.targetAudience);
+
+    return {
+      success: true,
+      message,
+      data: { exerciseId: activeExercise.id },
+    };
+  }
+
+  // Need a topic to start Feynman
+  if (!context.topicId) {
+    return {
+      success: false,
+      message: "You need to be learning a topic to start a Feynman exercise. Use `/topics` to see your topics.",
+    };
+  }
+
+  // Check if topic has enough mastery
+  const topic = await getTopicById(context.topicId, true);
+  if (!topic) {
+    return {
+      success: false,
+      message: "Topic not found. Please select a valid topic first.",
+    };
+  }
+
+  // Allow manual trigger even if mastery is below threshold
+  const triggerResult = await shouldTriggerFeynman(context.userId, context.topicId);
+
+  // If mastery is too low and no manual concept provided
+  if (topic.masteryPercentage < FEYNMAN_TRIGGER_MASTERY && !triggerResult.conceptName) {
+    return {
+      success: false,
+      message: `**Not Ready Yet**\n\nFeynman exercises work best after reaching ${FEYNMAN_TRIGGER_MASTERY}% mastery.\n\nCurrent mastery: ${topic.masteryPercentage}%\n\nKeep learning! You're almost there.`,
+    };
+  }
+
+  // Find a concept to explain
+  let conceptName = triggerResult.conceptName;
+  let conceptId = triggerResult.conceptId;
+
+  // Get topic with subtopics if needed
+  const topicWithSubtopics = await prisma.topic.findUnique({
+    where: { id: context.topicId },
+    include: {
+      subtopics: {
+        include: { concepts: true },
+        orderBy: { order: 'asc' },
+      },
+    },
+  });
+
+  if (!conceptName && topicWithSubtopics?.subtopics && topicWithSubtopics.subtopics.length > 0) {
+    // Get first unlocked subtopic's first concept
+    for (const subtopic of topicWithSubtopics.subtopics) {
+      if (!subtopic.isLocked && subtopic.concepts && subtopic.concepts.length > 0) {
+        conceptName = subtopic.concepts[0].name;
+        conceptId = subtopic.concepts[0].id;
+        break;
+      }
+    }
+  }
+
+  if (!conceptName) {
+    conceptName = topic.name; // Fall back to topic name
+  }
+
+  // Start new exercise
+  const exercise = await startFeynmanExercise({
+    userId: context.userId,
+    topicId: context.topicId,
+    conceptId,
+    conceptName,
+    targetAudience,
+    previousAttempts: [],
+  });
+
+  const prompt = getFeynmanPrompt(conceptName, targetAudience);
+
+  return {
+    success: true,
+    message: prompt,
+    data: { exerciseId: exercise.id },
+  };
+}
+
+/**
+ * /analytics - Show learning analytics summary
+ *
+ * Usage:
+ * - /analytics - Show weekly summary
+ * - /analytics daily - Show today's stats
+ * - /analytics weekly - Show this week's stats
+ * - /analytics monthly - Show this month's stats
+ * - /analytics all - Show all-time stats
+ */
+async function handleAnalyticsCommand(
+  context: CommandContext,
+  args?: string
+): Promise<CommandResult> {
+  const arg = args?.trim().toLowerCase();
+
+  // Determine period
+  let period: 'daily' | 'weekly' | 'monthly' | 'all-time' = 'weekly';
+  if (arg === 'daily' || arg === 'today') {
+    period = 'daily';
+  } else if (arg === 'monthly' || arg === 'month') {
+    period = 'monthly';
+  } else if (arg === 'all' || arg === 'all-time') {
+    period = 'all-time';
+  }
+
+  try {
+    const analytics = await getLearningAnalytics(context.userId, period);
+
+    let message = `**Learning Analytics - ${period.charAt(0).toUpperCase() + period.slice(1)}**\n\n`;
+
+    // Activity metrics
+    message += `**Activity**\n`;
+    message += `Study time: ${analytics.totalStudyTime} minutes\n`;
+    message += `Sessions: ${analytics.sessionsCount}\n`;
+    message += `Questions answered: ${analytics.questionsAnswered}\n`;
+    message += `Accuracy: ${analytics.accuracy}%\n\n`;
+
+    // Progress metrics
+    message += `**Progress**\n`;
+    message += `Topics mastered: ${analytics.topicsMastered}\n`;
+    message += `Concepts learned: ${analytics.conceptsLearned}\n`;
+    message += `Reviews completed: ${analytics.reviewsCompleted}\n`;
+    message += `Feynman exercises: ${analytics.feynmanExercisesCompleted}\n\n`;
+
+    // Gamification
+    message += `**Achievements**\n`;
+    message += `XP earned: ${analytics.xpEarned}\n`;
+    message += `Current streak: ${analytics.currentStreak} days\n`;
+    message += `Longest streak: ${analytics.longestStreak} days\n`;
+
+    if (analytics.badgesEarned.length > 0) {
+      message += `Badges: ${analytics.badgesEarned.join(', ')}\n`;
+    }
+
+    return {
+      success: true,
+      message,
+      data: analytics,
+    };
+  } catch (error) {
+    console.error('[analytics] Error fetching analytics:', error);
+    return {
+      success: false,
+      message: "Unable to fetch analytics. Please try again.",
+    };
+  }
+}
+
+/**
+ * /gaps - Analyze knowledge gaps and get recommendations
+ *
+ * Provides detailed analysis of areas where understanding is weak
+ * and actionable recommendations for improvement.
+ */
+async function handleGapsCommand(context: CommandContext): Promise<CommandResult> {
+  if (!context.topicId) {
+    return {
+      success: false,
+      message: "You need to be learning a topic to analyze gaps. Use `/topics` to see your topics.",
+    };
+  }
+
+  try {
+    const analysis = await analyzeKnowledgeGaps(context.userId, context.topicId);
+
+    if (analysis.gaps.length === 0) {
+      return {
+        success: true,
+        message: `**Knowledge Gap Analysis**\n\nExcellent work! No significant knowledge gaps detected.\n\nOverall strength: ${analysis.overallStrength}%\n\nKeep up the great learning!`,
+        data: analysis,
+      };
+    }
+
+    let message = `**Knowledge Gap Analysis**\n\n`;
+    message += `Overall strength: ${analysis.overallStrength}%\n`;
+    message += `Critical gaps: ${analysis.criticalGapsCount}\n\n`;
+
+    // Show gaps by severity
+    const criticalGaps = analysis.gaps.filter(g => g.severity === 'critical');
+    const moderateGaps = analysis.gaps.filter(g => g.severity === 'moderate');
+    const minorGaps = analysis.gaps.filter(g => g.severity === 'minor');
+
+    if (criticalGaps.length > 0) {
+      message += `**Critical Gaps**\n`;
+      for (const gap of criticalGaps.slice(0, 3)) {
+        message += `- ${gap.concept}\n`;
+        message += `  Evidence: ${gap.evidence}\n`;
+        if (gap.relatedMisconceptions.length > 0) {
+          message += `  Misconceptions: ${gap.relatedMisconceptions.join(', ')}\n`;
+        }
+      }
+      message += '\n';
+    }
+
+    if (moderateGaps.length > 0) {
+      message += `**Moderate Gaps** (${moderateGaps.length})\n`;
+      for (const gap of moderateGaps.slice(0, 3)) {
+        message += `- ${gap.concept}\n`;
+      }
+      message += '\n';
+    }
+
+    if (minorGaps.length > 0) {
+      message += `**Minor Gaps** (${minorGaps.length})\n`;
+      for (const gap of minorGaps.slice(0, 2)) {
+        message += `- ${gap.concept}\n`;
+      }
+      message += '\n';
+    }
+
+    // Recommendations
+    if (analysis.recommendedActions.length > 0) {
+      message += `**Recommendations**\n`;
+      const highPriority = analysis.recommendedActions.filter(r => r.priority === 'high');
+      for (const rec of highPriority.slice(0, 3)) {
+        const actionLabel = {
+          reteach: 'Review',
+          practice: 'Practice',
+          review: 'Quick review',
+          prerequisite: 'Learn prerequisite',
+        };
+        message += `- ${actionLabel[rec.type]}: ${rec.targetConceptName}\n`;
+        message += `  ${rec.reason} (~${rec.estimatedTime} min)\n`;
+      }
+    }
+
+    return {
+      success: true,
+      message,
+      data: analysis,
+    };
+  } catch (error) {
+    console.error('[gaps] Error analyzing gaps:', error);
+    return {
+      success: false,
+      message: "Unable to analyze knowledge gaps. Please try again.",
+    };
+  }
 }

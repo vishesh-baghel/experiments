@@ -61,7 +61,7 @@ describe('InputArea Component', () => {
       const textarea = screen.getByRole('textbox');
       await user.type(textarea, '/');
 
-      // Command palette should appear
+      // Command palette should appear with all commands
       expect(screen.getByText('/hint')).toBeInTheDocument();
       expect(screen.getByText('/skip')).toBeInTheDocument();
       expect(screen.getByText('/progress')).toBeInTheDocument();
@@ -70,6 +70,10 @@ describe('InputArea Component', () => {
       expect(screen.getByText('/quiz')).toBeInTheDocument();
       expect(screen.getByText('/break')).toBeInTheDocument();
       expect(screen.getByText('/continue')).toBeInTheDocument();
+      // Phase 2 commands
+      expect(screen.getByText('/feynman')).toBeInTheDocument();
+      expect(screen.getByText('/analytics')).toBeInTheDocument();
+      expect(screen.getByText('/gaps')).toBeInTheDocument();
     });
 
     it('should filter commands based on input', async () => {
@@ -253,8 +257,8 @@ describe('InputArea Component', () => {
       // Press Enter - should select last command
       await user.keyboard('{Enter}');
 
-      // Should be last command (/continue)
-      expect(mockOnSend).toHaveBeenCalledWith('/continue');
+      // Should be last command (/gaps - the last of the Phase 2 commands)
+      expect(mockOnSend).toHaveBeenCalledWith('/gaps');
     });
 
     it('should not go above first command', async () => {
@@ -383,6 +387,10 @@ describe('InputArea Component', () => {
       expect(screen.getByText('Start a quiz on current topic')).toBeInTheDocument();
       expect(screen.getByText('Save and take a break')).toBeInTheDocument();
       expect(screen.getByText('Continue last studied topic')).toBeInTheDocument();
+      // Phase 2 command descriptions
+      expect(screen.getByText('Explain a concept (Feynman technique)')).toBeInTheDocument();
+      expect(screen.getByText('View learning statistics')).toBeInTheDocument();
+      expect(screen.getByText('Analyze knowledge gaps')).toBeInTheDocument();
     });
   });
 

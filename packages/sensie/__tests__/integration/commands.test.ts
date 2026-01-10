@@ -28,6 +28,7 @@ vi.mock('@/lib/db/client', () => ({
     },
     learningSession: {
       update: vi.fn(),
+      findMany: vi.fn(),
     },
     message: {
       findMany: vi.fn(),
@@ -37,6 +38,37 @@ vi.mock('@/lib/db/client', () => ({
     },
     concept: {
       findUnique: vi.fn(),
+      count: vi.fn(),
+    },
+    topic: {
+      findUnique: vi.fn(),
+      count: vi.fn(),
+    },
+    feynmanExercise: {
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+    },
+    knowledgeGapRecord: {
+      findMany: vi.fn(),
+      findFirst: vi.fn(),
+      create: vi.fn(),
+    },
+    answer: {
+      findMany: vi.fn(),
+    },
+    learningAnalytics: {
+      findMany: vi.fn(),
+      upsert: vi.fn(),
+    },
+    userProgress: {
+      findUnique: vi.fn(),
+    },
+    badge: {
+      findMany: vi.fn(),
+    },
+    review: {
+      findMany: vi.fn(),
     },
   },
 }));
@@ -1062,6 +1094,225 @@ describe('Chat Commands Integration', () => {
       expect(text).toContain('"type":"text-end"');
       expect(text).toContain('"type":"finish-step"');
       expect(text).toContain('"type":"finish"');
+    });
+  });
+
+  describe('Phase 2 Commands', () => {
+    describe('/feynman command', () => {
+      it('should start Feynman exercise with topic context', async () => {
+        const { getTopicById } = await import('@/lib/db/topics');
+        const { prisma } = await import('@/lib/db/client');
+
+        (getTopicById as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 't-1',
+          userId: 'user-123',
+          name: 'Rust Programming',
+          masteryPercentage: 85,
+        });
+
+        (prisma.topic.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 't-1',
+          userId: 'user-123',
+          masteryPercentage: 85,
+          subtopics: [
+            {
+              isLocked: false,
+              concepts: [{ id: 'c-1', name: 'Ownership' }],
+            },
+          ],
+        });
+
+        // Mock for feynman engine to check if trigger is valid
+        (prisma.feynmanExercise.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+        (prisma.feynmanExercise.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+        (prisma.feynmanExercise.create as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 'exercise-1',
+          conceptName: 'Ownership',
+          status: 'IN_PROGRESS',
+        });
+
+        const request = createMockRequest({
+          messages: [{ role: 'user', content: '/feynman' }],
+          topicId: 't-1',
+        });
+
+        const response = await messageHandler(request);
+
+        expect(response.status).toBe(200);
+        const text = await response.text();
+        expect(text.toLowerCase()).toMatch(/feynman|explain/i);
+      });
+
+      it('should handle /feynman without topic context', async () => {
+        const { getActiveTopics } = await import('@/lib/db/topics');
+
+        (getActiveTopics as ReturnType<typeof vi.fn>).mockResolvedValue([
+          { id: 't-1', name: 'Rust Programming', masteryPercentage: 85 },
+        ]);
+
+        const request = createMockRequest({
+          messages: [{ role: 'user', content: '/feynman' }],
+        });
+
+        const response = await messageHandler(request);
+
+        expect(response.status).toBe(200);
+      });
+    });
+
+    describe('/analytics command', () => {
+      it('should show weekly analytics by default', async () => {
+        const { getUserProgress, getTodayAnalytics } = await import('@/lib/db/progress');
+        const { getTopicsByUser } = await import('@/lib/db/topics');
+        const { countReviewsDue } = await import('@/lib/db/reviews');
+        const { prisma } = await import('@/lib/db/client');
+
+        // Mock for analytics-engine calls
+        (prisma.learningAnalytics.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+        (prisma.userProgress.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+          totalXP: 2500,
+          currentStreak: 10,
+          longestStreak: 15,
+        });
+        (prisma.badge.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+        (prisma.learningSession.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+        (prisma.answer.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+        (prisma.review.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+        (prisma.feynmanExercise.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+        (prisma.topic.count as ReturnType<typeof vi.fn>).mockResolvedValue(1);
+        (prisma.concept.count as ReturnType<typeof vi.fn>).mockResolvedValue(5);
+
+        (getUserProgress as ReturnType<typeof vi.fn>).mockResolvedValue({
+          currentLevel: 5,
+          totalXP: 2500,
+          currentStreak: 10,
+          longestStreak: 15,
+        });
+
+        (getTodayAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue({
+          questionsAnswered: 25,
+          questionsCorrect: 20,
+          xpEarned: 150,
+        });
+
+        (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([
+          { id: 't-1', name: 'Rust', status: 'ACTIVE', masteryPercentage: 75 },
+        ]);
+
+        (countReviewsDue as ReturnType<typeof vi.fn>).mockResolvedValue(5);
+
+        const request = createMockRequest({
+          messages: [{ role: 'user', content: '/analytics' }],
+        });
+
+        const response = await messageHandler(request);
+
+        expect(response.status).toBe(200);
+        const text = await response.text();
+        expect(text.toLowerCase()).toMatch(/analytics|stats|level/i);
+      });
+
+      it('should support period argument', async () => {
+        const { getUserProgress, getTodayAnalytics } = await import('@/lib/db/progress');
+        const { getTopicsByUser } = await import('@/lib/db/topics');
+        const { countReviewsDue } = await import('@/lib/db/reviews');
+        const { prisma } = await import('@/lib/db/client');
+
+        // Mock for analytics-engine calls
+        (prisma.learningAnalytics.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+        (prisma.userProgress.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+          totalXP: 1000,
+          currentStreak: 5,
+          longestStreak: 10,
+        });
+        (prisma.badge.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+        (prisma.learningSession.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+        (prisma.answer.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+        (prisma.review.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+        (prisma.feynmanExercise.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+        (prisma.topic.count as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+        (prisma.concept.count as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+
+        (getUserProgress as ReturnType<typeof vi.fn>).mockResolvedValue({
+          currentLevel: 3,
+          totalXP: 1000,
+          currentStreak: 5,
+          longestStreak: 10,
+        });
+        (getTodayAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue({
+          questionsAnswered: 10,
+          questionsCorrect: 8,
+          xpEarned: 50,
+        });
+        (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+        (countReviewsDue as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+
+        const request = createMockRequest({
+          messages: [{ role: 'user', content: '/analytics daily' }],
+        });
+
+        const response = await messageHandler(request);
+
+        expect(response.status).toBe(200);
+      });
+    });
+
+    describe('/gaps command', () => {
+      it('should show knowledge gaps for topic', async () => {
+        const { getTopicById } = await import('@/lib/db/topics');
+        const { prisma } = await import('@/lib/db/client');
+
+        (getTopicById as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 't-1',
+          userId: 'user-123',
+          name: 'Rust Programming',
+          masteryPercentage: 60,
+        });
+
+        (prisma.topic.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 't-1',
+          userId: 'user-123',
+          masteryPercentage: 60,
+          subtopics: [
+            {
+              name: 'Basics',
+              masteryPercentage: 50,
+              concepts: [{ id: 'c-1', name: 'Ownership', isMastered: false }],
+            },
+          ],
+        });
+
+        // Mock for gap-detector calls
+        (prisma.answer.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+          { isCorrect: false, depth: 'SHALLOW', hintsUsed: 0, question: { concept: { name: 'Ownership', subtopic: { name: 'Basics' } } } },
+        ]);
+        (prisma.knowledgeGapRecord.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+        const request = createMockRequest({
+          messages: [{ role: 'user', content: '/gaps' }],
+          topicId: 't-1',
+        });
+
+        const response = await messageHandler(request);
+
+        expect(response.status).toBe(200);
+        const text = await response.text();
+        expect(text.toLowerCase()).toMatch(/gap|knowledge|analysis/i);
+      });
+
+      it('should handle /gaps without topic context', async () => {
+        const { getActiveTopics } = await import('@/lib/db/topics');
+
+        (getActiveTopics as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+        const request = createMockRequest({
+          messages: [{ role: 'user', content: '/gaps' }],
+        });
+
+        const response = await messageHandler(request);
+
+        expect(response.status).toBe(200);
+      });
     });
   });
 });
