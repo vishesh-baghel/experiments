@@ -4,6 +4,7 @@ import { useChat } from '@ai-sdk/react';
 import type { UIMessage } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { MessageList } from './message-list';
 import { InputArea } from './input-area';
 
@@ -22,7 +23,8 @@ export function ChatInterface({
   mastery,
   initialMessages = [],
 }: ChatInterfaceProps) {
-  const [inputValue, setInputValue] = useState('');
+  const router = useRouter();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Create transport with topicId in closure
   const transport = useMemo(
@@ -41,16 +43,50 @@ export function ChatInterface({
     [topicId]
   );
 
-  const { messages, status, sendMessage, error, setMessages } = useChat({
+  const { messages, status, sendMessage, error } = useChat({
     transport,
     messages: initialMessages,
   });
 
-  const isLoading = status === 'streaming' || status === 'submitted';
+  const isLoading = status === 'streaming' || status === 'submitted' || isNavigating;
 
-  const handleSend = (content: string) => {
+  /**
+   * Handle /continue command by fetching the target topic and navigating directly
+   * No message is sent to the chat - this provides a smooth transition
+   */
+  const handleContinueCommand = async (): Promise<boolean> => {
+    setIsNavigating(true);
+    try {
+      const response = await fetch('/api/chat/continue');
+      const data = await response.json();
+
+      if (data.success && data.topicId) {
+        router.push(`/chat?topic=${data.topicId}`);
+        return true;
+      } else if (data.navigateTo) {
+        router.push(data.navigateTo);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('[chat] Failed to handle /continue:', err);
+      return false;
+    } finally {
+      setIsNavigating(false);
+    }
+  };
+
+  const handleSend = async (content: string) => {
+    const trimmed = content.trim().toLowerCase();
+
+    // Intercept /continue command - navigate directly without sending a message
+    if (trimmed === '/continue') {
+      const handled = await handleContinueCommand();
+      if (handled) return;
+      // If not handled (no topics), fall through to send as regular message
+    }
+
     sendMessage({ text: content });
-    setInputValue('');
   };
 
   return (

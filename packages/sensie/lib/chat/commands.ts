@@ -7,7 +7,7 @@
 
 import type { SessionCommand } from '@/lib/types/session';
 import { getTopicsByUser, getActiveTopics, getTopicById } from '@/lib/db/topics';
-import { getSessionById, endSession, getActiveSessionsByUser } from '@/lib/db/sessions';
+import { getSessionById, endSession, getActiveSessionsByUser, getSessionMessages } from '@/lib/db/sessions';
 import { countReviewsDue, getReviewsDue } from '@/lib/db/reviews';
 import { getUserProgress, getTodayAnalytics } from '@/lib/db/progress';
 import { generateProgressReport, generateQuiz, handleCommand as agentHandleCommand } from '@/lib/mastra/agents/sensie';
@@ -490,6 +490,11 @@ async function handleBreakCommand(context: CommandContext): Promise<CommandResul
 
 /**
  * /continue - Continue the last studied topic
+ *
+ * This command finds the user's most recent learning session or active topic
+ * and provides a response that triggers navigation to the topic chat.
+ * The navigation is handled by the frontend which detects the "Resuming:" or
+ * "Ready to continue:" pattern in the response.
  */
 async function handleContinueCommand(context: CommandContext): Promise<CommandResult> {
   // First, check for active sessions
@@ -514,7 +519,13 @@ async function handleContinueCommand(context: CommandContext): Promise<CommandRe
         }
       }
 
-      message += `\nWelcome back, apprentice! Let's continue your training.`;
+      // Get message count to show in summary
+      const dbMessages = await getSessionMessages(latestSession.id);
+      if (dbMessages.length > 0) {
+        message += `Conversation history: ${dbMessages.length} messages\n`;
+      }
+
+      message += `\nWelcome back, apprentice! Let's continue your training. Navigating now...`;
 
       return {
         success: true,
@@ -538,7 +549,7 @@ async function handleContinueCommand(context: CommandContext): Promise<CommandRe
     const topic = activeTopics[0];
     let message = `**Ready to continue: ${topic.name}**\n\n`;
     message += `Mastery: ${topic.masteryPercentage}%\n`;
-    message += `\nWelcome back! Let's pick up where you left off.`;
+    message += `\nWelcome back! Let's pick up where you left off. Navigating now...`;
 
     return {
       success: true,

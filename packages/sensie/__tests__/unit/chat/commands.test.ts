@@ -39,6 +39,7 @@ vi.mock('@/lib/db/sessions', () => ({
   getSessionById: vi.fn(),
   endSession: vi.fn(),
   getActiveSessionsByUser: vi.fn(),
+  getSessionMessages: vi.fn(),
 }));
 
 vi.mock('@/lib/db/reviews', () => ({
@@ -415,7 +416,7 @@ describe('Chat Commands', () => {
 
     describe('/continue command', () => {
       it('should resume most recent session', async () => {
-        const { getActiveSessionsByUser } = await import('@/lib/db/sessions');
+        const { getActiveSessionsByUser, getSessionMessages } = await import('@/lib/db/sessions');
         const { getTopicById } = await import('@/lib/db/topics');
 
         (getActiveSessionsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([
@@ -427,6 +428,8 @@ describe('Chat Commands', () => {
           name: 'Rust Programming',
           masteryPercentage: 65,
         });
+
+        (getSessionMessages as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
         const result = await executeCommand('/continue', mockContext);
 
@@ -483,6 +486,430 @@ describe('Chat Commands', () => {
 
     it('should have 8 commands total', () => {
       expect(SUPPORTED_COMMANDS.length).toBe(8);
+    });
+  });
+
+  describe('Edge Cases', () => {
+    const mockContext: CommandContext = {
+      userId: 'user-123',
+      topicId: 'topic-123',
+      sessionId: 'session-123',
+    };
+
+    describe('/hint edge cases', () => {
+      it('should handle session not found', async () => {
+        const { getSessionById } = await import('@/lib/db/sessions');
+        (getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const result = await executeCommand('/hint', mockContext);
+
+        expect(result.success).toBe(false);
+        expect(result.message).toContain('Session not found');
+      });
+
+      it('should handle question not found', async () => {
+        const { getSessionById } = await import('@/lib/db/sessions');
+        const { prisma } = await import('@/lib/db/client');
+
+        (getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 'session-123',
+          hintsUsed: 0,
+          currentQuestionId: 'q-123',
+        });
+
+        (prisma.question.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const result = await executeCommand('/hint', mockContext);
+
+        expect(result.success).toBe(false);
+        expect(result.message).toContain('Question not found');
+      });
+
+      it('should use fallback hint when hints array is empty', async () => {
+        const { getSessionById } = await import('@/lib/db/sessions');
+        const { prisma } = await import('@/lib/db/client');
+
+        (getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 'session-123',
+          hintsUsed: 0,
+          currentQuestionId: 'q-123',
+        });
+
+        (prisma.question.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 'q-123',
+          hints: [],
+          concept: { id: 'c-123' },
+        });
+
+        (prisma.learningSession.update as ReturnType<typeof vi.fn>).mockResolvedValue({});
+
+        const result = await executeCommand('/hint', mockContext);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('Hint 1/3');
+        expect(result.message).toContain('Think about the core principle');
+      });
+
+      it('should return progressive hints based on usage', async () => {
+        const { getSessionById } = await import('@/lib/db/sessions');
+        const { prisma } = await import('@/lib/db/client');
+
+        // Test hint 2
+        (getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 'session-123',
+          hintsUsed: 1,
+          currentQuestionId: 'q-123',
+        });
+
+        (prisma.question.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 'q-123',
+          hints: ['First hint', 'Second hint', 'Third hint'],
+          concept: { id: 'c-123' },
+        });
+
+        (prisma.learningSession.update as ReturnType<typeof vi.fn>).mockResolvedValue({});
+
+        const result = await executeCommand('/hint', mockContext);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('Hint 2/3');
+        expect(result.message).toContain('Second hint');
+      });
+    });
+
+    describe('/skip edge cases', () => {
+      it('should handle session not found', async () => {
+        const { getSessionById } = await import('@/lib/db/sessions');
+        (getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const result = await executeCommand('/skip', mockContext);
+
+        expect(result.success).toBe(false);
+        expect(result.message).toContain('Session not found');
+      });
+
+      it('should handle no active question', async () => {
+        const { getSessionById } = await import('@/lib/db/sessions');
+        (getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 'session-123',
+          skipsUsed: 0,
+          skippedQuestionIds: [],
+          currentQuestionId: null,
+        });
+
+        const result = await executeCommand('/skip', mockContext);
+
+        expect(result.success).toBe(false);
+        expect(result.message).toContain('No active question');
+      });
+    });
+
+    describe('/progress edge cases', () => {
+      it('should handle zero topics gracefully', async () => {
+        const { getUserProgress, getTodayAnalytics } = await import('@/lib/db/progress');
+        const { getTopicsByUser } = await import('@/lib/db/topics');
+        const { countReviewsDue } = await import('@/lib/db/reviews');
+
+        (getUserProgress as ReturnType<typeof vi.fn>).mockResolvedValue({
+          currentLevel: 1,
+          totalXP: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+        });
+
+        (getTodayAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue({
+          questionsAnswered: 0,
+          questionsCorrect: 0,
+          xpEarned: 0,
+        });
+
+        (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+        (countReviewsDue as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+
+        const result = await executeCommand('/progress', mockContext);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('Level 1');
+        expect(result.message).toContain('0 XP');
+        expect(result.message).toContain('Active: 0/3');
+      });
+
+      it('should calculate average mastery correctly', async () => {
+        const { getUserProgress, getTodayAnalytics } = await import('@/lib/db/progress');
+        const { getTopicsByUser } = await import('@/lib/db/topics');
+        const { countReviewsDue } = await import('@/lib/db/reviews');
+
+        (getUserProgress as ReturnType<typeof vi.fn>).mockResolvedValue({
+          currentLevel: 3,
+          totalXP: 500,
+          currentStreak: 1,
+          longestStreak: 5,
+        });
+
+        (getTodayAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue({
+          questionsAnswered: 5,
+          questionsCorrect: 4,
+          xpEarned: 20,
+        });
+
+        (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([
+          { id: 't-1', name: 'Rust', status: 'ACTIVE', masteryPercentage: 50 },
+          { id: 't-2', name: 'Go', status: 'ACTIVE', masteryPercentage: 100 },
+        ]);
+        (countReviewsDue as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+
+        const result = await executeCommand('/progress', mockContext);
+
+        expect(result.success).toBe(true);
+        // Average should be (50 + 100) / 2 = 75%
+        expect(result.message).toContain('75%');
+      });
+    });
+
+    describe('/topics edge cases', () => {
+      it('should show current subtopic in progress', async () => {
+        const { getTopicsByUser } = await import('@/lib/db/topics');
+
+        (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([
+          {
+            id: 't-1',
+            name: 'Rust',
+            status: 'ACTIVE',
+            masteryPercentage: 50,
+            subtopics: [
+              { id: 's-1', name: 'Ownership', isLocked: false, masteryPercentage: 100 },
+              { id: 's-2', name: 'Borrowing', isLocked: false, masteryPercentage: 50 },
+              { id: 's-3', name: 'Lifetimes', isLocked: true, masteryPercentage: 0 },
+            ],
+          },
+        ]);
+
+        const result = await executeCommand('/topics', mockContext);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('Rust');
+        expect(result.message).toContain('Current: Borrowing');
+      });
+    });
+
+    describe('/review edge cases', () => {
+      it('should handle single review correctly', async () => {
+        const { countReviewsDue, getReviewsDue } = await import('@/lib/db/reviews');
+        const { prisma } = await import('@/lib/db/client');
+
+        (countReviewsDue as ReturnType<typeof vi.fn>).mockResolvedValue(1);
+        (getReviewsDue as ReturnType<typeof vi.fn>).mockResolvedValue([
+          { id: 'r-1', conceptId: 'c-1' },
+        ]);
+        (prisma.concept.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+          name: 'Single Concept',
+        });
+
+        const result = await executeCommand('/review', mockContext);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('1 Review Due');
+        expect(result.message).not.toContain('1 Reviews'); // Correct singular
+      });
+
+      it('should show ellipsis for many reviews', async () => {
+        const { countReviewsDue, getReviewsDue } = await import('@/lib/db/reviews');
+        const { prisma } = await import('@/lib/db/client');
+
+        (countReviewsDue as ReturnType<typeof vi.fn>).mockResolvedValue(10);
+        (getReviewsDue as ReturnType<typeof vi.fn>).mockResolvedValue([
+          { id: 'r-1', conceptId: 'c-1' },
+          { id: 'r-2', conceptId: 'c-2' },
+          { id: 'r-3', conceptId: 'c-3' },
+          { id: 'r-4', conceptId: 'c-4' },
+          { id: 'r-5', conceptId: 'c-5' },
+        ]);
+        (prisma.concept.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+          name: 'Test Concept',
+        });
+
+        const result = await executeCommand('/review', mockContext);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('10 Reviews Due');
+        expect(result.message).toContain('...and 5 more');
+      });
+    });
+
+    describe('/quiz edge cases', () => {
+      it('should use specific topic when provided', async () => {
+        const { getTopicById } = await import('@/lib/db/topics');
+
+        (getTopicById as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 'topic-123',
+          name: 'Specific Topic',
+          masteryPercentage: 60,
+        });
+
+        const result = await executeCommand('/quiz', mockContext);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('Quiz Time');
+        expect(result.message).toContain('Specific Topic');
+      });
+
+      it('should handle topic not found', async () => {
+        const { getTopicById } = await import('@/lib/db/topics');
+        (getTopicById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+        const result = await executeCommand('/quiz', mockContext);
+
+        expect(result.success).toBe(false);
+        expect(result.message).toContain('Topic not found');
+      });
+    });
+
+    describe('/break edge cases', () => {
+      it('should handle no session gracefully', async () => {
+        const result = await executeCommand('/break', { userId: 'user-123' });
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('/continue');
+      });
+
+      it('should calculate session duration correctly', async () => {
+        const { getSessionById } = await import('@/lib/db/sessions');
+        const { prisma } = await import('@/lib/db/client');
+
+        // 45 minutes ago
+        (getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 'session-123',
+          createdAt: new Date(Date.now() - 45 * 60 * 1000),
+        });
+
+        (prisma.message.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+          { role: 'USER' },
+          { role: 'USER' },
+          { role: 'USER' },
+          { role: 'USER' },
+          { role: 'USER' },
+        ]);
+
+        (prisma.learningSession.update as ReturnType<typeof vi.fn>).mockResolvedValue({});
+
+        const result = await executeCommand('/break', mockContext);
+
+        expect(result.success).toBe(true);
+        expect(result.data).toHaveProperty('sessionDuration', 45);
+        expect(result.data).toHaveProperty('questionsAnswered', 5);
+      });
+    });
+
+    describe('/continue edge cases', () => {
+      it('should show subtopic name when available', async () => {
+        const { getActiveSessionsByUser, getSessionMessages } = await import('@/lib/db/sessions');
+        const { getTopicById } = await import('@/lib/db/topics');
+        const { prisma } = await import('@/lib/db/client');
+
+        (getActiveSessionsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([
+          { id: 'session-123', topicId: 'topic-123', currentSubtopicId: 'sub-1' },
+        ]);
+
+        (getTopicById as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 'topic-123',
+          name: 'Rust Programming',
+          masteryPercentage: 65,
+        });
+
+        (prisma.subtopic.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+          id: 'sub-1',
+          name: 'Ownership Basics',
+        });
+
+        (getSessionMessages as ReturnType<typeof vi.fn>).mockResolvedValue([
+          { id: 'msg-1', role: 'USER', content: 'Hello' },
+          { id: 'msg-2', role: 'SENSIE', content: 'Hi!' },
+        ]);
+
+        const result = await executeCommand('/continue', mockContext);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('Resuming: Rust Programming');
+        expect(result.message).toContain('Current subtopic: Ownership Basics');
+        expect(result.message).toContain('2 messages');
+      });
+
+      it('should handle topic not found for session', async () => {
+        const { getActiveSessionsByUser, getSessionMessages } = await import('@/lib/db/sessions');
+        const { getTopicById, getActiveTopics } = await import('@/lib/db/topics');
+
+        (getActiveSessionsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([
+          { id: 'session-123', topicId: 'topic-123', currentSubtopicId: null },
+        ]);
+
+        (getTopicById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+        (getActiveTopics as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+        (getSessionMessages as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+        const result = await executeCommand('/continue', mockContext);
+
+        expect(result.success).toBe(false);
+        expect(result.message).toContain('No active topics');
+      });
+    });
+  });
+
+  describe('Command Result Structure', () => {
+    it('should return consistent result structure for success', async () => {
+      const { getTopicsByUser } = await import('@/lib/db/topics');
+      (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+      const result = await executeCommand('/topics', { userId: 'user-123' });
+
+      expect(result).toHaveProperty('success');
+      expect(result).toHaveProperty('message');
+      expect(typeof result.success).toBe('boolean');
+      expect(typeof result.message).toBe('string');
+    });
+
+    it('should return consistent result structure for failure', async () => {
+      const result = await executeCommand('/hint', { userId: 'user-123' });
+
+      expect(result).toHaveProperty('success');
+      expect(result).toHaveProperty('message');
+      expect(result.success).toBe(false);
+      expect(typeof result.message).toBe('string');
+    });
+
+    it('should include data when available', async () => {
+      const { getSessionById } = await import('@/lib/db/sessions');
+      (getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'session-123',
+        hintsUsed: 3,
+        currentQuestionId: 'q-123',
+      });
+
+      const result = await executeCommand('/hint', {
+        userId: 'user-123',
+        sessionId: 'session-123',
+      });
+
+      expect(result.data).toBeDefined();
+      expect(result.data).toHaveProperty('hintsUsed');
+      expect(result.data).toHaveProperty('maxHints');
+    });
+
+    it('should include navigation info when applicable', async () => {
+      const { countReviewsDue, getReviewsDue } = await import('@/lib/db/reviews');
+      const { prisma } = await import('@/lib/db/client');
+
+      (countReviewsDue as ReturnType<typeof vi.fn>).mockResolvedValue(1);
+      (getReviewsDue as ReturnType<typeof vi.fn>).mockResolvedValue([
+        { id: 'r-1', conceptId: 'c-1' },
+      ]);
+      (prisma.concept.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+        name: 'Test',
+      });
+
+      const result = await executeCommand('/review', { userId: 'user-123' });
+
+      expect(result.action).toBe('navigate');
+      expect(result.navigateTo).toBe('/review');
     });
   });
 });

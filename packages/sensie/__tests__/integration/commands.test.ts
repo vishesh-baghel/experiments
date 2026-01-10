@@ -48,6 +48,7 @@ vi.mock('@/lib/db/sessions', () => ({
   getSessionById: vi.fn(),
   endSession: vi.fn(),
   getActiveSessionsByUser: vi.fn(),
+  getSessionMessages: vi.fn(),
 }));
 
 vi.mock('@/lib/db/topics', () => ({
@@ -175,7 +176,7 @@ describe('Chat Commands Integration', () => {
     });
 
     it('should detect and handle /continue command', async () => {
-      const { getActiveSessionsByUser } = await import('@/lib/db/sessions');
+      const { getActiveSessionsByUser, getSessionMessages } = await import('@/lib/db/sessions');
       const { getTopicById } = await import('@/lib/db/topics');
 
       (getActiveSessionsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([
@@ -187,6 +188,8 @@ describe('Chat Commands Integration', () => {
         name: 'TypeScript Mastery',
         masteryPercentage: 60,
       });
+
+      (getSessionMessages as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
       const request = createMockRequest({
         messages: [{ role: 'user', content: '/continue' }],
@@ -427,13 +430,13 @@ describe('Chat Commands Integration', () => {
       const response = await messageHandler(request);
 
       expect(response.status).toBe(200);
-      expect(response.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
-      expect(response.headers.get('X-Vercel-AI-Data-Stream')).toBe('v1');
+      // AI SDK uses text/event-stream for SSE
+      expect(response.headers.get('Content-Type')).toBe('text/event-stream');
 
       const text = await response.text();
-      // Should contain stream format markers
-      expect(text).toContain('d:');
-      expect(text).toContain('0:');
+      // Should contain stream format markers (SSE data format)
+      expect(text).toContain('data:');
+      expect(text).toContain('"type":"text-delta"');
     });
   });
 
@@ -516,6 +519,549 @@ describe('Chat Commands Integration', () => {
       const response = await messageHandler(request);
 
       expect(response.status).toBe(200);
+    });
+  });
+
+  describe('AI SDK v6 Message Format', () => {
+    it('should detect commands from AI SDK v6 parts format', async () => {
+      const { getTopicsByUser } = await import('@/lib/db/topics');
+      (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+      const request = createMockRequest({
+        messages: [{
+          role: 'user',
+          parts: [{ type: 'text', text: '/topics' }],
+        }],
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      // When no topics, the message is "No topics yet! What would you like to learn?"
+      expect(text.toLowerCase()).toContain('topics');
+    });
+
+    it('should detect commands from multi-part messages', async () => {
+      const { getUserProgress, getTodayAnalytics } = await import('@/lib/db/progress');
+      const { getTopicsByUser } = await import('@/lib/db/topics');
+      const { countReviewsDue } = await import('@/lib/db/reviews');
+
+      (getUserProgress as ReturnType<typeof vi.fn>).mockResolvedValue({
+        currentLevel: 1, totalXP: 0, currentStreak: 0, longestStreak: 0,
+      });
+      (getTodayAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue({
+        questionsAnswered: 0, questionsCorrect: 0, xpEarned: 0,
+      });
+      (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (countReviewsDue as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+
+      const request = createMockRequest({
+        messages: [{
+          role: 'user',
+          parts: [
+            { type: 'text', text: '/progress' },
+            { type: 'image', image: 'base64data' }, // Should be ignored
+          ],
+        }],
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      expect(text).toContain('Progress');
+    });
+  });
+
+  describe('Command Whitespace Handling', () => {
+    it('should handle commands with leading whitespace', async () => {
+      const { getTopicsByUser } = await import('@/lib/db/topics');
+      (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '  /topics' }],
+      });
+
+      const response = await messageHandler(request);
+      expect(response.status).toBe(200);
+    });
+
+    it('should handle commands with trailing whitespace', async () => {
+      const { getTopicsByUser } = await import('@/lib/db/topics');
+      (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/topics   ' }],
+      });
+
+      const response = await messageHandler(request);
+      expect(response.status).toBe(200);
+    });
+  });
+
+  describe('Skip Command Edge Cases', () => {
+    it('should enforce skip limit', async () => {
+      const { getTopicById } = await import('@/lib/db/topics');
+      const { getActiveSession, getSessionById } = await import('@/lib/db/sessions');
+
+      (getTopicById as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 't-1', userId: 'user-123', name: 'Rust',
+      });
+      (getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 's-1', topicId: 't-1',
+      });
+      (getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 's-1',
+        skipsUsed: 3, // Max skips used
+        skippedQuestionIds: ['q-1', 'q-2', 'q-3'],
+        currentQuestionId: 'q-4',
+      });
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/skip' }],
+        topicId: 't-1',
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      // Actual message: "Hohoho! No skips remaining. A true master faces every challenge!"
+      expect(text.toLowerCase()).toContain('no skips remaining');
+    });
+
+    it('should handle skip when no current question', async () => {
+      const { getTopicById } = await import('@/lib/db/topics');
+      const { getActiveSession, getSessionById } = await import('@/lib/db/sessions');
+
+      (getTopicById as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 't-1', userId: 'user-123', name: 'Rust',
+      });
+      (getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 's-1', topicId: 't-1',
+      });
+      (getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 's-1',
+        skipsUsed: 0,
+        skippedQuestionIds: [],
+        currentQuestionId: null, // No current question
+      });
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/skip' }],
+        topicId: 't-1',
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      // Actual message: "No active question to skip!"
+      expect(text.toLowerCase()).toContain('no active question');
+    });
+  });
+
+  describe('Hint Command Edge Cases', () => {
+    it('should handle hint when all hints used', async () => {
+      const { getTopicById } = await import('@/lib/db/topics');
+      const { getActiveSession, getSessionById } = await import('@/lib/db/sessions');
+
+      (getTopicById as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 't-1', userId: 'user-123', name: 'Rust',
+      });
+      (getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 's-1', topicId: 't-1',
+      });
+      (getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 's-1',
+        hintsUsed: 3, // All hints used
+        currentQuestionId: 'q-1',
+      });
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/hint' }],
+        topicId: 't-1',
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      // Actual message: "Hohoho! You've used all 3 hints for this question."
+      expect(text.toLowerCase()).toMatch(/used all.*hints/i);
+    });
+
+    it('should handle hint when no session', async () => {
+      const { getTopicById } = await import('@/lib/db/topics');
+      const { getActiveSession } = await import('@/lib/db/sessions');
+
+      (getTopicById as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 't-1', userId: 'user-123', name: 'Rust',
+      });
+      (getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/hint' }],
+        topicId: 't-1',
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      // Actual message: "Hohoho! You need to be in a learning session to get hints."
+      expect(text.toLowerCase()).toContain('learning session');
+    });
+  });
+
+  describe('Continue Command Edge Cases', () => {
+    it('should handle continue with multiple sessions', async () => {
+      const { getActiveSessionsByUser, getSessionMessages } = await import('@/lib/db/sessions');
+      const { getTopicById, getActiveTopics } = await import('@/lib/db/topics');
+
+      (getActiveSessionsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([
+        { id: 's-1', topicId: 't-1', updatedAt: new Date('2024-01-02'), currentSubtopicId: null },
+        { id: 's-2', topicId: 't-2', updatedAt: new Date('2024-01-01'), currentSubtopicId: null },
+      ]);
+      (getTopicById as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 't-1',
+        name: 'Most Recent Topic',
+        masteryPercentage: 45,
+      });
+      (getSessionMessages as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/continue' }],
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      expect(text).toContain('Most Recent Topic');
+    });
+
+    it('should handle continue when topic not found', async () => {
+      const { getActiveSessionsByUser, getSessionMessages } = await import('@/lib/db/sessions');
+      const { getTopicById, getActiveTopics } = await import('@/lib/db/topics');
+
+      (getActiveSessionsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([
+        { id: 's-1', topicId: 't-1', updatedAt: new Date(), currentSubtopicId: null },
+      ]);
+      (getTopicById as ReturnType<typeof vi.fn>).mockResolvedValue(null); // Topic deleted
+      (getActiveTopics as ReturnType<typeof vi.fn>).mockResolvedValue([]); // No active topics either
+      (getSessionMessages as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/continue' }],
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      // Actual message: "No active topics to continue!"
+      expect(text.toLowerCase()).toContain('no active topics');
+    });
+  });
+
+  describe('Break Command Edge Cases', () => {
+    it('should handle break without topicId', async () => {
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/break' }],
+        // No topicId provided
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      // Should still work - general break response
+      expect(text.toLowerCase()).toMatch(/break|rest|continue/i);
+    });
+
+    it('should calculate session duration correctly', async () => {
+      const { getTopicById } = await import('@/lib/db/topics');
+      const { getActiveSession, getSessionById, endSession } = await import('@/lib/db/sessions');
+      const { prisma } = await import('@/lib/db/client');
+
+      const sessionStart = new Date(Date.now() - 45 * 60 * 1000); // 45 minutes ago
+
+      (getTopicById as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 't-1', userId: 'user-123', name: 'Rust',
+      });
+      (getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 's-1', topicId: 't-1',
+      });
+      (getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 's-1',
+        createdAt: sessionStart,
+      });
+      (prisma.message.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+        { role: 'USER' }, { role: 'USER' }, { role: 'USER' },
+      ]);
+      (prisma.learningSession.update as ReturnType<typeof vi.fn>).mockResolvedValue({});
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/break' }],
+        topicId: 't-1',
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      expect(text).toContain('45 minutes');
+    });
+  });
+
+  describe('Quiz Command Edge Cases', () => {
+    it('should handle quiz with multiple active topics', async () => {
+      const { getActiveTopics } = await import('@/lib/db/topics');
+
+      (getActiveTopics as ReturnType<typeof vi.fn>).mockResolvedValue([
+        { id: 't-1', name: 'Rust', masteryPercentage: 60 },
+        { id: 't-2', name: 'Go', masteryPercentage: 30 },
+        { id: 't-3', name: 'Python', masteryPercentage: 80 },
+      ]);
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/quiz' }],
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      // Should list topics to choose from
+      expect(text).toContain('Quiz Time');
+    });
+  });
+
+  describe('Review Command Edge Cases', () => {
+    it('should handle review with zero reviews due', async () => {
+      const { countReviewsDue } = await import('@/lib/db/reviews');
+
+      (countReviewsDue as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/review' }],
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      // Actual message: "Hohoho! No reviews due right now. Great work keeping up with your training!"
+      expect(text.toLowerCase()).toContain('no reviews due');
+    });
+
+    it('should display first review concept', async () => {
+      const { countReviewsDue, getReviewsDue } = await import('@/lib/db/reviews');
+      const { prisma } = await import('@/lib/db/client');
+
+      (countReviewsDue as ReturnType<typeof vi.fn>).mockResolvedValue(5);
+      (getReviewsDue as ReturnType<typeof vi.fn>).mockResolvedValue([
+        { id: 'r-1', conceptId: 'c-1' },
+      ]);
+      (prisma.concept.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+        name: 'Ownership and Borrowing',
+      });
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/review' }],
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      expect(text).toContain('5 Review');
+      expect(text).toContain('Ownership and Borrowing');
+    });
+  });
+
+  describe('Progress Command Edge Cases', () => {
+    it('should handle zero progress gracefully', async () => {
+      const { getUserProgress, getTodayAnalytics } = await import('@/lib/db/progress');
+      const { getTopicsByUser } = await import('@/lib/db/topics');
+      const { countReviewsDue } = await import('@/lib/db/reviews');
+
+      // Command handler expects progress to have defaults, so provide minimal data
+      (getUserProgress as ReturnType<typeof vi.fn>).mockResolvedValue({
+        currentLevel: 1,
+        totalXP: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+      });
+      (getTodayAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue({
+        questionsAnswered: 0,
+        questionsCorrect: 0,
+        xpEarned: 0,
+      });
+      (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (countReviewsDue as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/progress' }],
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      expect(text).toContain('Progress');
+      expect(text).toContain('Level 1');
+    });
+
+    it('should show today\'s statistics', async () => {
+      const { getUserProgress, getTodayAnalytics } = await import('@/lib/db/progress');
+      const { getTopicsByUser } = await import('@/lib/db/topics');
+      const { countReviewsDue } = await import('@/lib/db/reviews');
+
+      (getUserProgress as ReturnType<typeof vi.fn>).mockResolvedValue({
+        currentLevel: 5,
+        totalXP: 1500,
+        currentStreak: 7,
+        longestStreak: 14,
+      });
+      (getTodayAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue({
+        questionsAnswered: 20,
+        questionsCorrect: 18,
+        xpEarned: 100,
+      });
+      (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([
+        { id: 't-1', name: 'Rust', status: 'ACTIVE', masteryPercentage: 75 },
+      ]);
+      (countReviewsDue as ReturnType<typeof vi.fn>).mockResolvedValue(3);
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/progress' }],
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      expect(text).toContain('Level 5');
+      expect(text).toContain('1500 XP');
+      expect(text).toContain('7 day');
+      // Check for questions answered count
+      expect(text).toContain('20');
+    });
+  });
+
+  describe('Topics Command Edge Cases', () => {
+    it('should show subtopics when available', async () => {
+      const { getTopicsByUser } = await import('@/lib/db/topics');
+
+      (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          id: 't-1',
+          name: 'Rust Programming',
+          status: 'ACTIVE',
+          masteryPercentage: 50,
+          subtopics: [
+            { name: 'Ownership', masteryPercentage: 80, isLocked: false },
+            { name: 'Borrowing', masteryPercentage: 30, isLocked: false },
+            { name: 'Lifetimes', masteryPercentage: 10, isLocked: true },
+          ],
+        },
+      ]);
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/topics' }],
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      expect(text).toContain('Rust Programming');
+      // The /topics command shows "Current: <subtopic>" for first in-progress subtopic
+      // The logic finds first unlocked subtopic with mastery < 100, which is "Ownership"
+      expect(text).toContain('Current: Ownership');
+    });
+
+    it('should group topics by status', async () => {
+      const { getTopicsByUser } = await import('@/lib/db/topics');
+
+      (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([
+        { id: 't-1', name: 'Active Topic', status: 'ACTIVE', masteryPercentage: 50, subtopics: [] },
+        { id: 't-2', name: 'Queued Topic', status: 'QUEUED', masteryPercentage: 0, subtopics: [] },
+        { id: 't-3', name: 'Completed Topic', status: 'COMPLETED', masteryPercentage: 100, subtopics: [] },
+      ]);
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/topics' }],
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      expect(text).toContain('Active Topic');
+      expect(text).toContain('Queued Topic');
+      expect(text).toContain('Completed Topic');
+    });
+  });
+
+  describe('Stream Response Format Verification', () => {
+    it('should include all required stream protocol parts', async () => {
+      const { getTopicsByUser } = await import('@/lib/db/topics');
+      (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/topics' }],
+      });
+
+      const response = await messageHandler(request);
+
+      expect(response.status).toBe(200);
+      const text = await response.text();
+
+      // Verify AI SDK stream format markers are present
+      expect(text).toContain('data:'); // SSE data prefix
+      expect(text).toContain('"type":"start"'); // Start message
+      expect(text).toContain('"type":"text-delta"'); // Text delta
+      expect(text).toContain('"type":"finish"'); // Finish message
+      expect(text).toContain('[DONE]'); // SSE done marker
+    });
+
+    it('should have correct Content-Type header', async () => {
+      const { getTopicsByUser } = await import('@/lib/db/topics');
+      (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/topics' }],
+      });
+
+      const response = await messageHandler(request);
+
+      // AI SDK uses text/event-stream for SSE
+      expect(response.headers.get('Content-Type')).toBe('text/event-stream');
+    });
+
+    it('should include complete message lifecycle events', async () => {
+      const { getTopicsByUser } = await import('@/lib/db/topics');
+      (getTopicsByUser as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+      const request = createMockRequest({
+        messages: [{ role: 'user', content: '/topics' }],
+      });
+
+      const response = await messageHandler(request);
+      const text = await response.text();
+
+      // Verify full message lifecycle
+      expect(text).toContain('"type":"start"');
+      expect(text).toContain('"type":"start-step"');
+      expect(text).toContain('"type":"text-start"');
+      expect(text).toContain('"type":"text-delta"');
+      expect(text).toContain('"type":"text-end"');
+      expect(text).toContain('"type":"finish-step"');
+      expect(text).toContain('"type":"finish"');
     });
   });
 });
