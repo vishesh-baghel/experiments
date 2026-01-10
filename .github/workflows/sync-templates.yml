@@ -10,9 +10,30 @@ on:
       - 'packages/gary/**'
 
 jobs:
-  sync-jack-x-agent:
+  # Detect which packages changed
+  changes:
     runs-on: ubuntu-latest
-    if: contains(toJSON(github.event.commits.*.modified), 'packages/jack-x-agent') || contains(toJSON(github.event.commits.*.added), 'packages/jack-x-agent')
+    outputs:
+      jack: ${{ steps.filter.outputs.jack }}
+      sensie: ${{ steps.filter.outputs.sensie }}
+      gary: ${{ steps.filter.outputs.gary }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            jack:
+              - 'packages/jack-x-agent/**'
+            sensie:
+              - 'packages/sensie/**'
+            gary:
+              - 'packages/gary/**'
+
+  sync-jack-x-agent:
+    needs: changes
+    if: needs.changes.outputs.jack == 'true'
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout monorepo
@@ -32,8 +53,9 @@ jobs:
           commit-message: 'sync: update from experiments monorepo'
 
   sync-sensie:
+    needs: changes
+    if: needs.changes.outputs.sensie == 'true'
     runs-on: ubuntu-latest
-    if: contains(toJSON(github.event.commits.*.modified), 'packages/sensie') || contains(toJSON(github.event.commits.*.added), 'packages/sensie')
 
     steps:
       - name: Checkout monorepo
@@ -53,8 +75,9 @@ jobs:
           commit-message: 'sync: update from experiments monorepo'
 
   sync-gary:
+    needs: changes
+    if: needs.changes.outputs.gary == 'true'
     runs-on: ubuntu-latest
-    if: contains(toJSON(github.event.commits.*.modified), 'packages/gary') || contains(toJSON(github.event.commits.*.added), 'packages/gary')
 
     steps:
       - name: Checkout monorepo
