@@ -68,14 +68,14 @@ describe("AgentCard", () => {
     const agent = createMockAgent({ status: "available" });
     render(<AgentCard agent={agent} />);
 
-    expect(screen.queryByText("coming soon")).not.toBeInTheDocument();
+    expect(screen.queryByText("soon")).not.toBeInTheDocument();
   });
 
-  it("should render 'coming soon' badge for coming-soon agents", () => {
+  it("should render 'soon' badge for coming-soon agents", () => {
     const agent = createMockAgent({ status: "coming-soon" });
     render(<AgentCard agent={agent} />);
 
-    expect(screen.getByText("coming soon")).toBeInTheDocument();
+    expect(screen.getByText("soon")).toBeInTheDocument();
   });
 
   it("should link to agent page for available agents", () => {
@@ -93,26 +93,25 @@ describe("AgentCard", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
-  it("should render estimated monthly cost with 'to run' suffix", () => {
+  it("should render estimated monthly cost", () => {
     const agent = createMockAgent({ estimatedMonthlyCost: "~$15/month" });
     render(<AgentCard agent={agent} />);
 
     expect(screen.getByText(/~\$15\/month/)).toBeInTheDocument();
-    expect(screen.getByText(/to run/)).toBeInTheDocument();
   });
 
-  it("should show 'learn more' for available agents", () => {
+  it("should show 'Learn more' for available agents", () => {
     const agent = createMockAgent({ status: "available" });
     render(<AgentCard agent={agent} />);
 
-    expect(screen.getByText("learn more")).toBeInTheDocument();
+    expect(screen.getByText("Learn more")).toBeInTheDocument();
   });
 
-  it("should not show 'learn more' for coming-soon agents", () => {
+  it("should not show 'Learn more' for coming-soon agents", () => {
     const agent = createMockAgent({ status: "coming-soon" });
     render(<AgentCard agent={agent} />);
 
-    expect(screen.queryByText("learn more")).not.toBeInTheDocument();
+    expect(screen.queryByText("Learn more")).not.toBeInTheDocument();
   });
 
   it("should track analytics when available agent card is clicked", () => {

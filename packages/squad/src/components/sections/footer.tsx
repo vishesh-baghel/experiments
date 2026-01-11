@@ -2,41 +2,28 @@ import Link from "next/link";
 import { siteConfig } from "@/config/site";
 
 export const Footer = () => {
-  const currentYear = new Date().getFullYear();
-
   return (
-    <footer className="mt-20 py-6 border-t border-border">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-4 text-sm">
+    <footer className="border-t border-[var(--color-border)] mt-20">
+      <div className="container-narrow py-8">
+        <div className="flex items-center justify-center gap-6">
           <Link
             href={siteConfig.links.portfolio}
             target="_blank"
             rel="noreferrer"
-            className="text-muted-foreground hover:text-foreground no-underline"
+            className="text-sm text-[var(--color-foreground-subtle)] hover:text-[var(--color-foreground)] transition-colors no-underline"
           >
             portfolio
           </Link>
-          <Link
-            href={siteConfig.links.github}
-            target="_blank"
-            rel="noreferrer"
-            className="text-muted-foreground hover:text-foreground no-underline"
-          >
-            github
-          </Link>
+          <span className="text-[var(--color-border)]">·</span>
           <Link
             href={siteConfig.links.calendar}
             target="_blank"
             rel="noreferrer"
-            className="text-muted-foreground hover:text-foreground no-underline"
+            className="text-sm text-[var(--color-foreground-subtle)] hover:text-[var(--color-foreground)] transition-colors no-underline"
           >
             book a call
           </Link>
         </div>
-
-        <p className="text-sm text-muted-foreground">
-          {currentYear} {siteConfig.author.name}
-        </p>
       </div>
     </footer>
   );

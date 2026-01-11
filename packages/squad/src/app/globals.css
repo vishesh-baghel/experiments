@@ -3,49 +3,65 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  /* Shadcn/UI colors - modified to fit the design system */
-  --color-background: #FAF8F6;
-  --color-foreground: #000000;
+  /* Linear-Style Dark Minimal Design System */
 
-  --color-card: #FAF8F6;
-  --color-card-foreground: #000000;
+  /* Dark Theme (Primary) - Background layers */
+  --color-background: #0a0a0a;
+  --color-background-subtle: #111111;
+  --color-background-muted: #171717;
 
-  --color-popover: #FAF8F6;
-  --color-popover-foreground: #000000;
+  /* Foreground */
+  --color-foreground: #fafafa;
+  --color-foreground-muted: #a1a1a1;
+  --color-foreground-subtle: #737373;
 
-  --color-primary: #000000;
-  --color-primary-foreground: #FAF8F6;
+  /* Borders */
+  --color-border: #262626;
+  --color-border-hover: #404040;
 
-  --color-secondary: #E0E0E0;
-  --color-secondary-foreground: #000000;
+  /* Accent - Signature red */
+  --color-accent: #ff0000;
+  --color-accent-muted: #cc0000;
+  --color-accent-subtle: rgba(255, 0, 0, 0.1);
 
-  --color-muted: #E0E0E0;
-  --color-muted-foreground: #666666;
+  /* Semantic */
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-error: #ef4444;
 
-  --color-accent: #FF0000;
-  --color-accent-foreground: #FAF8F6;
+  /* Shadcn/UI mappings */
+  --color-card: #111111;
+  --color-card-foreground: #fafafa;
 
-  --color-destructive: #FF0000;
-  --color-destructive-foreground: #FAF8F6;
+  --color-popover: #111111;
+  --color-popover-foreground: #fafafa;
 
-  --color-border: #E0E0E0;
-  --color-input: #E0E0E0;
-  --color-ring: #000000;
+  --color-primary: #fafafa;
+  --color-primary-foreground: #0a0a0a;
 
+  --color-secondary: #171717;
+  --color-secondary-foreground: #fafafa;
+
+  --color-muted: #171717;
+  --color-muted-foreground: #a1a1a1;
+
+  --color-accent-foreground: #ffffff;
+
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #fafafa;
+
+  --color-input: #262626;
+  --color-ring: #ff0000;
+
+  /* Border radius - Sharp edges for consistency with portfolio */
   --radius-lg: 0px;
   --radius-md: 0px;
   --radius-sm: 0px;
 
-  /* Additional design system colors */
-  --color-background-primary: #FAF8F6;
-  --color-text-primary: #000000;
-  --color-text-secondary: #666666;
-  --color-accent-red: #FF0000;
-  --color-border-divider: #E0E0E0;
-
-  /* Typography - uses CSS variable from next/font */
-  --font-primary: var(--font-ibm-plex-mono), monospace;
-  --font-body: var(--font-ibm-plex-mono), monospace;
+  /* Typography */
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --font-mono: var(--font-jetbrains-mono), "Fira Code", "SF Mono", monospace;
 }
 
 @layer base {
@@ -55,12 +71,6 @@
   ::backdrop,
   ::file-selector-button {
     border-color: var(--color-border);
-  }
-}
-
-@layer utilities {
-  body {
-    font-family: var(--font-body);
   }
 }
 
@@ -86,100 +96,104 @@
     --input: var(--color-input);
     --ring: var(--color-ring);
     --radius: 0px;
+
+    /* Glassmorphism */
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.06);
+    --glass-blur: 12px;
   }
 
-  /* Dark theme overrides */
-  .dark {
-    --color-background: #0f0f0f;
-    --color-foreground: #faf8f6;
+  /* Light theme overrides */
+  .light {
+    --color-background: #fafafa;
+    --color-background-subtle: #f5f5f5;
+    --color-background-muted: #e5e5e5;
 
-    --color-card: #121212;
-    --color-card-foreground: #faf8f6;
+    --color-foreground: #0a0a0a;
+    --color-foreground-muted: #525252;
+    --color-foreground-subtle: #737373;
 
-    --color-popover: #121212;
-    --color-popover-foreground: #faf8f6;
+    --color-border: #e5e5e5;
+    --color-border-hover: #d4d4d4;
 
-    --color-primary: #faf8f6;
-    --color-primary-foreground: #0f0f0f;
+    --color-accent: #dc0000;
 
-    --color-secondary: #1f1f1f;
-    --color-secondary-foreground: #faf8f6;
+    --color-card: #ffffff;
+    --color-card-foreground: #0a0a0a;
 
-    --color-muted: #1a1a1a;
-    --color-muted-foreground: #a3a3a3;
+    --color-popover: #ffffff;
+    --color-popover-foreground: #0a0a0a;
 
-    --color-accent: #ff0000;
-    --color-accent-foreground: #0f0f0f;
+    --color-primary: #0a0a0a;
+    --color-primary-foreground: #fafafa;
 
-    --color-destructive: #ff3b3b;
-    --color-destructive-foreground: #0f0f0f;
+    --color-secondary: #f5f5f5;
+    --color-secondary-foreground: #0a0a0a;
 
-    --color-border: #2a2a2a;
-    --color-input: #2a2a2a;
-    --color-ring: #ffffff;
+    --color-muted: #f5f5f5;
+    --color-muted-foreground: #525252;
 
-    --color-background-primary: #0f0f0f;
-    --color-text-primary: #faf8f6;
-    --color-text-secondary: #a3a3a3;
-    --color-accent-red: #ff4d4d;
-    --color-border-divider: #2a2a2a;
+    --color-input: #e5e5e5;
+    --color-ring: #dc0000;
+
+    --glass-bg: rgba(0, 0, 0, 0.02);
+    --glass-border: rgba(0, 0, 0, 0.06);
   }
 
   body {
-    background-color: var(--color-background-primary);
-    color: var(--color-text-primary);
-    font-family: var(--font-body);
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
     font-size: 16px;
     line-height: 1.6;
-    padding: 60px 40px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "ss01" on, "ss02" on, "cv01" on;
   }
 
-  @media (max-width: 768px) {
-    body {
-      padding: 40px 24px;
-    }
-  }
-
+  /* Typography scale */
   h1 {
     font-size: 32px;
-    font-weight: bold;
+    font-weight: 600;
     line-height: 1.2;
-    margin-bottom: 24px;
+    letter-spacing: -0.01em;
+    margin-bottom: 16px;
   }
 
   h2 {
     font-size: 24px;
-    font-weight: bold;
+    font-weight: 600;
     line-height: 1.3;
-    margin-top: 40px;
-    margin-bottom: 16px;
+    margin-top: 32px;
+    margin-bottom: 12px;
   }
 
   h3 {
     font-size: 18px;
-    font-weight: bold;
+    font-weight: 500;
     line-height: 1.4;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
 
   p {
     margin-bottom: 16px;
+    color: var(--color-foreground-muted);
   }
 
   a {
-    color: var(--color-accent-red);
-    text-decoration: underline;
-    font-size: 16px;
+    color: var(--color-foreground-muted);
+    text-decoration: none;
+    transition: color 0.15s ease;
   }
 
   a:hover {
-    opacity: 0.8;
+    color: var(--color-foreground);
   }
 
   small {
     font-size: 14px;
     line-height: 1.5;
-    color: var(--color-text-secondary);
+    color: var(--color-foreground-subtle);
   }
 }
 
@@ -188,7 +202,7 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Modern, minimal scrollbars (Chromium/WebKit) */
+/* Modern scrollbars */
 *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -206,11 +220,102 @@ html {
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-muted);
+  background-color: var(--color-border-hover);
 }
 
-/* Firefox */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Utility classes */
+@layer utilities {
+  .font-sans {
+    font-family: var(--font-sans);
+  }
+
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  .text-muted {
+    color: var(--color-foreground-muted);
+  }
+
+  .text-subtle {
+    color: var(--color-foreground-subtle);
+  }
+
+  .bg-subtle {
+    background-color: var(--color-background-subtle);
+  }
+
+  .bg-muted {
+    background-color: var(--color-background-muted);
+  }
+
+  /* Glass effect */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+  }
+
+  /* Gradient divider */
+  .divider-gradient {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-border) 20%,
+      var(--color-border) 80%,
+      transparent
+    );
+  }
+
+  /* Container */
+  .container-narrow {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  @media (min-width: 768px) {
+    .container-narrow {
+      padding: 0 40px;
+    }
+  }
+}
+
+/* Animation utilities */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease forwards;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
