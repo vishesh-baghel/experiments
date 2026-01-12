@@ -19,10 +19,10 @@
   --color-border: #262626;
   --color-border-hover: #404040;
 
-  /* Accent - Signature red */
-  --color-accent: #ff0000;
-  --color-accent-muted: #cc0000;
-  --color-accent-subtle: rgba(255, 0, 0, 0.1);
+  /* Accent - Minimal black/white */
+  --color-accent: #fafafa;
+  --color-accent-muted: #d4d4d4;
+  --color-accent-subtle: rgba(250, 250, 250, 0.1);
 
   /* Semantic */
   --color-success: #22c55e;
@@ -45,13 +45,13 @@
   --color-muted: #171717;
   --color-muted-foreground: #a1a1a1;
 
-  --color-accent-foreground: #ffffff;
+  --color-accent-foreground: #0a0a0a;
 
   --color-destructive: #ef4444;
   --color-destructive-foreground: #fafafa;
 
   --color-input: #262626;
-  --color-ring: #ff0000;
+  --color-ring: #fafafa;
 
   /* Border radius - Sharp edges for consistency with portfolio */
   --radius-lg: 0px;
@@ -116,7 +116,9 @@
     --color-border: #e5e5e5;
     --color-border-hover: #d4d4d4;
 
-    --color-accent: #dc0000;
+    --color-accent: #0a0a0a;
+    --color-accent-muted: #262626;
+    --color-accent-foreground: #fafafa;
 
     --color-card: #ffffff;
     --color-card-foreground: #0a0a0a;
@@ -134,7 +136,7 @@
     --color-muted-foreground: #525252;
 
     --color-input: #e5e5e5;
-    --color-ring: #dc0000;
+    --color-ring: #0a0a0a;
 
     --glass-bg: rgba(0, 0, 0, 0.02);
     --glass-border: rgba(0, 0, 0, 0.06);

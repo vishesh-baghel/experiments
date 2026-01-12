@@ -134,7 +134,7 @@ const AgentPage = async ({ params }: AgentPageProps) => {
                 <div className="mt-8">
                   <Link
                     href={`/deploy/${agent.id}`}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--color-accent)] text-white font-medium hover:bg-[var(--color-accent-muted)] transition-colors no-underline"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--color-accent)] text-[var(--color-accent-foreground)] font-medium hover:bg-[var(--color-accent-muted)] transition-colors no-underline"
                   >
                     Deploy your own
                     <ArrowRight className="h-4 w-4" />
@@ -305,7 +305,7 @@ const AgentPage = async ({ params }: AgentPageProps) => {
                   </p>
                   <Link
                     href={`/deploy/${agent.id}`}
-                    className="inline-flex items-center gap-2 px-8 py-4 bg-[var(--color-accent)] text-white font-medium text-lg hover:bg-[var(--color-accent-muted)] transition-colors no-underline"
+                    className="inline-flex items-center gap-2 px-8 py-4 bg-[var(--color-accent)] text-[var(--color-accent-foreground)] font-medium text-lg hover:bg-[var(--color-accent-muted)] transition-colors no-underline"
                   >
                     Deploy your own
                     <ArrowRight className="h-5 w-5" />

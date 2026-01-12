@@ -66,7 +66,7 @@ const GuidePage = async ({ params }: GuidePageProps) => {
                 {agent.guideSteps.map((step, index) => (
                   <section key={index} className="glass p-6">
                     <div className="flex gap-4">
-                      <div className="flex-shrink-0 w-7 h-7 bg-[var(--color-accent)] text-white flex items-center justify-center text-xs font-semibold leading-none relative top-[1px]">
+                      <div className="flex-shrink-0 w-7 h-7 bg-[var(--color-accent)] text-[var(--color-accent-foreground)] flex items-center justify-center text-xs font-semibold leading-none relative top-[1px]">
                         {index + 1}
                       </div>
                       <div className="space-y-3 flex-1">
