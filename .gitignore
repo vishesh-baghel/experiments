@@ -41,3 +41,4 @@ coverage/
 # Misc
 *.tsbuildinfo
 .cache/
+packages/jack-x-agent/prisma/dev.db
