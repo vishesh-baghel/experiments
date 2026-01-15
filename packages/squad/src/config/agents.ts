@@ -417,44 +417,49 @@ export const jackAgent: AgentConfig = {
 export const sensieAgent: AgentConfig = {
   id: "sensie",
   name: "sensie",
-  tagline: "your personal teacher in the age of ai",
+  tagline: "master the skills that matter in the age of ai",
   description:
-    "ai learning agent that teaches through socratic questioning. named after master roshi (sensei). forces deep understanding through guided questions, tracks mastery with spaced repetition, and adapts to your learning pace.",
+    "trains critical thinking and clear communication - the two skills that matter most when working with ai tools. uses socratic questioning and first principles learning to force deep understanding, not pattern matching. as you rely on claude code or cursor to build, sensie sharpens the cognitive skills that make you effective at evaluating ai outputs and prompting llms.",
   features: [
+    {
+      title: "first principles learning",
+      description:
+        "trains critical thinking by forcing you to derive concepts from fundamental axioms, not memorize patterns. essential for evaluating ai-generated code and understanding what's actually happening under the hood.",
+    },
     {
       title: "socratic teaching",
       description:
-        "learns through guided questioning, never gives direct answers until you demonstrate understanding",
-    },
-    {
-      title: "spaced repetition",
-      description:
-        "uses fsrs-5 algorithm (same as anki) to schedule reviews at optimal intervals for retention",
-    },
-    {
-      title: "adaptive difficulty",
-      description:
-        "adjusts question difficulty based on your performance - from simple recall to complex synthesis",
-    },
-    {
-      title: "knowledge gap detection",
-      description:
-        "identifies areas where understanding is shallow and creates targeted exercises",
+        "learns through guided questioning, never gives direct answers until you demonstrate understanding. teaches you to ask better questions - the core skill for effective ai collaboration.",
     },
     {
       title: "feynman technique",
       description:
-        "prompts you to explain concepts simply, refining until mastery is demonstrated",
+        "forces you to explain concepts simply and clearly, refining until you can articulate ideas precisely. directly trains the communication clarity needed for effective llm prompting.",
     },
     {
-      title: "master roshi personality",
+      title: "knowledge gap detection",
       description:
-        "wise, demanding but encouraging teaching style with anime references for fun",
+        "identifies shallow understanding and misconceptions - the same critical evaluation skill you need when reviewing ai-generated solutions.",
+    },
+    {
+      title: "spaced repetition",
+      description:
+        "uses fsrs-5 algorithm (same as anki) to schedule reviews at optimal intervals for long-term retention and true mastery.",
+    },
+    {
+      title: "adaptive difficulty",
+      description:
+        "adjusts question difficulty based on your performance - from simple recall to complex synthesis, building systematic thinking skills.",
     },
     {
       title: "progress tracking",
       description:
-        "visual mastery gauges, learning streaks, xp system, and achievement badges for motivation",
+        "visual mastery gauges, learning streaks, xp system, and achievement badges to maintain motivation through the challenging work of deep learning.",
+    },
+    {
+      title: "master roshi personality",
+      description:
+        "wise, demanding but encouraging teaching style with anime references to make rigorous learning enjoyable.",
     },
   ],
   requirements: [
