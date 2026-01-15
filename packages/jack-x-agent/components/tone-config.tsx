@@ -248,6 +248,5 @@ export function ToneConfigComponent({ userId, initialConfig }: ToneConfigProps) 
           </Card>
         </div>
       </div>
-    </div>
   );
 }
