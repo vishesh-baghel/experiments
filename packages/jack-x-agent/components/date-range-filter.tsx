@@ -102,7 +102,7 @@ export function DateRangeFilter({
         variant="outline"
         size="sm"
         onClick={() => setIsOpen(!isOpen)}
-        className="min-w-[140px] justify-between gap-2"
+        className="w-full sm:min-w-[140px] sm:w-auto justify-between gap-2 text-xs sm:text-sm"
       >
         <span className="truncate">{getDisplayLabel()}</span>
         <svg
@@ -116,7 +116,7 @@ export function DateRangeFilter({
       </Button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 z-50 min-w-[200px] bg-background border rounded-md shadow-lg">
+        <div className="absolute right-0 sm:right-0 left-0 sm:left-auto top-full mt-1 z-50 min-w-full sm:min-w-[200px] bg-background border rounded-md shadow-lg">
           {!showCustomInputs ? (
             <div className="py-1">
               {OPTIONS.map((option) => (

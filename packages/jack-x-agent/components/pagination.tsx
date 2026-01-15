@@ -30,7 +30,7 @@ export function Pagination({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1 sm:gap-2">
       <Button
         variant="outline"
         size="sm"
@@ -54,8 +54,8 @@ export function Pagination({
         </svg>
       </Button>
 
-      <span className="text-sm text-muted-foreground min-w-[80px] text-center">
-        Page {currentPage} of {totalPages}
+      <span className="text-xs sm:text-sm text-muted-foreground min-w-[60px] sm:min-w-[80px] text-center whitespace-nowrap">
+        {currentPage}/{totalPages}
       </span>
 
       <Button
