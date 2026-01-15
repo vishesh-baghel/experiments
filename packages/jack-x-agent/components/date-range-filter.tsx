@@ -116,7 +116,7 @@ export function DateRangeFilter({
       </Button>
 
       {isOpen && (
-        <div className="absolute right-0 left-auto top-full mt-1 z-50 w-[280px] sm:min-w-[200px] sm:w-auto bg-background border rounded-md shadow-lg max-w-[calc(100vw-2rem)]">
+        <div className="absolute right-0 top-full mt-1 z-50 w-[min(280px,calc(100vw-3rem))] sm:min-w-[200px] sm:w-auto bg-background border rounded-md shadow-lg">
           {!showCustomInputs ? (
             <div className="py-1">
               {OPTIONS.map((option) => (
