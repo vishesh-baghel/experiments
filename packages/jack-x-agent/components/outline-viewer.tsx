@@ -65,7 +65,7 @@ export function OutlineViewer({
       <div className="flex-shrink-0 pb-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
           <h1 className="text-2xl sm:text-3xl font-bold">{ideaTitle}</h1>
-          <Badge>{contentPillar}</Badge>
+          <Badge className="w-fit">{contentPillar}</Badge>
         </div>
         <p className="text-sm sm:text-base text-muted-foreground">
           format: {outline.format} • estimated length: {outline.estimatedLength} chars
