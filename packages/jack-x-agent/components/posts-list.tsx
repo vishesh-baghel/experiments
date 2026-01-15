@@ -330,7 +330,7 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
             shipped ({posts.filter(p => p.isPosted).length})
           </button>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 justify-between sm:justify-end">
+        <div className="flex items-center justify-between gap-2">
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
