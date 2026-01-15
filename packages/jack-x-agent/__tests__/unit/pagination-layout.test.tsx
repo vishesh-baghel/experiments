@@ -189,4 +189,65 @@ describe('Pagination and DateRangeFilter Layout', () => {
     expect(children).toHaveLength(2);
     expect(children?.[0]).toContainHTML('5/10');
   });
+
+  it('should always render pagination even with only 1 page', () => {
+    const { container } = render(
+      <div className="flex items-center justify-between gap-2">
+        <Pagination
+          currentPage={1}
+          totalPages={1}
+          onPrevPage={() => {}}
+          onNextPage={() => {}}
+          hasPrevPage={false}
+          hasNextPage={false}
+        />
+        <DateRangeFilter
+          value="last_7d"
+          onChange={() => {}}
+          customStartDate=""
+          customEndDate=""
+        />
+      </div>
+    );
+
+    const flexContainer = container.querySelector('.flex.justify-between');
+    const children = flexContainer?.children;
+
+    // Should still have 2 children even with 1 page
+    expect(children).toHaveLength(2);
+    // Pagination should show 1/1
+    expect(children?.[0]).toContainHTML('1/1');
+    // Both buttons should be disabled
+    const buttons = children?.[0]?.querySelectorAll('button');
+    expect(buttons?.[0]).toBeDisabled();
+    expect(buttons?.[1]).toBeDisabled();
+  });
+
+  it('should maintain date range filter on right even with no pagination needed', () => {
+    const { container } = render(
+      <div className="flex items-center justify-between gap-2">
+        <Pagination
+          currentPage={1}
+          totalPages={1}
+          onPrevPage={() => {}}
+          onNextPage={() => {}}
+          hasPrevPage={false}
+          hasNextPage={false}
+        />
+        <DateRangeFilter
+          value="last_24h"
+          onChange={() => {}}
+          customStartDate=""
+          customEndDate=""
+        />
+      </div>
+    );
+
+    const flexContainer = container.querySelector('.flex.justify-between');
+    const children = flexContainer?.children;
+
+    // DateRangeFilter should still be second child (right side)
+    expect(children).toHaveLength(2);
+    expect(children?.[1]).toContainHTML('Past 24 hr');
+  });
 });

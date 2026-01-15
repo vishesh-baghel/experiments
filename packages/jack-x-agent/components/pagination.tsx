@@ -24,18 +24,13 @@ export function Pagination({
   hasPrevPage,
   hasNextPage,
 }: PaginationProps) {
-  // Don't show pagination if there's only one page or no pages
-  if (totalPages <= 1) {
-    return null;
-  }
-
   return (
     <div className="flex items-center gap-1 sm:gap-2">
       <Button
         variant="outline"
         size="sm"
         onClick={onPrevPage}
-        disabled={!hasPrevPage}
+        disabled={!hasPrevPage || totalPages <= 1}
         className="h-8 w-8 p-0"
         aria-label="Previous page"
       >
@@ -62,7 +57,7 @@ export function Pagination({
         variant="outline"
         size="sm"
         onClick={onNextPage}
-        disabled={!hasNextPage}
+        disabled={!hasNextPage || totalPages <= 1}
         className="h-8 w-8 p-0"
         aria-label="Next page"
       >
