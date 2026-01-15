@@ -414,15 +414,15 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
               )}
             </CardContent>
             {editingId !== post.draftId && (
-              <CardFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 pt-0">
-                <div className="flex gap-2 flex-wrap">
+              <CardFooter className="flex justify-between gap-2 pt-0 overflow-x-auto">
+                <div className="flex gap-2 shrink-0">
                   <GuestTooltipButton
                     size="sm"
                     variant="ghost"
                     onClick={() => handleStartEdit(post)}
                     disabled={post.isPosted}
                     isGuest={isGuest}
-                    className="text-muted-foreground hover:text-foreground flex-1 sm:flex-none"
+                    className="text-muted-foreground hover:text-foreground whitespace-nowrap"
                   >
                     fix it
                   </GuestTooltipButton>
@@ -432,12 +432,12 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
                     onClick={() => openDeleteDialog(post)}
                     disabled={loadingAction === `delete-${post.draftId}`}
                     isGuest={isGuest}
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-1 sm:flex-none"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 whitespace-nowrap"
                   >
                     {loadingAction === `delete-${post.draftId}` ? 'yeeting...' : 'yeet'}
                   </GuestTooltipButton>
                 </div>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2 shrink-0">
                   {!post.isMarkedGood && (
                     <GuestTooltipButton
                       size="sm"
@@ -445,7 +445,7 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
                       onClick={() => handleMarkAsGood(post)}
                       disabled={loadingId === post.draftId}
                       isGuest={isGuest}
-                      className="flex-1 sm:flex-none"
+                      className="whitespace-nowrap"
                     >
                       {loadingId === post.draftId ? 'noting...' : 'this one hits'}
                     </GuestTooltipButton>
@@ -457,7 +457,7 @@ export function PostsList({ userId, initialPosts = [] }: PostsListProps) {
                       onClick={() => handlePostToX(post)}
                       disabled={loadingAction === `post-${post.draftId}`}
                       isGuest={isGuest}
-                      className="flex-1 sm:flex-none"
+                      className="whitespace-nowrap"
                     >
                       {loadingAction === `post-${post.draftId}` ? 'shipping...' : 'ship it'}
                     </GuestTooltipButton>
