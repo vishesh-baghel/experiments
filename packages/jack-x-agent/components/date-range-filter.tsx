@@ -102,11 +102,11 @@ export function DateRangeFilter({
         variant="outline"
         size="sm"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full sm:min-w-[140px] sm:w-auto justify-between gap-2 text-xs sm:text-sm"
+        className="min-w-[120px] justify-between gap-2 text-xs sm:text-sm whitespace-nowrap"
       >
         <span className="truncate">{getDisplayLabel()}</span>
         <svg
-          className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
