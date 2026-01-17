@@ -44,15 +44,16 @@ import { ENCOURAGEMENT, BREAK_MESSAGES } from '@/lib/personality/constants';
  * Sensie Agent Definition
  *
  * Using Mastra's model router with Anthropic.
- * Uses Vercel AI Gateway if configured, otherwise direct provider.
+ * Configure via environment variables:
+ * - ANTHROPIC_API_KEY: For direct Anthropic API (recommended for development)
+ * - AI_GATEWAY_BASE_URL + AI_GATEWAY_API_KEY: For Vercel AI Gateway (production)
  */
 export const sensieAgent = new Agent({
   name: 'sensie',
   instructions: SENSIE_SYSTEM_PROMPT,
-  // Use Vercel AI Gateway if configured, otherwise fallback to direct Anthropic
-  model: process.env.AI_GATEWAY_API_KEY
-    ? 'vercel/anthropic/claude-sonnet-4-20250514'
-    : 'anthropic/claude-sonnet-4-20250514',
+  // Use Anthropic Claude Sonnet 4
+  // For AI Gateway support, configure anthropic provider with custom baseURL
+  model: 'anthropic/claude-sonnet-4-20250514',
 });
 
 // ============================================================================
