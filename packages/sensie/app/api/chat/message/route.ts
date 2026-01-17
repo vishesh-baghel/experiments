@@ -1,5 +1,4 @@
 import { NextRequest } from 'next/server';
-import { after } from 'next/server';
 import { createUIMessageStream, createUIMessageStreamResponse } from 'ai';
 import { getSession } from '@/lib/auth/session';
 import { requireAuth } from '@/lib/auth/auth';
@@ -228,29 +227,19 @@ async function evaluateAndTrackProgress(
       }
     }
 
-    // OPTIMIZATION: Schedule non-blocking analytics AFTER response is sent
-    // This saves ~200-400ms per chat message by not blocking the response
-    after(async () => {
-      try {
-        console.log('[chat] Running post-response analytics...');
+    // OPTIMIZATION: Run analytics in parallel (faster than sequential)
+    // Note: We await these to ensure they complete, but they run concurrently
+    await Promise.all([
+      updateTodayAnalytics(userId, {
+        questionsAnswered: 1,
+        questionsCorrect: evaluation.isCorrect ? 1 : 0,
+      }),
+      awardXP(userId, xpAmount, 'chat_answer'),
+      updateStreak(userId),
+      updateMastery(topicId, userId),
+    ]);
 
-        // Run all analytics in parallel (they're independent)
-        await Promise.all([
-          updateTodayAnalytics(userId, {
-            questionsAnswered: 1,
-            questionsCorrect: evaluation.isCorrect ? 1 : 0,
-          }),
-          awardXP(userId, xpAmount, 'chat_answer'),
-          updateStreak(userId),
-          updateMastery(topicId, userId),
-        ]);
-
-        console.log(`[chat] Analytics complete: ${xpAmount} XP, streak updated, mastery updated`);
-      } catch (error) {
-        // Errors in after() don't affect the response
-        console.error('[chat] Non-fatal error in post-response analytics:', error);
-      }
-    });
+    console.log(`[chat] Analytics complete: ${xpAmount} XP, streak updated, mastery updated`);
 
   } catch (error) {
     // Log error but don't fail the request - chat should still work
