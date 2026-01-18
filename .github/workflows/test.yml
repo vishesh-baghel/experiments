@@ -6,6 +6,7 @@ on:
     paths:
       - 'packages/squad/**'
       - 'packages/jack-x-agent/**'
+      - 'packages/sensie/**'
       - 'pnpm-lock.yaml'
       - '.github/workflows/test.yml'
   pull_request:
@@ -13,6 +14,7 @@ on:
     paths:
       - 'packages/squad/**'
       - 'packages/jack-x-agent/**'
+      - 'packages/sensie/**'
       - 'pnpm-lock.yaml'
       - '.github/workflows/test.yml'
 
@@ -23,6 +25,7 @@ jobs:
     outputs:
       squad: ${{ steps.filter.outputs.squad }}
       jack-x-agent: ${{ steps.filter.outputs.jack-x-agent }}
+      sensie: ${{ steps.filter.outputs.sensie }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -36,6 +39,8 @@ jobs:
               - 'packages/squad/**'
             jack-x-agent:
               - 'packages/jack-x-agent/**'
+            sensie:
+              - 'packages/sensie/**'
 
   # Squad tests
   test-squad:
@@ -119,4 +124,56 @@ jobs:
 
       - name: Run Jack X Agent lint
         working-directory: packages/jack-x-agent
+        run: pnpm lint
+
+  # Sensie tests
+  test-sensie:
+    needs: changes
+    if: ${{ needs.changes.outputs.sensie == 'true' }}
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: ${{ secrets.SENSIE_DATABASE_URL }}
+      DATABASE_URL_UNPOOLED: ${{ secrets.SENSIE_DATABASE_URL_UNPOOLED }}
+      SESSION_SECRET: ${{ secrets.SENSIE_SESSION_SECRET }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+      LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+      LANGFUSE_BASE_URL: ${{ secrets.LANGFUSE_BASE_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        working-directory: packages/sensie
+        run: pnpm db:generate
+
+      - name: Run database migrations
+        working-directory: packages/sensie
+        run: DATABASE_URL_UNPOOLED=$DATABASE_URL npx prisma migrate deploy
+
+      - name: Run Sensie tests
+        working-directory: packages/sensie
+        run: pnpm test:unit --run
+
+      - name: Run Sensie build
+        working-directory: packages/sensie
+        run: pnpm build
+
+      - name: Run Sensie lint
+        working-directory: packages/sensie
         run: pnpm lint
