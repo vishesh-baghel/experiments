@@ -1,12 +1,12 @@
 # Squad
 
-> hyper personalised agents i built, deploy them for yourself and let them do your boring work
+> Hyper personalized agents I built, deploy them for yourself and let them do your boring work
 
 Squad is a deployment platform that lets anyone deploy my personal AI agents to their own infrastructure with one click.
 
 ## Features
 
-- **1-Click Deploy**: Deploy via Vercel Deploy Button with automatic Prisma Postgres provisioning
+- **1-Click Deploy**: Deploy via Vercel Deploy Button with automatic database provisioning
 - **Zero Config**: Database and environment variables configured automatically
 - **You Own It**: Code gets forked to your GitHub, deploys to your Vercel
 - **Setup Guide**: Step-by-step post-deployment configuration instructions
@@ -24,6 +24,15 @@ X content agent that learns your voice. Named after Jack Dorsey.
 Learning agent that tracks everything you learn.
 - Your personal teacher in the age of AI
 - Makes sure you're not getting dumb with new AI tools
+
+## Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Styling**: TailwindCSS + shadcn/ui
+- **Font**: IBM Plex Mono
+- **Session**: iron-session (encrypted cookies)
+- **Testing**: Vitest + React Testing Library
+- **Analytics**: PostHog
 
 ## Development
 
@@ -46,15 +55,6 @@ pnpm build
 # Lint
 pnpm lint
 ```
-
-## Tech Stack
-
-- **Framework**: Next.js 15 (App Router)
-- **Styling**: TailwindCSS + shadcn/ui
-- **Font**: IBM Plex Mono
-- **Testing**: Vitest + React Testing Library
-- **Analytics**: PostHog
-- **APIs**: Vercel Deploy Button, Prisma Postgres
 
 ## Project Structure
 
@@ -101,6 +101,14 @@ export const newAgent: AgentConfig = {
 export const agents: AgentConfig[] = [jackAgent, sensieAgent, newAgent];
 ```
 
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SESSION_SECRET` | Yes | 32-char secret for session encryption |
+| `NEXT_PUBLIC_APP_URL` | Yes | App base URL |
+| `NEXT_PUBLIC_POSTHOG_KEY` | No | PostHog API key |
+
 ## Testing
 
 The project uses Vitest for testing with React Testing Library for component tests.
@@ -114,10 +122,26 @@ pnpm test:watch
 ```
 
 Test coverage includes:
-- API endpoint tests (deploy/start, vercel/authorize, vercel/callback)
-- Component tests (AgentCard, OAuthButton, DeployError, DeployProgress)
+- API endpoint tests (deploy/start, vercel/callback)
+- Component tests (AgentCard, DeployProgress, DeployError)
 - Configuration tests (agents.ts validation)
 - Deploy session type tests
+
+## Deploy Flow
+
+```
+User visits /deploy/[agentId]
+         |
+POST /api/deploy/start --> Creates session
+         |
+User clicks Vercel Deploy Button
+         |
+Vercel clones repo --> provisions database
+         |
+GET /api/deploy/vercel/callback
+         |
+Success page + setup guide
+```
 
 ## CI/CD
 

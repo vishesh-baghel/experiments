@@ -72,22 +72,22 @@ vercel
 
 ## How It Works
 
-1. **User sends message** → Chat component calls `/api/chat`
-2. **API route** → Uses LLM Router to select optimal model
-3. **Router analyzes** → Checks cache, classifies complexity, selects model
-4. **Stream response** → Vercel AI SDK streams LLM response
-5. **Show metadata** → Display routing decision, cost, cache status
+1. **User sends message** - Chat component calls `/api/chat`
+2. **API route** - Uses LLM Router to select optimal model
+3. **Router analyzes** - Checks cache, classifies complexity, selects model
+4. **Stream response** - Vercel AI SDK streams LLM response
+5. **Show metadata** - Display routing decision, cost, cache status
 
 ## Routing Logic
 
 ```typescript
-// Simple query → Cheap model
+// Simple query - Cheap model
 "What are your hours?" → gpt-4o-mini ($0.0001)
 
-// Complex query → Advanced model
+// Complex query - Advanced model
 "Explain OAuth2 implementation" → gpt-4o ($0.002)
 
-// Cached query → $0
+// Cached query - $0
 "What are your hours?" (2nd time) → Cache Hit ($0)
 ```
 
