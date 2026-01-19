@@ -335,6 +335,17 @@ import { searchDocuments } from '@/core/search';
 | Index | <20ms | Lightweight metadata only |
 | Write | <100ms | Direct to Turso primary |
 
+## UI Design
+
+The web UI follows the shared Zed-inspired design system in `/docs/DESIGN_GUIDELINES.md`:
+- **Dark mode first** with `--bg-primary: #0e1015`
+- **Lora italic** for headlines (serif elegance)
+- **IA Writer Quattro** or Inter for body text
+- **Blue accent** `#0751cf` for primary actions
+- **Cyan highlights** `#56d4dd` for icons and features
+
+Memory-specific UI patterns are documented in `specs/UI.md` and `specs/DESIGN.md`.
+
 ## Key Design Decisions
 
 ### Why Mastra for MCP Server?

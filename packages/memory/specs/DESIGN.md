@@ -1,5 +1,7 @@
 # Memory - Design System
 
+> **Note:** This package uses the shared Zed-inspired design system defined in [`/docs/DESIGN_GUIDELINES.md`](/docs/DESIGN_GUIDELINES.md). The guidelines below are Memory-specific extensions.
+
 Inspired by [zed.dev](https://zed.dev) - minimal, crisp, and functional.
 
 ## Typography
