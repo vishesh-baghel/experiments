@@ -17,9 +17,12 @@ Memory is a central knowledge base for storing personal and professional context
 #### 2. APIs (MCP + REST)
 | API | Description | Latency Target |
 |-----|-------------|----------------|
-| `search` | Full-text search across all content | < 5ms |
-| `read` | Fetch complete markdown file by path | < 1ms |
+| `index` | Lightweight listing of all documents | < 20ms |
+| `search` | Full-text search across all content | < 15ms |
+| `read` | Fetch complete markdown file by path | < 10ms |
 | `write` | Create or update markdown file | < 100ms |
+
+**Note:** MCP server is remote (HTTP+SSE), not a local process. Users connect via URL, no local installation required.
 
 #### 3. Search Capabilities
 - Full-text search using SQLite FTS5
@@ -27,23 +30,30 @@ Memory is a central knowledge base for storing personal and professional context
 - Sort by relevance, date modified, date created
 - Return file paths with snippets (not full content)
 
-#### 4. Conflict Resolution
-- AI-assisted merge when multiple agents write simultaneously
-- Queue writes to same document to prevent race conditions
-- Merge strategy: Combine non-overlapping changes, flag conflicts for review
+#### 4. Conflict Resolution (v1)
+- **Strategy: Last-write-wins** - latest timestamp wins, simpler for v1
+- Track `last_write_source` for debugging which agent made changes
+- Previous content preserved in version history for recovery
+- No write queuing - concurrent writes are rare at <1000 docs scale
+
+**Future (v2):** AI-assisted merge for combining non-overlapping changes
 
 #### 5. Access Control
-- Single user system
+- **v1:** Single user system (one deployment = one knowledge base)
 - API key authentication for MCP/REST access
 - Simple password authentication for web UI
+- **Future:** Self-hosted multi-user for teams (schema designed for this)
 
 ### Non-Functional Requirements
 
 #### 1. Performance
-- **Read latency**: < 1ms (sub-millisecond) using Turso embedded replicas
-- **Search latency**: < 5ms for full-text queries
-- **Write latency**: < 100ms (async replication acceptable)
+- **Read latency**: < 10ms using Turso edge-distributed database
+- **Search latency**: < 15ms for full-text queries (FTS5)
+- **Index latency**: < 20ms for lightweight document listing
+- **Write latency**: < 100ms (direct to Turso primary)
 - **Throughput**: Handle 100+ concurrent read requests
+
+**Note:** Sub-millisecond latency possible with embedded replicas for self-hosted deployments with persistent storage. Serverless edge deployments use Turso HTTP API.
 
 #### 2. Scale
 - Target: < 1000 markdown files
@@ -123,10 +133,12 @@ interface DocumentMetadata {
 
 ## Integration Points
 
-### 1. MCP Server
-- Expose `search`, `read`, `write` as MCP tools
+### 1. MCP Server (Remote via Mastra)
+- Expose `index`, `search`, `read`, `write`, `list`, `delete` as MCP tools
+- **Framework:** Mastra with `createTool` for tool definitions
+- **Transport:** HTTP + Server-Sent Events (SSE) - no local installation
 - Compatible with Claude Code, Claude Desktop
-- Follows MCP specification
+- Users configure with URL + API key, no `command` or local process
 
 ### 2. REST API
 - For non-MCP clients (ChatGPT plugins, custom apps)
@@ -139,17 +151,20 @@ interface DocumentMetadata {
 - File management interface
 - Fetch time display per file
 
-## Constraints
+## Constraints (v1)
 
 1. **No image storage** - Markdown text only for v1
 2. **No real-time sync** - Agents poll or fetch on-demand
 3. **No semantic search** - Full-text search only (FTS5)
 4. **No chunking** - Whole files served to agents
 5. **Single user** - No multi-tenancy for v1
+6. **No import** - Manual content creation only (no Obsidian/Notion import)
+7. **Last-write-wins** - No AI-assisted merge for conflicts
 
 ## Success Metrics
 
-1. **Read latency p99 < 1ms** - Measured at edge
-2. **Search latency p99 < 5ms** - For typical queries
-3. **Zero data loss** - All writes persisted
-4. **100% MCP compatibility** - Works with Claude Code out of box
+1. **Read latency p99 < 10ms** - Measured at edge
+2. **Search latency p99 < 15ms** - For typical queries
+3. **Index latency p99 < 20ms** - For document listing
+4. **Zero data loss** - All writes persisted with version history
+5. **100% MCP compatibility** - Works with Claude Code/Desktop via remote URL

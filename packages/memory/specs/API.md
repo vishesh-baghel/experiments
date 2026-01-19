@@ -3,14 +3,96 @@
 ## Overview
 
 Memory exposes two interfaces:
-1. **MCP Server** - For AI agents (Claude Code, Claude Desktop)
+1. **MCP Server** - For AI agents (Claude Code, Claude Desktop) via HTTP+SSE
 2. **REST API** - For HTTP clients (ChatGPT plugins, custom apps, web UI)
 
 Both interfaces share the same core functionality.
 
+### Recommended Agent Workflow
+
+1. **Start**: Call `memory_index` to get overview of all documents
+2. **Discover**: Use folder/tag info to understand organization
+3. **Search**: Call `memory_search` when looking for specific content
+4. **Read**: Call `memory_read` to get full document content
+5. **Write**: Call `memory_write` to create/update documents
+
 ---
 
 ## MCP Tools
+
+### memory_index
+
+Get a lightweight index of all documents for context-aware navigation. Call this first to understand what's in the knowledge base.
+
+**Input Schema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "includeSnippets": {
+      "type": "boolean",
+      "default": false,
+      "description": "Include first 100 chars of each document"
+    },
+    "includeTags": {
+      "type": "boolean",
+      "default": true,
+      "description": "Include tag list with counts"
+    },
+    "includeFolders": {
+      "type": "boolean",
+      "default": true,
+      "description": "Include folder tree structure"
+    }
+  }
+}
+```
+
+**Output:**
+```json
+{
+  "documents": [
+    {
+      "path": "/work/projects/memory",
+      "title": "Memory Project Spec",
+      "tags": ["typescript", "ai", "project"],
+      "type": "spec",
+      "updatedAt": "2025-01-18T12:00:00Z",
+      "snippet": "A central knowledge base for storing..."
+    }
+  ],
+  "folders": [
+    {
+      "path": "/work",
+      "children": ["/work/projects", "/work/meetings"],
+      "documentCount": 15
+    },
+    {
+      "path": "/personal",
+      "children": ["/personal/journal"],
+      "documentCount": 30
+    }
+  ],
+  "tags": [
+    { "name": "typescript", "count": 25 },
+    { "name": "ai", "count": 18 },
+    { "name": "project", "count": 10 }
+  ],
+  "stats": {
+    "totalDocuments": 156,
+    "totalFolders": 12,
+    "totalTags": 45
+  },
+  "latencyMs": 8.5
+}
+```
+
+**Use Cases:**
+- Agent starts session → calls `memory_index` to understand available content
+- Agent needs to decide what to read → scans titles/tags from index
+- User asks "what do you know about X?" → agent checks index before searching
+
+---
 
 ### memory_search
 
@@ -294,6 +376,38 @@ Authorization: Bearer mem_xxxxxxxxxxxx
 ```
 
 ### Endpoints
+
+#### GET /api/index
+
+Get lightweight index of all documents.
+
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| snippets | boolean | Include content snippets (default: false) |
+| tags | boolean | Include tag list (default: true) |
+| folders | boolean | Include folder tree (default: true) |
+
+**Response:**
+```json
+{
+  "documents": [
+    {
+      "path": "/work/projects/memory",
+      "title": "Memory Project Spec",
+      "tags": ["typescript", "ai"],
+      "type": "spec",
+      "updatedAt": "2025-01-18T12:00:00Z"
+    }
+  ],
+  "folders": [...],
+  "tags": [...],
+  "stats": { "totalDocuments": 156 },
+  "latencyMs": 8.5
+}
+```
+
+---
 
 #### GET /api/documents
 
