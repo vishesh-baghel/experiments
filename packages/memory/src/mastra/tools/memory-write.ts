@@ -27,7 +27,7 @@ export const memoryWrite = createTool({
       .optional()
       .describe('Tags for categorization and filtering'),
     metadata: z
-      .record(z.unknown())
+      .record(z.union([z.string(), z.number(), z.boolean()]))
       .optional()
       .describe('Arbitrary key-value metadata'),
     source: z
@@ -49,7 +49,7 @@ export const memoryWrite = createTool({
       content: context.content,
       title: context.title,
       tags: context.tags,
-      metadata: context.metadata as Record<string, unknown> | undefined,
+      metadata: context.metadata,
       source: context.source,
       type: context.type,
     });

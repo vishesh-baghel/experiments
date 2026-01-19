@@ -9,6 +9,11 @@ import { readDocument } from '@/core/read';
 import { writeDocument } from '@/core/write';
 import { deleteDocument, restoreDocument } from '@/core/delete';
 import type * as schema from '@/db/schema';
+import type { DocumentMetadata } from '@/db/schema';
+
+// Schema for metadata values (string, number, or boolean)
+const metadataValueSchema = z.union([z.string(), z.number(), z.boolean()]);
+const metadataSchema = z.record(metadataValueSchema);
 
 type Env = {
   Variables: {
@@ -178,7 +183,7 @@ export function createApi(dbOverride?: LibSQLDatabase<typeof schema>) {
         content: z.string().min(1),
         title: z.string().optional(),
         tags: z.array(z.string()).optional(),
-        metadata: z.record(z.unknown()).optional(),
+        metadata: metadataSchema.optional(),
         source: z.string().optional(),
         type: z.string().optional(),
       })
@@ -219,7 +224,7 @@ export function createApi(dbOverride?: LibSQLDatabase<typeof schema>) {
         content: z.string().min(1),
         title: z.string().optional(),
         tags: z.array(z.string()).optional(),
-        metadata: z.record(z.unknown()).optional(),
+        metadata: metadataSchema.optional(),
         source: z.string().optional(),
         type: z.string().optional(),
       })

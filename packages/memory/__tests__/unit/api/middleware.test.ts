@@ -145,7 +145,7 @@ describe('Middleware', () => {
 
     it('should include stack in development mode', async () => {
       const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+      (process.env as Record<string, string | undefined>).NODE_ENV = 'development';
 
       const app = new Hono();
       app.onError(createErrorHandler());
@@ -160,12 +160,12 @@ describe('Middleware', () => {
       const data = await res.json();
       expect(data.stack).toBeDefined();
 
-      process.env.NODE_ENV = originalEnv;
+      (process.env as Record<string, string | undefined>).NODE_ENV = originalEnv;
     });
 
     it('should hide stack in production mode', async () => {
       const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
+      (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
 
       const app = new Hono();
       app.onError(createErrorHandler());
@@ -180,7 +180,7 @@ describe('Middleware', () => {
       const data = await res.json();
       expect(data.stack).toBeUndefined();
 
-      process.env.NODE_ENV = originalEnv;
+      (process.env as Record<string, string | undefined>).NODE_ENV = originalEnv;
     });
   });
 });

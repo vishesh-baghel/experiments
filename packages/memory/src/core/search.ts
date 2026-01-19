@@ -66,28 +66,38 @@ export async function searchDocuments(
   // Check if this is a "list all" query (no text search, just filters)
   const isListAll = options.query === '*' || options.query.trim() === '';
 
-  let results;
+  // Type for raw SQL result rows
+  type RawRow = {
+    path: string;
+    title: string;
+    tags: string | null;
+    snippet: string | null;
+    source: string | null;
+    type: string | null;
+  };
+
+  let results: RawRow[];
   let total: number;
 
   if (isListAll) {
     // No FTS5 query - just filter the documents table directly
     const result = await listDocumentsWithFilters(client, options, limit, offset);
-    results = result.rows;
+    results = result.rows as RawRow[];
     total = result.total;
   } else {
     // Use FTS5 for text search
     const result = await searchWithFTS5(client, options, limit, offset);
-    results = result.rows;
+    results = result.rows as RawRow[];
     total = result.total;
   }
 
   const searchDocuments: SearchDocument[] = results.map((row) => ({
-    path: row.path as string,
-    title: row.title as string,
-    tags: row.tags ? JSON.parse(row.tags as string) : [],
-    snippet: (row.snippet as string) || '',
-    source: row.source as string | null,
-    type: row.type as string | null,
+    path: row.path,
+    title: row.title,
+    tags: row.tags ? JSON.parse(row.tags) : [],
+    snippet: row.snippet || '',
+    source: row.source,
+    type: row.type,
   }));
 
   const endTime = performance.now();
