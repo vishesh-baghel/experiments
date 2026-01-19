@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { AppLayout } from '@/components/layout';
 import { isValidPath } from '@/lib/utils';
 
-export default function NewDocumentPage() {
+function NewDocumentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialFolder = searchParams.get('folder') || '/';
@@ -273,5 +273,26 @@ export default function NewDocumentPage() {
         </div>
       </div>
     </AppLayout>
+  );
+}
+
+export default function NewDocumentPage() {
+  return (
+    <Suspense fallback={
+      <AppLayout hideSidebar>
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="animate-pulse">
+            <div className="h-8 bg-bg-tertiary rounded w-1/3 mb-4" />
+            <div className="card">
+              <div className="h-10 bg-bg-tertiary rounded mb-4" />
+              <div className="h-10 bg-bg-tertiary rounded mb-4" />
+              <div className="h-64 bg-bg-tertiary rounded" />
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    }>
+      <NewDocumentContent />
+    </Suspense>
   );
 }

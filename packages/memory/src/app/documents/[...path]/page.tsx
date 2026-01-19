@@ -187,7 +187,7 @@ export default function DocumentViewPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Link href={`/documents${documentPath}/edit`} className="btn-primary">
+                <Link href={`/edit${documentPath}`} className="btn-primary">
                   <svg
                     className="w-4 h-4"
                     fill="none"
