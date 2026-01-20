@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { handle } from 'hono/vercel';
-import { createApi } from '@/api/routes';
+import { getCookie } from 'hono/cookie';
+import { createApi, validateSession } from '@/api/routes';
 import { cors, logger, apiKeyAuth, createErrorHandler } from '@/api/middleware';
 
 // Create the main app
@@ -10,21 +11,32 @@ const app = new Hono().basePath('/api');
 app.use('*', cors());
 app.use('*', logger());
 
-// API key auth for non-browser requests (check X-Requested-With header)
+// Auth middleware: supports both API key and session cookie
 app.use('*', async (c, next) => {
-  // Skip auth for browser requests (they'll use session auth later)
-  const isXHR = c.req.header('X-Requested-With') === 'XMLHttpRequest';
-  const acceptsHtml = c.req.header('Accept')?.includes('text/html');
+  const path = c.req.path;
 
-  if (acceptsHtml && !isXHR) {
-    // Browser request - skip API key auth (use session auth)
+  // Skip auth for auth endpoints
+  if (path === '/api/auth/login' || path === '/api/auth/logout' || path === '/api/auth/session' || path === '/api/health') {
     await next();
     return;
   }
 
-  // API request - require API key if configured
-  const authMiddleware = apiKeyAuth();
-  return authMiddleware(c, next);
+  // Check for API key first (for MCP/programmatic access)
+  const authHeader = c.req.header('Authorization');
+  if (authHeader) {
+    const authMiddleware = apiKeyAuth();
+    return authMiddleware(c, next);
+  }
+
+  // Check for session cookie (for UI access)
+  const sessionToken = getCookie(c, 'memory_session');
+  if (validateSession(sessionToken)) {
+    await next();
+    return;
+  }
+
+  // No valid auth found
+  return c.json({ error: 'Authorization header required' }, 401);
 });
 
 // Mount the API routes

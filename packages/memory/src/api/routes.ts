@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
+import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
 import type { LibSQLDatabase } from 'drizzle-orm/libsql';
 import { getDb } from '@/db/client';
 import { getDocumentIndex } from '@/core/index';
@@ -10,6 +11,26 @@ import { writeDocument } from '@/core/write';
 import { deleteDocument, restoreDocument } from '@/core/delete';
 import type * as schema from '@/db/schema';
 import type { DocumentMetadata } from '@/db/schema';
+
+// Session token for UI auth (simple signed token)
+const SESSION_COOKIE = 'memory_session';
+const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+
+function createSessionToken(): string {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2);
+  return `${timestamp}.${random}`;
+}
+
+export function validateSession(token: string | undefined): boolean {
+  if (!token) return false;
+  const [timestamp] = token.split('.');
+  const created = parseInt(timestamp, 10);
+  if (isNaN(created)) return false;
+  // Check if session is expired
+  const age = (Date.now() - created) / 1000;
+  return age < SESSION_MAX_AGE;
+}
 
 // Schema for metadata values (string, number, or boolean)
 const metadataValueSchema = z.union([z.string(), z.number(), z.boolean()]);
@@ -44,6 +65,62 @@ export function createApi(dbOverride?: LibSQLDatabase<typeof schema>) {
   // Health check
   app.get('/health', (c) => {
     return c.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // Auth: Login with passphrase
+  app.post(
+    '/auth/login',
+    zValidator(
+      'json',
+      z.object({
+        password: z.string().min(1),
+      })
+    ),
+    async (c) => {
+      const { password } = c.req.valid('json');
+      const uiPassword = process.env.MEMORY_UI_PASSWORD;
+
+      // If no password configured, allow any login (dev mode)
+      if (!uiPassword) {
+        const token = createSessionToken();
+        setCookie(c, SESSION_COOKIE, token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'Lax',
+          maxAge: SESSION_MAX_AGE,
+          path: '/',
+        });
+        return c.json({ success: true });
+      }
+
+      if (password !== uiPassword) {
+        return c.json({ error: 'Invalid passphrase' }, 401);
+      }
+
+      const token = createSessionToken();
+      setCookie(c, SESSION_COOKIE, token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'Lax',
+        maxAge: SESSION_MAX_AGE,
+        path: '/',
+      });
+
+      return c.json({ success: true });
+    }
+  );
+
+  // Auth: Logout
+  app.post('/auth/logout', (c) => {
+    deleteCookie(c, SESSION_COOKIE, { path: '/' });
+    return c.json({ success: true });
+  });
+
+  // Auth: Check session
+  app.get('/auth/session', (c) => {
+    const token = getCookie(c, SESSION_COOKIE);
+    const valid = validateSession(token);
+    return c.json({ authenticated: valid });
   });
 
   // Document index

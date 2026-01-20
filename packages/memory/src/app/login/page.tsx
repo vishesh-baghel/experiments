@@ -6,8 +6,8 @@ import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [passphrase, setPassphrase] = useState('');
+  const [showPassphrase, setShowPassphrase] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,12 +20,12 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password: passphrase }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Invalid password');
+        throw new Error(data.error || 'Invalid passphrase');
       }
 
       // Redirect to dashboard on success
@@ -64,26 +64,26 @@ export default function LoginPage() {
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="card p-6">
           <div className="mb-4">
-            <label htmlFor="password" className="label block mb-2">
-              Password
+            <label htmlFor="passphrase" className="label block mb-2">
+              Passphrase
             </label>
             <div className="relative">
               <input
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                type={showPassphrase ? 'text' : 'password'}
+                id="passphrase"
+                value={passphrase}
+                onChange={(e) => setPassphrase(e.target.value)}
                 className="input pr-10"
-                placeholder="Enter your password"
+                placeholder="Enter your passphrase"
                 required
                 autoFocus
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={() => setShowPassphrase(!showPassphrase)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-text-subtle hover:text-text-secondary"
               >
-                {showPassword ? (
+                {showPassphrase ? (
                   <svg
                     className="w-4 h-4"
                     fill="none"
