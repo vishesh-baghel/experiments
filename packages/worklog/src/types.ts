@@ -147,7 +147,7 @@ export interface WorklogConfig {
   };
   sanitization: SanitizationConfig;
   enrichment: {
-    provider: 'openai';
+    provider: 'ai-gateway';
     model: string;
     apiKey: string;
   };

@@ -2,16 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { enrich } from '../src/pipeline/enrich.js';
 import type { NormalizedSession } from '../src/types.js';
 
-const mockCreate = vi.fn();
+const mockGenerateText = vi.fn();
+const mockModelFn = vi.fn().mockReturnValue('mock-model-id');
+const mockCreateGateway = vi.fn().mockReturnValue(mockModelFn);
 
-vi.mock('openai', () => ({
-  default: vi.fn().mockImplementation(() => ({
-    chat: {
-      completions: {
-        create: mockCreate,
-      },
-    },
-  })),
+vi.mock('ai', () => ({
+  generateText: (...args: unknown[]) => mockGenerateText(...args),
+  createGateway: (...args: unknown[]) => mockCreateGateway(...args),
 }));
 
 const mockSession: NormalizedSession = {
@@ -61,21 +58,21 @@ const insignificantResponse = {
 };
 
 const mockLLMResult = (content: string) => {
-  mockCreate.mockResolvedValueOnce({
-    choices: [{ message: { content } }],
-  });
+  mockGenerateText.mockResolvedValueOnce({ text: content });
 };
 
 describe('enrich', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockModelFn.mockReturnValue('mock-model-id');
+    mockCreateGateway.mockReturnValue(mockModelFn);
   });
 
   describe('significant sessions', () => {
     it('returns significant result with public entry', async () => {
       mockLLMResult(JSON.stringify(significantResponse));
 
-      const result = await enrich(mockSession, 'test-key', 'gpt-4o-mini');
+      const result = await enrich(mockSession, 'test-key', 'anthropic/claude-3-5-haiku-latest');
 
       expect(result.isSignificant).toBe(true);
       expect(result.entry).not.toBeNull();
@@ -89,7 +86,7 @@ describe('enrich', () => {
     it('sets context topics from entry tags', async () => {
       mockLLMResult(JSON.stringify(significantResponse));
 
-      const result = await enrich(mockSession, 'test-key', 'gpt-4o-mini');
+      const result = await enrich(mockSession, 'test-key', 'anthropic/claude-3-5-haiku-latest');
       expect(result.context.topics).toEqual(['performance', 'frontend']);
     });
   });
@@ -98,7 +95,7 @@ describe('enrich', () => {
     it('returns non-significant result with null entry', async () => {
       mockLLMResult(JSON.stringify(insignificantResponse));
 
-      const result = await enrich(mockSession, 'test-key', 'gpt-4o-mini');
+      const result = await enrich(mockSession, 'test-key', 'anthropic/claude-3-5-haiku-latest');
 
       expect(result.isSignificant).toBe(false);
       expect(result.entry).toBeNull();
@@ -107,14 +104,14 @@ describe('enrich', () => {
     it('sets empty topics when entry is null', async () => {
       mockLLMResult(JSON.stringify(insignificantResponse));
 
-      const result = await enrich(mockSession, 'test-key', 'gpt-4o-mini');
+      const result = await enrich(mockSession, 'test-key', 'anthropic/claude-3-5-haiku-latest');
       expect(result.context.topics).toEqual([]);
     });
 
     it('still provides context document', async () => {
       mockLLMResult(JSON.stringify(insignificantResponse));
 
-      const result = await enrich(mockSession, 'test-key', 'gpt-4o-mini');
+      const result = await enrich(mockSession, 'test-key', 'anthropic/claude-3-5-haiku-latest');
       expect(result.context.title).toBe('Minor fix session');
       expect(result.context.content).toContain('# Session: Minor fix session');
     });
@@ -124,7 +121,7 @@ describe('enrich', () => {
     it('includes session header in markdown', async () => {
       mockLLMResult(JSON.stringify(significantResponse));
 
-      const result = await enrich(mockSession, 'test-key', 'gpt-4o-mini');
+      const result = await enrich(mockSession, 'test-key', 'anthropic/claude-3-5-haiku-latest');
 
       expect(result.context.content).toContain('# Session: Worklog Caching Implementation');
       expect(result.context.content).toContain('**Source**: claude-code');
@@ -136,7 +133,7 @@ describe('enrich', () => {
     it('includes prompts and intent section', async () => {
       mockLLMResult(JSON.stringify(significantResponse));
 
-      const result = await enrich(mockSession, 'test-key', 'gpt-4o-mini');
+      const result = await enrich(mockSession, 'test-key', 'anthropic/claude-3-5-haiku-latest');
       expect(result.context.content).toContain('## Prompts & Intent');
       expect(result.context.content).toContain('User wanted to reduce API calls to Memory.');
     });
@@ -144,7 +141,7 @@ describe('enrich', () => {
     it('includes key decisions section', async () => {
       mockLLMResult(JSON.stringify(significantResponse));
 
-      const result = await enrich(mockSession, 'test-key', 'gpt-4o-mini');
+      const result = await enrich(mockSession, 'test-key', 'anthropic/claude-3-5-haiku-latest');
       expect(result.context.content).toContain('## Key Decisions');
       expect(result.context.content).toContain('### Time-based revalidation');
       expect(result.context.content).toContain('Simpler than on-demand');
@@ -153,7 +150,7 @@ describe('enrich', () => {
     it('includes problems solved section', async () => {
       mockLLMResult(JSON.stringify(significantResponse));
 
-      const result = await enrich(mockSession, 'test-key', 'gpt-4o-mini');
+      const result = await enrich(mockSession, 'test-key', 'anthropic/claude-3-5-haiku-latest');
       expect(result.context.content).toContain('## Problems Solved');
       expect(result.context.content).toContain('- Origin hit reduction via ISR caching');
     });
@@ -161,7 +158,7 @@ describe('enrich', () => {
     it('includes insights section', async () => {
       mockLLMResult(JSON.stringify(significantResponse));
 
-      const result = await enrich(mockSession, 'test-key', 'gpt-4o-mini');
+      const result = await enrich(mockSession, 'test-key', 'anthropic/claude-3-5-haiku-latest');
       expect(result.context.content).toContain('## Insights');
       expect(result.context.content).toContain('- Shorter TTL for today balances freshness vs load');
     });
@@ -169,63 +166,68 @@ describe('enrich', () => {
     it('omits empty sections', async () => {
       mockLLMResult(JSON.stringify(insignificantResponse));
 
-      const result = await enrich(mockSession, 'test-key', 'gpt-4o-mini');
+      const result = await enrich(mockSession, 'test-key', 'anthropic/claude-3-5-haiku-latest');
       expect(result.context.content).not.toContain('## Key Decisions');
       expect(result.context.content).not.toContain('## Insights');
     });
   });
 
-  describe('OpenAI call parameters', () => {
-    it('uses provided model', async () => {
+  describe('Vercel AI SDK call parameters', () => {
+    it('creates gateway provider with API key', async () => {
       mockLLMResult(JSON.stringify(significantResponse));
 
-      await enrich(mockSession, 'test-key', 'gpt-4o');
+      await enrich(mockSession, 'my-secret-key', 'anthropic/claude-3-5-haiku-latest');
 
-      expect(mockCreate).toHaveBeenCalledWith(
-        expect.objectContaining({ model: 'gpt-4o' })
+      expect(mockCreateGateway).toHaveBeenCalledWith({ apiKey: 'my-secret-key' });
+    });
+
+    it('creates model with provided model name', async () => {
+      mockLLMResult(JSON.stringify(significantResponse));
+
+      await enrich(mockSession, 'key', 'anthropic/claude-3-5-haiku-latest');
+
+      expect(mockModelFn).toHaveBeenCalledWith('anthropic/claude-3-5-haiku-latest');
+    });
+
+    it('passes model to generateText', async () => {
+      mockLLMResult(JSON.stringify(significantResponse));
+
+      await enrich(mockSession, 'key', 'anthropic/claude-3-5-haiku-latest');
+
+      expect(mockGenerateText).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'mock-model-id' })
       );
     });
 
     it('sets temperature to 0.3', async () => {
       mockLLMResult(JSON.stringify(significantResponse));
 
-      await enrich(mockSession, 'test-key', 'gpt-4o-mini');
+      await enrich(mockSession, 'key', 'anthropic/claude-3-5-haiku-latest');
 
-      expect(mockCreate).toHaveBeenCalledWith(
+      expect(mockGenerateText).toHaveBeenCalledWith(
         expect.objectContaining({ temperature: 0.3 })
       );
     });
 
-    it('requests JSON response format', async () => {
+    it('passes system prompt', async () => {
       mockLLMResult(JSON.stringify(significantResponse));
 
-      await enrich(mockSession, 'test-key', 'gpt-4o-mini');
+      await enrich(mockSession, 'key', 'anthropic/claude-3-5-haiku-latest');
 
-      expect(mockCreate).toHaveBeenCalledWith(
-        expect.objectContaining({ response_format: { type: 'json_object' } })
-      );
+      const call = mockGenerateText.mock.calls[0][0];
+      expect(call.system).toContain('worklog processor');
+      expect(call.system).toContain('SIGNIFICANCE CRITERIA');
     });
 
-    it('sends system and user messages', async () => {
+    it('includes session metadata in prompt', async () => {
       mockLLMResult(JSON.stringify(significantResponse));
 
-      await enrich(mockSession, 'test-key', 'gpt-4o-mini');
+      await enrich(mockSession, 'key', 'anthropic/claude-3-5-haiku-latest');
 
-      const call = mockCreate.mock.calls[0][0];
-      expect(call.messages).toHaveLength(2);
-      expect(call.messages[0].role).toBe('system');
-      expect(call.messages[1].role).toBe('user');
-    });
-
-    it('includes session metadata in user prompt', async () => {
-      mockLLMResult(JSON.stringify(significantResponse));
-
-      await enrich(mockSession, 'test-key', 'gpt-4o-mini');
-
-      const userMessage = mockCreate.mock.calls[0][0].messages[1].content;
-      expect(userMessage).toContain('PROJECT: portfolio');
-      expect(userMessage).toContain('BRANCH: worklog-caching');
-      expect(userMessage).toContain('SESSION SUMMARY: Added caching to worklog');
+      const call = mockGenerateText.mock.calls[0][0];
+      expect(call.prompt).toContain('PROJECT: portfolio');
+      expect(call.prompt).toContain('BRANCH: worklog-caching');
+      expect(call.prompt).toContain('SESSION SUMMARY: Added caching to worklog');
     });
 
     it('truncates turn content to 500 chars in prompt', async () => {
@@ -235,46 +237,35 @@ describe('enrich', () => {
       };
       mockLLMResult(JSON.stringify(significantResponse));
 
-      await enrich(longSession, 'test-key', 'gpt-4o-mini');
+      await enrich(longSession, 'key', 'anthropic/claude-3-5-haiku-latest');
 
-      const userMessage = mockCreate.mock.calls[0][0].messages[1].content;
-      expect(userMessage).toContain('a'.repeat(500));
-      expect(userMessage).not.toContain('a'.repeat(501));
+      const call = mockGenerateText.mock.calls[0][0];
+      expect(call.prompt).toContain('a'.repeat(500));
+      expect(call.prompt).not.toContain('a'.repeat(501));
     });
 
     it('includes conversation turns in prompt', async () => {
       mockLLMResult(JSON.stringify(significantResponse));
 
-      await enrich(mockSession, 'test-key', 'gpt-4o-mini');
+      await enrich(mockSession, 'key', 'anthropic/claude-3-5-haiku-latest');
 
-      const userMessage = mockCreate.mock.calls[0][0].messages[1].content;
-      expect(userMessage).toContain('[user]: Add caching to the worklog page');
-      expect(userMessage).toContain('[assistant]: I will implement ISR');
-    });
-
-    it('initializes OpenAI with provided API key', async () => {
-      mockLLMResult(JSON.stringify(significantResponse));
-      const OpenAI = (await import('openai')).default;
-
-      await enrich(mockSession, 'my-secret-key', 'gpt-4o-mini');
-
-      expect(OpenAI).toHaveBeenCalledWith({ apiKey: 'my-secret-key' });
+      const call = mockGenerateText.mock.calls[0][0];
+      expect(call.prompt).toContain('[user]: Add caching to the worklog page');
+      expect(call.prompt).toContain('[assistant]: I will implement ISR');
     });
   });
 
   describe('error handling', () => {
-    it('throws on empty LLM response content', async () => {
-      mockCreate.mockResolvedValueOnce({
-        choices: [{ message: { content: null } }],
-      });
+    it('throws on empty text response', async () => {
+      mockGenerateText.mockResolvedValueOnce({ text: '' });
 
       await expect(enrich(mockSession, 'key', 'model')).rejects.toThrow('Empty response from LLM');
     });
 
-    it('throws on empty choices array', async () => {
-      mockCreate.mockResolvedValueOnce({ choices: [] });
+    it('throws on null text response', async () => {
+      mockGenerateText.mockResolvedValueOnce({ text: null });
 
-      await expect(enrich(mockSession, 'key', 'model')).rejects.toThrow();
+      await expect(enrich(mockSession, 'key', 'model')).rejects.toThrow('Empty response from LLM');
     });
 
     it('throws on invalid JSON response', async () => {
@@ -283,14 +274,14 @@ describe('enrich', () => {
       await expect(enrich(mockSession, 'key', 'model')).rejects.toThrow();
     });
 
-    it('propagates OpenAI API errors', async () => {
-      mockCreate.mockRejectedValueOnce(new Error('Rate limit exceeded'));
+    it('propagates API errors', async () => {
+      mockGenerateText.mockRejectedValueOnce(new Error('Rate limit exceeded'));
 
       await expect(enrich(mockSession, 'key', 'model')).rejects.toThrow('Rate limit exceeded');
     });
 
     it('propagates network errors', async () => {
-      mockCreate.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+      mockGenerateText.mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
       await expect(enrich(mockSession, 'key', 'model')).rejects.toThrow('ECONNREFUSED');
     });
@@ -302,7 +293,6 @@ describe('enrich', () => {
       mockLLMResult(JSON.stringify(response));
 
       const result = await enrich(mockSession, 'key', 'model');
-      // isSignificant but no entry means null public entry
       expect(result.isSignificant).toBe(true);
       expect(result.entry).toBeNull();
     });

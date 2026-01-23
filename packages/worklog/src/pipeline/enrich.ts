@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import { generateText, createGateway } from 'ai';
 import type { NormalizedSession, EnrichmentResult, PublicEntry, ContextDocument } from '../types.js';
 
 const SYSTEM_PROMPT = `You are a worklog processor. You analyze coding session transcripts and produce two outputs:
@@ -135,24 +135,20 @@ export const enrich = async (
   apiKey: string,
   model: string
 ): Promise<EnrichmentResult> => {
-  const openai = new OpenAI({ apiKey });
+  const gateway = createGateway({ apiKey });
 
-  const response = await openai.chat.completions.create({
-    model,
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: buildPrompt(session) },
-    ],
-    response_format: { type: 'json_object' },
+  const { text } = await generateText({
+    model: gateway(model),
+    system: SYSTEM_PROMPT,
+    prompt: buildPrompt(session),
     temperature: 0.3,
   });
 
-  const content = response.choices[0]?.message?.content;
-  if (!content) {
+  if (!text) {
     throw new Error('Empty response from LLM');
   }
 
-  const parsed: LLMResponse = JSON.parse(content);
+  const parsed: LLMResponse = JSON.parse(text);
 
   const contextDoc: ContextDocument = {
     title: parsed.context.title,

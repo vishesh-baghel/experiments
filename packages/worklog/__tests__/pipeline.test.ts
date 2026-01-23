@@ -44,7 +44,7 @@ const mockConfig: WorklogConfig = {
     allowedProjects: ['portfolio', 'experiments'],
     blockedDomains: [],
   },
-  enrichment: { provider: 'openai', model: 'gpt-4o-mini', apiKey: 'sk-test' },
+  enrichment: { provider: 'ai-gateway', model: 'anthropic/claude-3-5-haiku-latest', apiKey: 'gw-test' },
 };
 
 const makeRawEntries = (count: number): RawEntry[] =>
@@ -164,8 +164,8 @@ describe('processSession', () => {
 
       expect(mockEnrich).toHaveBeenCalledWith(
         expect.anything(),
-        'sk-test',
-        'gpt-4o-mini'
+        'gw-test',
+        'anthropic/claude-3-5-haiku-latest'
       );
     });
   });

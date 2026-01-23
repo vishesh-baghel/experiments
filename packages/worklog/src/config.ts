@@ -23,8 +23,8 @@ export const loadConfig = (): WorklogConfig => ({
     blockedDomains: (process.env.WORKLOG_BLOCKED_DOMAINS || '').split(',').filter(Boolean),
   },
   enrichment: {
-    provider: 'openai',
-    model: process.env.WORKLOG_ENRICHMENT_MODEL || 'gpt-4o-mini',
-    apiKey: getEnvOrThrow('OPENAI_API_KEY'),
+    provider: 'ai-gateway',
+    model: process.env.WORKLOG_ENRICHMENT_MODEL || 'anthropic/claude-3-5-haiku-latest',
+    apiKey: getEnvOrThrow('AI_GATEWAY_API_KEY'),
   },
 });

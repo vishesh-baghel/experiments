@@ -17,13 +17,13 @@ describe('loadConfig', () => {
   const setRequiredEnv = () => {
     process.env.MEMORY_API_URL = 'https://memory.test.com';
     process.env.MEMORY_API_KEY = 'mem_test_key';
-    process.env.OPENAI_API_KEY = 'sk-test-key';
+    process.env.AI_GATEWAY_API_KEY = 'gw-test-key';
   };
 
   describe('required environment variables', () => {
     it('throws when MEMORY_API_URL is missing', async () => {
       process.env.MEMORY_API_KEY = 'key';
-      process.env.OPENAI_API_KEY = 'key';
+      process.env.AI_GATEWAY_API_KEY = 'key';
 
       const { loadConfig } = await import('../src/config.js');
       expect(() => loadConfig()).toThrow('Missing required environment variable: MEMORY_API_URL');
@@ -31,18 +31,18 @@ describe('loadConfig', () => {
 
     it('throws when MEMORY_API_KEY is missing', async () => {
       process.env.MEMORY_API_URL = 'http://localhost';
-      process.env.OPENAI_API_KEY = 'key';
+      process.env.AI_GATEWAY_API_KEY = 'key';
 
       const { loadConfig } = await import('../src/config.js');
       expect(() => loadConfig()).toThrow('Missing required environment variable: MEMORY_API_KEY');
     });
 
-    it('throws when OPENAI_API_KEY is missing', async () => {
+    it('throws when AI_GATEWAY_API_KEY is missing', async () => {
       process.env.MEMORY_API_URL = 'http://localhost';
       process.env.MEMORY_API_KEY = 'key';
 
       const { loadConfig } = await import('../src/config.js');
-      expect(() => loadConfig()).toThrow('Missing required environment variable: OPENAI_API_KEY');
+      expect(() => loadConfig()).toThrow('Missing required environment variable: AI_GATEWAY_API_KEY');
     });
 
     it('succeeds when all required variables are set', async () => {
@@ -169,39 +169,39 @@ describe('loadConfig', () => {
   });
 
   describe('enrichment config', () => {
-    it('sets provider to openai', async () => {
+    it('sets provider to ai-gateway', async () => {
       setRequiredEnv();
 
       const { loadConfig } = await import('../src/config.js');
       const config = loadConfig();
-      expect(config.enrichment.provider).toBe('openai');
+      expect(config.enrichment.provider).toBe('ai-gateway');
     });
 
-    it('sets apiKey from OPENAI_API_KEY', async () => {
+    it('sets apiKey from AI_GATEWAY_API_KEY', async () => {
       setRequiredEnv();
-      process.env.OPENAI_API_KEY = 'sk-my-key-123';
+      process.env.AI_GATEWAY_API_KEY = 'gw-my-key-123';
 
       const { loadConfig } = await import('../src/config.js');
       const config = loadConfig();
-      expect(config.enrichment.apiKey).toBe('sk-my-key-123');
+      expect(config.enrichment.apiKey).toBe('gw-my-key-123');
     });
 
     it('sets model from WORKLOG_ENRICHMENT_MODEL', async () => {
       setRequiredEnv();
-      process.env.WORKLOG_ENRICHMENT_MODEL = 'gpt-4o';
+      process.env.WORKLOG_ENRICHMENT_MODEL = 'anthropic/claude-3-5-sonnet-latest';
 
       const { loadConfig } = await import('../src/config.js');
       const config = loadConfig();
-      expect(config.enrichment.model).toBe('gpt-4o');
+      expect(config.enrichment.model).toBe('anthropic/claude-3-5-sonnet-latest');
     });
 
-    it('defaults model to gpt-4o-mini', async () => {
+    it('defaults model to anthropic/claude-3-5-haiku-latest', async () => {
       setRequiredEnv();
       delete process.env.WORKLOG_ENRICHMENT_MODEL;
 
       const { loadConfig } = await import('../src/config.js');
       const config = loadConfig();
-      expect(config.enrichment.model).toBe('gpt-4o-mini');
+      expect(config.enrichment.model).toBe('anthropic/claude-3-5-haiku-latest');
     });
   });
 });
