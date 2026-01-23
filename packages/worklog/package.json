@@ -1,0 +1,30 @@
+{
+  "name": "worklog",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "worklog": "./dist/cli.js"
+  },
+  "scripts": {
+    "dev": "tsx watch src/cli.ts",
+    "build": "tsup src/cli.ts --format esm --dts",
+    "start": "node dist/cli.js",
+    "ingest": "tsx src/cli.ts ingest",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "openai": "^4.73.0",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsup": "^8.3.5",
+    "tsx": "^4.20.6",
+    "typescript": "^5",
+    "vitest": "^2.1.8"
+  }
+}
