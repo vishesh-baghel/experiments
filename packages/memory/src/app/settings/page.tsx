@@ -29,7 +29,7 @@ export default function SettingsPage() {
   const fetchSettings = useCallback(async () => {
     try {
       setError(null);
-      const response = await fetch('/api/settings');
+      const response = await fetch('/api/settings', { credentials: 'include' });
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -58,17 +58,24 @@ export default function SettingsPage() {
   }, [fetchSettings]);
 
   const handleRegenerateApiKey = async () => {
+    console.log('[Settings] Regenerate button clicked');
+
     if (!confirm('Are you sure you want to regenerate your API key? The old key will stop working immediately.')) {
+      console.log('[Settings] User cancelled regeneration');
       return;
     }
 
+    console.log('[Settings] User confirmed, starting regeneration...');
     setIsRegenerating(true);
     setError(null);
 
     try {
+      console.log('[Settings] Calling /api/settings/api-key/regenerate');
       const response = await fetch('/api/settings/api-key/regenerate', {
         method: 'POST',
+        credentials: 'include', // Ensure cookies are sent
       });
+      console.log('[Settings] Response status:', response.status);
 
       if (!response.ok) {
         throw new Error('Failed to regenerate API key');
@@ -210,6 +217,7 @@ export default function SettingsPage() {
                   )}
                 </button>
                 <button
+                  type="button"
                   onClick={handleRegenerateApiKey}
                   className="btn-ghost text-warning"
                   disabled={isRegenerating}
