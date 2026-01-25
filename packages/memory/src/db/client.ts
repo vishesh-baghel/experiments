@@ -91,6 +91,19 @@ export async function initializeSchema(
     )
   `);
 
+  // Create api_keys table
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS api_keys (
+      id TEXT PRIMARY KEY,
+      key TEXT NOT NULL UNIQUE,
+      key_prefix TEXT NOT NULL,
+      name TEXT NOT NULL DEFAULT 'Default',
+      created_at INTEGER NOT NULL,
+      last_used_at INTEGER,
+      revoked_at INTEGER
+    )
+  `);
+
   // Create indexes
   await client.execute(
     'CREATE INDEX IF NOT EXISTS idx_documents_path ON documents(path)'
@@ -103,6 +116,9 @@ export async function initializeSchema(
   );
   await client.execute(
     'CREATE INDEX IF NOT EXISTS idx_versions_document ON document_versions(document_id, version)'
+  );
+  await client.execute(
+    'CREATE INDEX IF NOT EXISTS idx_api_keys_key ON api_keys(key)'
   );
 
   // Create FTS5 virtual table for full-text search

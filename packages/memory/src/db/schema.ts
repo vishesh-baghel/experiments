@@ -1,6 +1,26 @@
 import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
 
 /**
+ * API keys table
+ * Stores generated API keys for MCP/programmatic access
+ */
+export const apiKeys = sqliteTable(
+  'api_keys',
+  {
+    id: text('id').primaryKey(),
+    key: text('key').notNull().unique(), // The actual API key (hashed)
+    keyPrefix: text('key_prefix').notNull(), // First 8 chars for display (mem_xxxx)
+    name: text('name').notNull().default('Default'), // User-friendly name
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+    lastUsedAt: integer('last_used_at', { mode: 'timestamp' }),
+    revokedAt: integer('revoked_at', { mode: 'timestamp' }), // Soft revoke
+  },
+  (table) => ({
+    keyIdx: index('idx_api_keys_key').on(table.key),
+  })
+);
+
+/**
  * Main documents table
  * Stores markdown files with metadata, tags, and soft delete support
  */
@@ -57,6 +77,8 @@ export type Document = typeof documents.$inferSelect;
 export type NewDocument = typeof documents.$inferInsert;
 export type DocumentVersion = typeof documentVersions.$inferSelect;
 export type NewDocumentVersion = typeof documentVersions.$inferInsert;
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type NewApiKey = typeof apiKeys.$inferInsert;
 
 // Helper types for JSON fields
 export interface DocumentMetadata {
