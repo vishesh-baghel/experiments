@@ -29,7 +29,17 @@ app.use('*', async (c, next) => {
   }
 
   // Check for session cookie (for UI access)
-  const sessionToken = getCookie(c, 'memory_session');
+  // Try getCookie first, then fall back to parsing raw header
+  let sessionToken = getCookie(c, 'memory_session');
+  if (!sessionToken) {
+    const cookieHeader = c.req.header('cookie') || c.req.header('Cookie');
+    if (cookieHeader) {
+      const match = cookieHeader.match(/memory_session=([^;]+)/);
+      if (match) {
+        sessionToken = match[1];
+      }
+    }
+  }
   if (validateSession(sessionToken)) {
     await next();
     return;

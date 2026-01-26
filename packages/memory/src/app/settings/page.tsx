@@ -1,59 +1,135 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+
+interface SettingsData {
+  apiKey: {
+    id: string;
+    prefix: string;
+    name: string;
+    createdAt: string;
+    key?: string; // Full key only on first load or regeneration
+  };
+  stats: {
+    documentCount: number;
+  };
+}
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [settings, setSettings] = useState<SettingsData | null>(null);
+  const [fullApiKey, setFullApiKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const [stats, setStats] = useState<{
-    documentCount: number;
-    readLatencyP99: number;
-    searchLatencyP99: number;
-  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
+
+  const fetchSettings = useCallback(async () => {
+    try {
+      setError(null);
+      const response = await fetch('/api/settings', { credentials: 'include' });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          router.push('/login');
+          return;
+        }
+        throw new Error('Failed to fetch settings');
+      }
+
+      const data: SettingsData = await response.json();
+      setSettings(data);
+
+      // If a new key was created, save it for display
+      if (data.apiKey.key) {
+        setFullApiKey(data.apiKey.key);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [router]);
 
   useEffect(() => {
-    // Fetch settings and stats
-    const fetchSettings = async () => {
-      try {
-        // In production, this would fetch from an API
-        // For now, we'll show placeholder data
-        setApiKey('mem_' + 'x'.repeat(32));
-        setStats({
-          documentCount: 156,
-          readLatencyP99: 0.82,
-          searchLatencyP99: 4.2,
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchSettings();
-  }, []);
+  }, [fetchSettings]);
+
+  const handleRegenerateApiKey = async () => {
+    setShowRegenerateDialog(false);
+    setIsRegenerating(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/settings/api-key/regenerate', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to regenerate API key');
+      }
+
+      const data = await response.json();
+      setFullApiKey(data.apiKey.key);
+      setSettings((prev) =>
+        prev
+          ? {
+              ...prev,
+              apiKey: {
+                id: data.apiKey.id,
+                prefix: data.apiKey.prefix,
+                name: prev.apiKey.name,
+                createdAt: data.apiKey.createdAt,
+              },
+            }
+          : null
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to regenerate');
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
 
   const handleCopyApiKey = async () => {
-    if (apiKey) {
-      await navigator.clipboard.writeText(apiKey);
+    const keyToCopy = fullApiKey || settings?.apiKey.prefix;
+    if (keyToCopy) {
+      await navigator.clipboard.writeText(keyToCopy);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     }
   };
 
-  const handleSignOut = () => {
-    // In production, clear session cookie and redirect
-    router.push('/login');
+  const handleSignOut = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } finally {
+      router.push('/login');
+    }
   };
+
+  // Display key: full key if available, otherwise prefix with masked suffix
+  const displayKey = fullApiKey || (settings?.apiKey.prefix ? `${settings.apiKey.prefix}${'*'.repeat(28)}` : '');
 
   const mcpConfig = `{
   "mcpServers": {
     "memory": {
       "url": "${typeof window !== 'undefined' ? window.location.origin : 'https://memory.yourdomain.com'}/mcp",
       "headers": {
-        "Authorization": "Bearer ${apiKey || 'YOUR_API_KEY'}"
+        "Authorization": "Bearer ${fullApiKey || 'YOUR_API_KEY'}"
       }
     }
   }
@@ -63,6 +139,12 @@ export default function SettingsPage() {
     <AppLayout hideSidebar>
       <div className="max-w-3xl mx-auto p-6">
         <h1 className="headline-page mb-8">Settings</h1>
+
+        {error && (
+          <div className="mb-6 p-4 bg-error/10 border border-error/20 rounded-lg text-error">
+            {error}
+          </div>
+        )}
 
         {isLoading ? (
           <div className="space-y-6">
@@ -80,16 +162,24 @@ export default function SettingsPage() {
               <h2 className="text-lg font-medium text-text-primary mb-4">
                 API Access
               </h2>
+
+              {fullApiKey && (
+                <div className="mb-4 p-3 bg-warning/10 border border-warning/20 rounded text-warning text-sm">
+                  <strong>Important:</strong> Copy your API key now. For security, it won&apos;t be shown again.
+                </div>
+              )}
+
               <div className="flex items-center gap-3">
                 <input
                   type="text"
-                  value={apiKey || ''}
+                  value={displayKey}
                   readOnly
                   className="input font-mono text-sm flex-1"
                 />
                 <button
                   onClick={handleCopyApiKey}
                   className="btn-secondary"
+                  disabled={!displayKey}
                 >
                   {isCopied ? (
                     <>
@@ -127,8 +217,20 @@ export default function SettingsPage() {
                     </>
                   )}
                 </button>
-                <button className="btn-ghost text-warning">Regenerate</button>
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowRegenerateDialog(true)}
+                  disabled={isRegenerating}
+                >
+                  {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+                </Button>
               </div>
+
+              {settings?.apiKey.createdAt && (
+                <p className="text-xs text-text-subtle mt-2">
+                  Created: {new Date(settings.apiKey.createdAt).toLocaleDateString()}
+                </p>
+              )}
             </section>
 
             {/* MCP Configuration */}
@@ -186,22 +288,10 @@ export default function SettingsPage() {
                     Connected
                   </span>
                 </div>
-                <div className="flex items-center justify-between py-2 border-b border-[rgba(255,255,255,0.08)]">
+                <div className="flex items-center justify-between py-2">
                   <span className="text-text-muted">Documents</span>
                   <span className="text-text-primary">
-                    {stats?.documentCount || 0}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b border-[rgba(255,255,255,0.08)]">
-                  <span className="text-text-muted">Read Latency (p99)</span>
-                  <span className="text-success font-mono text-sm">
-                    {stats?.readLatencyP99 || 0}ms
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-text-muted">Search Latency (p99)</span>
-                  <span className="text-success font-mono text-sm">
-                    {stats?.searchLatencyP99 || 0}ms
+                    {settings?.stats.documentCount || 0}
                   </span>
                 </div>
               </div>
@@ -214,11 +304,9 @@ export default function SettingsPage() {
               </h2>
               <div className="flex items-center gap-3">
                 <span className="text-text-muted">Keep last</span>
-                <select className="input w-24">
+                <select className="input w-24" defaultValue="10">
                   <option value="5">5</option>
-                  <option value="10" selected>
-                    10
-                  </option>
+                  <option value="10">10</option>
                   <option value="20">20</option>
                   <option value="50">50</option>
                 </select>
@@ -248,6 +336,27 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* Regenerate API Key Confirmation Dialog */}
+      <Dialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Regenerate API Key</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to regenerate your API key? This action cannot be undone.
+              The old key will stop working immediately and any services using it will lose access.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRegenerateDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRegenerateApiKey}>
+              Regenerate Key
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

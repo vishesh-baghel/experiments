@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [passphrase, setPassphrase] = useState('');
   const [showPassphrase, setShowPassphrase] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,8 +29,9 @@ export default function LoginPage() {
         throw new Error(data.error || 'Invalid passphrase');
       }
 
-      // Redirect to dashboard on success
-      router.push('/');
+      // Redirect to the original page or dashboard on success
+      const redirectTo = searchParams.get('redirect') || '/';
+      router.push(redirectTo);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -188,5 +190,30 @@ export default function LoginPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+function LoginFormFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-bg-primary bg-grid p-4">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-bg-secondary border border-[rgba(255,255,255,0.08)] mb-4 animate-pulse" />
+          <div className="h-8 bg-bg-secondary rounded w-32 mx-auto animate-pulse" />
+        </div>
+        <div className="card p-6">
+          <div className="h-10 bg-bg-secondary rounded animate-pulse mb-4" />
+          <div className="h-10 bg-bg-secondary rounded animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginFormFallback />}>
+      <LoginForm />
+    </Suspense>
   );
 }

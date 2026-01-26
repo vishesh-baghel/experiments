@@ -9,6 +9,7 @@ import { searchDocuments } from '@/core/search';
 import { readDocument } from '@/core/read';
 import { writeDocument } from '@/core/write';
 import { deleteDocument, restoreDocument } from '@/core/delete';
+import { getOrCreateApiKey, regenerateApiKey } from '@/core/auth';
 import type * as schema from '@/db/schema';
 import type { DocumentMetadata } from '@/db/schema';
 
@@ -118,9 +119,61 @@ export function createApi(dbOverride?: LibSQLDatabase<typeof schema>) {
 
   // Auth: Check session
   app.get('/auth/session', (c) => {
-    const token = getCookie(c, SESSION_COOKIE);
+    // Try getCookie first, then fall back to parsing raw header
+    let token = getCookie(c, SESSION_COOKIE);
+    if (!token) {
+      const cookieHeader = c.req.header('cookie') || c.req.header('Cookie');
+      if (cookieHeader) {
+        const match = cookieHeader.match(new RegExp(`${SESSION_COOKIE}=([^;]+)`));
+        if (match) {
+          token = match[1];
+        }
+      }
+    }
     const valid = validateSession(token);
     return c.json({ authenticated: valid });
+  });
+
+  // Settings: Get current settings including API key info
+  app.get('/settings', async (c) => {
+    const db = getDatabase(c);
+    const start = Date.now();
+
+    const apiKeyInfo = await getOrCreateApiKey(db);
+    const indexResult = await getDocumentIndex(db, { limit: 1 });
+
+    return c.json({
+      apiKey: {
+        id: apiKeyInfo.id,
+        prefix: apiKeyInfo.prefix,
+        name: apiKeyInfo.name,
+        createdAt: apiKeyInfo.createdAt.toISOString(),
+        // Only include full key if it was just created
+        ...(apiKeyInfo.isNew && apiKeyInfo.key ? { key: apiKeyInfo.key } : {}),
+      },
+      stats: {
+        documentCount: indexResult.total,
+      },
+      latencyMs: Date.now() - start,
+    });
+  });
+
+  // Settings: Regenerate API key
+  app.post('/settings/api-key/regenerate', async (c) => {
+    const db = getDatabase(c);
+    const start = Date.now();
+
+    const newKey = await regenerateApiKey(db);
+
+    return c.json({
+      apiKey: {
+        id: newKey.id,
+        key: newKey.key, // Full key returned only on regeneration
+        prefix: newKey.prefix,
+        createdAt: newKey.createdAt.toISOString(),
+      },
+      latencyMs: Date.now() - start,
+    });
   });
 
   // Document index
