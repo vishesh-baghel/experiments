@@ -3,6 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface SettingsData {
   apiKey: {
@@ -25,6 +34,7 @@ export default function SettingsPage() {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -58,24 +68,15 @@ export default function SettingsPage() {
   }, [fetchSettings]);
 
   const handleRegenerateApiKey = async () => {
-    console.log('[Settings] Regenerate button clicked');
-
-    if (!confirm('Are you sure you want to regenerate your API key? The old key will stop working immediately.')) {
-      console.log('[Settings] User cancelled regeneration');
-      return;
-    }
-
-    console.log('[Settings] User confirmed, starting regeneration...');
+    setShowRegenerateDialog(false);
     setIsRegenerating(true);
     setError(null);
 
     try {
-      console.log('[Settings] Calling /api/settings/api-key/regenerate');
       const response = await fetch('/api/settings/api-key/regenerate', {
         method: 'POST',
-        credentials: 'include', // Ensure cookies are sent
+        credentials: 'include',
       });
-      console.log('[Settings] Response status:', response.status);
 
       if (!response.ok) {
         throw new Error('Failed to regenerate API key');
@@ -216,14 +217,13 @@ export default function SettingsPage() {
                     </>
                   )}
                 </button>
-                <button
-                  type="button"
-                  onClick={handleRegenerateApiKey}
-                  className="btn-ghost text-warning"
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowRegenerateDialog(true)}
                   disabled={isRegenerating}
                 >
                   {isRegenerating ? 'Regenerating...' : 'Regenerate'}
-                </button>
+                </Button>
               </div>
 
               {settings?.apiKey.createdAt && (
@@ -336,6 +336,27 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* Regenerate API Key Confirmation Dialog */}
+      <Dialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Regenerate API Key</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to regenerate your API key? This action cannot be undone.
+              The old key will stop working immediately and any services using it will lose access.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRegenerateDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRegenerateApiKey}>
+              Regenerate Key
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
