@@ -17,11 +17,11 @@ export const buildMemoryPayload = (
       project: session.project,
       date,
       public: result.isSignificant,
-      summary: result.entry?.summary || null,
-      decision: result.entry?.decision || null,
-      problem: result.entry?.problem || null,
-      entryTags: result.entry?.tags || [],
-      links: result.entry?.links || null,
+      summary: result.entry?.summary || '',
+      decision: result.entry?.decision || '',
+      problem: result.entry?.problem || '',
+      entryTags: (result.entry?.tags || []).join(','),
+      links: result.entry?.links ? JSON.stringify(result.entry.links) : '',
     },
   };
 };

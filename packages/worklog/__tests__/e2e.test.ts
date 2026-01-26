@@ -552,8 +552,8 @@ describe('E2E: Memory Payload Structure', () => {
       summary: 'Implemented two-tier ISR caching for worklog page',
       decision: expect.any(String),
       problem: expect.any(String),
-      entryTags: ['performance', 'frontend'],
-      links: null,
+      entryTags: 'performance,frontend',
+      links: '',
     });
   });
 

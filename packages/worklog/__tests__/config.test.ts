@@ -22,6 +22,7 @@ describe('loadConfig', () => {
 
   describe('required environment variables', () => {
     it('throws when MEMORY_API_URL is missing', async () => {
+      delete process.env.MEMORY_API_URL;
       process.env.MEMORY_API_KEY = 'key';
       process.env.AI_GATEWAY_API_KEY = 'key';
 
@@ -31,6 +32,7 @@ describe('loadConfig', () => {
 
     it('throws when MEMORY_API_KEY is missing', async () => {
       process.env.MEMORY_API_URL = 'http://localhost';
+      delete process.env.MEMORY_API_KEY;
       process.env.AI_GATEWAY_API_KEY = 'key';
 
       const { loadConfig } = await import('../src/config.js');
@@ -40,6 +42,7 @@ describe('loadConfig', () => {
     it('throws when AI_GATEWAY_API_KEY is missing', async () => {
       process.env.MEMORY_API_URL = 'http://localhost';
       process.env.MEMORY_API_KEY = 'key';
+      delete process.env.AI_GATEWAY_API_KEY;
 
       const { loadConfig } = await import('../src/config.js');
       expect(() => loadConfig()).toThrow('Missing required environment variable: AI_GATEWAY_API_KEY');

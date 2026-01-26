@@ -148,7 +148,19 @@ export const enrich = async (
     throw new Error('Empty response from LLM');
   }
 
-  const parsed: LLMResponse = JSON.parse(text);
+  // Strip markdown code blocks if present
+  let jsonText = text.trim();
+  if (jsonText.startsWith('```json')) {
+    jsonText = jsonText.slice(7);
+  } else if (jsonText.startsWith('```')) {
+    jsonText = jsonText.slice(3);
+  }
+  if (jsonText.endsWith('```')) {
+    jsonText = jsonText.slice(0, -3);
+  }
+  jsonText = jsonText.trim();
+
+  const parsed: LLMResponse = JSON.parse(jsonText);
 
   const contextDoc: ContextDocument = {
     title: parsed.context.title,

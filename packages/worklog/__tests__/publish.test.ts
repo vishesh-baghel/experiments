@@ -128,14 +128,14 @@ describe('buildMemoryPayload', () => {
       expect(payload.metadata.problem).toBe('Needed efficient page updates');
     });
 
-    it('sets entryTags from entry', () => {
+    it('sets entryTags as comma-separated string', () => {
       const payload = buildMemoryPayload(mockSession, significantResult);
-      expect(payload.metadata.entryTags).toEqual(['feature', 'frontend']);
+      expect(payload.metadata.entryTags).toBe('feature,frontend');
     });
 
-    it('sets links to null when entry has no links', () => {
+    it('sets links to empty string when entry has no links', () => {
       const payload = buildMemoryPayload(mockSession, significantResult);
-      expect(payload.metadata.links).toBeNull();
+      expect(payload.metadata.links).toBe('');
     });
   });
 
@@ -145,34 +145,34 @@ describe('buildMemoryPayload', () => {
       expect(payload.metadata.public).toBe(false);
     });
 
-    it('sets summary to null', () => {
+    it('sets summary to empty string', () => {
       const payload = buildMemoryPayload(mockSession, insignificantResult);
-      expect(payload.metadata.summary).toBeNull();
+      expect(payload.metadata.summary).toBe('');
     });
 
-    it('sets decision to null', () => {
+    it('sets decision to empty string', () => {
       const payload = buildMemoryPayload(mockSession, insignificantResult);
-      expect(payload.metadata.decision).toBeNull();
+      expect(payload.metadata.decision).toBe('');
     });
 
-    it('sets problem to null', () => {
+    it('sets problem to empty string', () => {
       const payload = buildMemoryPayload(mockSession, insignificantResult);
-      expect(payload.metadata.problem).toBeNull();
+      expect(payload.metadata.problem).toBe('');
     });
 
-    it('sets entryTags to empty array', () => {
+    it('sets entryTags to empty string', () => {
       const payload = buildMemoryPayload(mockSession, insignificantResult);
-      expect(payload.metadata.entryTags).toEqual([]);
+      expect(payload.metadata.entryTags).toBe('');
     });
 
-    it('sets links to null', () => {
+    it('sets links to empty string', () => {
       const payload = buildMemoryPayload(mockSession, insignificantResult);
-      expect(payload.metadata.links).toBeNull();
+      expect(payload.metadata.links).toBe('');
     });
   });
 
   describe('metadata with links', () => {
-    it('includes links when entry has them', () => {
+    it('includes links as JSON string when entry has them', () => {
       const result: EnrichmentResult = {
         ...significantResult,
         entry: {
@@ -181,7 +181,7 @@ describe('buildMemoryPayload', () => {
         },
       };
       const payload = buildMemoryPayload(mockSession, result);
-      expect(payload.metadata.links).toEqual({ pr: 'https://github.com/user/repo/pull/42', commit: 'abc123' });
+      expect(JSON.parse(payload.metadata.links as string)).toEqual({ pr: 'https://github.com/user/repo/pull/42', commit: 'abc123' });
     });
   });
 });
