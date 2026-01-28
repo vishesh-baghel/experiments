@@ -281,7 +281,7 @@ Create or update a markdown file.
 
 ### memory_list
 
-List documents in a folder or matching criteria.
+List documents in a folder or matching criteria. Supports metadata filtering for structured queries.
 
 **Input Schema:**
 ```json
@@ -300,7 +300,26 @@ List documents in a folder or matching criteria.
     "tags": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Filter by tags"
+      "description": "Filter by tags (AND logic)"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Filter by metadata fields. Supports equality and comparison operators.",
+      "example": { "public": true, "date": { "$gte": "2025-01-20", "$lte": "2025-01-27" } }
+    },
+    "fields": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Fields to include in response. Options: path, title, tags, metadata, content, type, updatedAt. Defaults to all except content.",
+      "default": ["path", "title", "tags", "metadata", "type", "updatedAt"]
+    },
+    "sort": {
+      "type": "object",
+      "properties": {
+        "field": { "type": "string", "description": "Field to sort by. Supports 'updatedAt', 'createdAt', or 'metadata.<key>' (e.g., 'metadata.date')" },
+        "order": { "type": "string", "enum": ["asc", "desc"], "default": "desc" }
+      },
+      "description": "Sort order for results"
     },
     "limit": {
       "type": "number",
@@ -312,6 +331,39 @@ List documents in a folder or matching criteria.
       "default": 0
     }
   }
+}
+```
+
+**Metadata Filter Operators:**
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| (direct value) | Equality | `{ "public": true }` |
+| `$gte` | Greater than or equal | `{ "date": { "$gte": "2025-01-20" } }` |
+| `$lte` | Less than or equal | `{ "date": { "$lte": "2025-01-27" } }` |
+| `$gt` | Greater than | `{ "score": { "$gt": 0.5 } }` |
+| `$lt` | Less than | `{ "priority": { "$lt": 3 } }` |
+| `$ne` | Not equal | `{ "status": { "$ne": "draft" } }` |
+| `$in` | In array | `{ "project": { "$in": ["portfolio", "experiments"] } }` |
+
+Operators can be combined on the same field:
+```json
+{ "date": { "$gte": "2025-01-20", "$lte": "2025-01-27" } }
+```
+
+**Example: Worklog query (public entries for a date range):**
+```json
+{
+  "folder": "/worklog",
+  "recursive": true,
+  "tags": ["worklog"],
+  "metadata": {
+    "public": true,
+    "date": { "$gte": "2025-01-16", "$lte": "2025-01-23" }
+  },
+  "fields": ["path", "title", "metadata"],
+  "sort": { "field": "metadata.date", "order": "desc" },
+  "limit": 50
 }
 ```
 
@@ -411,22 +463,44 @@ Get lightweight index of all documents.
 
 #### GET /api/documents
 
-List all documents with optional filtering.
+List all documents with optional filtering. Supports metadata filtering via query parameters.
 
 **Query Parameters:**
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | folder | string | Filter by folder path |
-| tags | string | Comma-separated tags |
+| recursive | boolean | Include documents in subfolders (default: false) |
+| tags | string | Comma-separated tags (AND logic) |
 | type | string | Filter by document type |
-| limit | number | Max results (default: 50) |
+| metadata | string | JSON-encoded metadata filter object (see Metadata Filter Operators above) |
+| fields | string | Comma-separated fields to include in response (default: path,title,tags,metadata,type,updatedAt) |
+| sort | string | Sort field (e.g., `metadata.date`, `updatedAt`) |
+| order | string | Sort direction: `asc` or `desc` (default: desc) |
+| limit | number | Max results (default: 50, max: 200) |
 | offset | number | Pagination offset |
+
+**Example: Worklog public entries for this week:**
+```
+GET /api/documents?folder=/worklog&recursive=true&tags=worklog&metadata={"public":true,"date":{"$gte":"2025-01-16"}}&fields=path,metadata&sort=metadata.date&order=desc
+```
 
 **Response:**
 ```json
 {
-  "documents": [...],
-  "total": 100,
+  "documents": [
+    {
+      "path": "/worklog/2025-01-22/abc123",
+      "metadata": {
+        "public": true,
+        "summary": "Implemented two-tier caching for worklog page",
+        "decision": "Built ISR with time-based revalidation...",
+        "project": "portfolio",
+        "date": "2025-01-22",
+        "entryTags": ["performance", "caching"]
+      }
+    }
+  ],
+  "total": 12,
   "limit": 50,
   "offset": 0
 }
@@ -519,7 +593,7 @@ Delete a document.
 
 #### GET /api/search
 
-Full-text search.
+Full-text search with optional metadata filtering.
 
 **Query Parameters:**
 | Parameter | Type | Description |
@@ -528,6 +602,10 @@ Full-text search.
 | folder | string | Limit to folder |
 | tags | string | Comma-separated tags |
 | type | string | Document type |
+| metadata | string | JSON-encoded metadata filter (same operators as GET /api/documents) |
+| fields | string | Comma-separated fields to include |
+| sort | string | Sort field (default: relevance score) |
+| order | string | Sort direction |
 | limit | number | Max results |
 
 **Response:**
@@ -654,6 +732,60 @@ X-RateLimit-Limit: 1000
 X-RateLimit-Remaining: 950
 X-RateLimit-Reset: 1705579200
 ```
+
+---
+
+## Metadata Filtering - Implementation Notes
+
+Metadata is stored as a JSON TEXT column in SQLite/Turso. Filtering uses SQLite's `json_extract()` function:
+
+```sql
+-- Equality: metadata.public = true
+WHERE json_extract(metadata, '$.public') = 1
+
+-- Range: metadata.date between dates
+WHERE json_extract(metadata, '$.date') >= '2025-01-20'
+  AND json_extract(metadata, '$.date') <= '2025-01-27'
+
+-- In array: metadata.project IN ('portfolio', 'experiments')
+WHERE json_extract(metadata, '$.project') IN ('portfolio', 'experiments')
+
+-- Sort by metadata field
+ORDER BY json_extract(metadata, '$.date') DESC
+```
+
+### Performance Considerations
+
+- `json_extract()` is efficient for small result sets but doesn't use indexes
+- For high-frequency queries (e.g., worklog date range), consider adding a **generated column** with an index:
+
+```sql
+-- Generated column for frequently-filtered metadata fields
+ALTER TABLE documents ADD COLUMN meta_date TEXT
+  GENERATED ALWAYS AS (json_extract(metadata, '$.date'));
+ALTER TABLE documents ADD COLUMN meta_public INTEGER
+  GENERATED ALWAYS AS (json_extract(metadata, '$.public'));
+
+CREATE INDEX idx_documents_meta_date ON documents(meta_date);
+CREATE INDEX idx_documents_meta_public ON documents(meta_public);
+```
+
+- For the worklog use case (~365 docs/year), `json_extract` without indexes is sufficient
+- Generated columns should be added only when query patterns are established and performance degrades
+
+### Fields Projection
+
+When `fields` parameter is specified, the query only selects requested columns:
+
+```sql
+-- fields=path,metadata (no content, faster)
+SELECT path, metadata FROM documents
+WHERE json_extract(metadata, '$.public') = 1
+ORDER BY json_extract(metadata, '$.date') DESC
+LIMIT 50;
+```
+
+This avoids reading large `content` columns when only metadata is needed (e.g., portfolio timeline rendering).
 
 ---
 
