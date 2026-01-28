@@ -1,6 +1,24 @@
 import path from 'path';
 import os from 'os';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { Command } from 'commander';
+
+// Load .env file from package directory (not cwd)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const envPath = path.join(__dirname, '..', '.env');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf-8');
+  for (const line of envContent.split('\n')) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const [key, ...valueParts] = trimmed.split('=');
+      if (key && valueParts.length > 0) {
+        process.env[key] = valueParts.join('=');
+      }
+    }
+  }
+}
 import { loadConfig } from './config.js';
 import { getLatestSession, getSessionById, listProjects } from './adapters/claude-code.js';
 import { processSession } from './pipeline/index.js';
