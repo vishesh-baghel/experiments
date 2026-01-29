@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "worklog ingest --project $(pwd) 2>&1 || echo 'Worklog ingest skipped'"
+          }
+        ]
+      }
+    ]
+  }
+}

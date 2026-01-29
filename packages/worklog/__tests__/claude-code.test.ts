@@ -63,10 +63,21 @@ describe('readSessionsIndex', () => {
     expect(result).toEqual(mockIndex);
   });
 
-  it('throws when file does not exist', async () => {
-    mockReadFile.mockRejectedValueOnce(new Error('ENOENT'));
+  it('returns null when file does not exist (ENOENT)', async () => {
+    const err = new Error('ENOENT') as NodeJS.ErrnoException;
+    err.code = 'ENOENT';
+    mockReadFile.mockRejectedValueOnce(err);
 
-    await expect(readSessionsIndex('/nonexistent')).rejects.toThrow('ENOENT');
+    const result = await readSessionsIndex('/nonexistent');
+    expect(result).toBeNull();
+  });
+
+  it('throws on non-ENOENT errors', async () => {
+    const err = new Error('EACCES') as NodeJS.ErrnoException;
+    err.code = 'EACCES';
+    mockReadFile.mockRejectedValueOnce(err);
+
+    await expect(readSessionsIndex('/base')).rejects.toThrow('EACCES');
   });
 
   it('throws on invalid JSON', async () => {
@@ -168,6 +179,15 @@ describe('getLatestSession', () => {
     const result = await getLatestSession('/base', '/home/user/portfolio');
     expect(result!.sessionId).toBe('exactly-five');
   });
+
+  it('returns null when project dir does not exist (ENOENT)', async () => {
+    const err = new Error('ENOENT') as NodeJS.ErrnoException;
+    err.code = 'ENOENT';
+    mockReadFile.mockRejectedValueOnce(err);
+
+    const result = await getLatestSession('/base', '/nonexistent/project');
+    expect(result).toBeNull();
+  });
 });
 
 describe('getSessionById', () => {
@@ -220,6 +240,93 @@ describe('getSessionById', () => {
     mockReadFile.mockResolvedValueOnce(JSON.stringify(index));
 
     const result = await getSessionById('/base', '/home/user/portfolio', 'nonexistent');
+    expect(result).toBeNull();
+  });
+
+  it('matches session by prefix (partial ID)', async () => {
+    const index: SessionsIndex = {
+      version: 1,
+      entries: [
+        {
+          sessionId: 'abcd1234-5678-9abc-def0-123456789abc',
+          fullPath: '/tmp/target.jsonl',
+          fileMtime: Date.now(),
+          firstPrompt: 'Hello',
+          summary: 'Target session',
+          messageCount: 10,
+          created: '2025-01-22T10:00:00Z',
+          modified: '2025-01-22T11:00:00Z',
+          gitBranch: 'main',
+          projectPath: '/home/user/portfolio',
+          isSidechain: false,
+        },
+        {
+          sessionId: 'efgh5678-1234-5678-9abc-def012345678',
+          fullPath: '/tmp/other.jsonl',
+          fileMtime: Date.now(),
+          firstPrompt: 'Hi',
+          summary: 'Other session',
+          messageCount: 5,
+          created: '2025-01-21T10:00:00Z',
+          modified: '2025-01-21T11:00:00Z',
+          gitBranch: 'feature',
+          projectPath: '/home/user/portfolio',
+          isSidechain: false,
+        },
+      ],
+      originalPath: '/home/user/portfolio',
+    };
+    mockReadFile.mockResolvedValueOnce(JSON.stringify(index));
+
+    const result = await getSessionById('/base', '/home/user/portfolio', 'abcd1234');
+    expect(result!.sessionId).toBe('abcd1234-5678-9abc-def0-123456789abc');
+  });
+
+  it('returns null when prefix matches multiple sessions (ambiguous)', async () => {
+    const index: SessionsIndex = {
+      version: 1,
+      entries: [
+        {
+          sessionId: 'abcd1234-aaaa-0000-0000-000000000001',
+          fullPath: '/tmp/a.jsonl',
+          fileMtime: Date.now(),
+          firstPrompt: 'Hello',
+          summary: 'Session A',
+          messageCount: 10,
+          created: '2025-01-22T10:00:00Z',
+          modified: '2025-01-22T11:00:00Z',
+          gitBranch: 'main',
+          projectPath: '/home/user/portfolio',
+          isSidechain: false,
+        },
+        {
+          sessionId: 'abcd1234-bbbb-0000-0000-000000000002',
+          fullPath: '/tmp/b.jsonl',
+          fileMtime: Date.now(),
+          firstPrompt: 'Hi',
+          summary: 'Session B',
+          messageCount: 5,
+          created: '2025-01-21T10:00:00Z',
+          modified: '2025-01-21T11:00:00Z',
+          gitBranch: 'feature',
+          projectPath: '/home/user/portfolio',
+          isSidechain: false,
+        },
+      ],
+      originalPath: '/home/user/portfolio',
+    };
+    mockReadFile.mockResolvedValueOnce(JSON.stringify(index));
+
+    const result = await getSessionById('/base', '/home/user/portfolio', 'abcd1234');
+    expect(result).toBeNull();
+  });
+
+  it('returns null when project dir does not exist (ENOENT)', async () => {
+    const err = new Error('ENOENT') as NodeJS.ErrnoException;
+    err.code = 'ENOENT';
+    mockReadFile.mockRejectedValueOnce(err);
+
+    const result = await getSessionById('/base', '/nonexistent/project', 'any-id');
     expect(result).toBeNull();
   });
 });

@@ -113,6 +113,11 @@ program
     const projectDir = getProjectDir(CLAUDE_PROJECTS_DIR, project);
     const index = await readSessionsIndex(projectDir);
 
+    if (!index) {
+      console.error(`No sessions found for project: ${project}. Run 'worklog list-projects' to see available projects.`);
+      process.exit(1);
+    }
+
     const sessions = index.entries
       .filter(e => !e.isSidechain && !e.sessionId.startsWith('agent-'))
       .sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime())

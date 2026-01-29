@@ -12,10 +12,17 @@ export const getProjectDir = (basePath: string, projectPath: string): string => 
   return path.join(basePath, projectPathToDir(projectPath));
 };
 
-export const readSessionsIndex = async (projectDir: string): Promise<SessionsIndex> => {
+export const readSessionsIndex = async (projectDir: string): Promise<SessionsIndex | null> => {
   const indexPath = path.join(projectDir, 'sessions-index.json');
-  const content = await fs.readFile(indexPath, 'utf-8');
-  return JSON.parse(content);
+  try {
+    const content = await fs.readFile(indexPath, 'utf-8');
+    return JSON.parse(content);
+  } catch (err: unknown) {
+    if (err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
+      return null;
+    }
+    throw err;
+  }
 };
 
 export const getLatestSession = async (
@@ -24,6 +31,8 @@ export const getLatestSession = async (
 ): Promise<SessionIndexEntry | null> => {
   const projectDir = getProjectDir(basePath, projectPath);
   const index = await readSessionsIndex(projectDir);
+
+  if (!index) return null;
 
   const candidates = index.entries
     .filter(e => !e.isSidechain)
@@ -41,7 +50,13 @@ export const getSessionById = async (
 ): Promise<SessionIndexEntry | null> => {
   const projectDir = getProjectDir(basePath, projectPath);
   const index = await readSessionsIndex(projectDir);
-  return index.entries.find(e => e.sessionId === sessionId) || null;
+
+  if (!index) return null;
+
+  // Support prefix matching for truncated session IDs
+  const matches = index.entries.filter(e => e.sessionId.startsWith(sessionId));
+  if (matches.length === 1) return matches[0];
+  return null;
 };
 
 export const readSessionEntries = async (entry: SessionIndexEntry): Promise<RawEntry[]> => {
