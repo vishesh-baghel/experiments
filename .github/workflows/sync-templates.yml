@@ -9,17 +9,25 @@ on:
       - 'packages/sensie/**'
       - 'packages/gary/**'
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   # Detect which packages changed
   changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       jack: ${{ steps.filter.outputs.jack }}
       sensie: ${{ steps.filter.outputs.sensie }}
       gary: ${{ steps.filter.outputs.gary }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
         id: filter
         with:
           filters: |
@@ -34,15 +42,16 @@ jobs:
     needs: changes
     if: needs.changes.outputs.jack == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout monorepo
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       - name: Sync to template repo
-        uses: cpina/github-action-push-to-another-repository@main
+        uses: cpina/github-action-push-to-another-repository@07c4d7b3def0a8ebe788a8f2c843a4e1de4f6900 # v1.7.2
         env:
           SSH_DEPLOY_KEY: ${{ secrets.JACK_TEMPLATE_DEPLOY_KEY }}
         with:
@@ -56,15 +65,16 @@ jobs:
     needs: changes
     if: needs.changes.outputs.sensie == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout monorepo
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       - name: Sync to template repo
-        uses: cpina/github-action-push-to-another-repository@main
+        uses: cpina/github-action-push-to-another-repository@07c4d7b3def0a8ebe788a8f2c843a4e1de4f6900 # v1.7.2
         env:
           SSH_DEPLOY_KEY: ${{ secrets.SENSIE_TEMPLATE_DEPLOY_KEY }}
         with:
@@ -78,15 +88,16 @@ jobs:
     needs: changes
     if: needs.changes.outputs.gary == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout monorepo
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       - name: Sync to template repo
-        uses: cpina/github-action-push-to-another-repository@main
+        uses: cpina/github-action-push-to-another-repository@07c4d7b3def0a8ebe788a8f2c843a4e1de4f6900 # v1.7.2
         env:
           SSH_DEPLOY_KEY: ${{ secrets.GARY_TEMPLATE_DEPLOY_KEY }}
         with:
