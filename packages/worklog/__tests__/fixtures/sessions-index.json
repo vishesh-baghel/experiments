@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "sessionId": "test-session-abc",
+      "fullPath": "__FIXTURE_DIR__/sample-session.jsonl",
+      "fileMtime": 1737540900000,
+      "firstPrompt": "Add caching to the worklog page to reduce API calls",
+      "summary": "Added two-tier ISR caching to worklog page",
+      "messageCount": 7,
+      "created": "2025-01-22T10:00:00Z",
+      "modified": "2025-01-22T10:15:00Z",
+      "gitBranch": "worklog-caching",
+      "projectPath": "/home/user/portfolio",
+      "isSidechain": false
+    },
+    {
+      "sessionId": "short-session",
+      "fullPath": "__FIXTURE_DIR__/short.jsonl",
+      "fileMtime": 1737540000000,
+      "firstPrompt": "Fix typo",
+      "summary": "Fixed typo in README",
+      "messageCount": 2,
+      "created": "2025-01-22T09:00:00Z",
+      "modified": "2025-01-22T09:01:00Z",
+      "gitBranch": "main",
+      "projectPath": "/home/user/portfolio",
+      "isSidechain": false
+    },
+    {
+      "sessionId": "agent-subagent-1",
+      "fullPath": "__FIXTURE_DIR__/agent.jsonl",
+      "fileMtime": 1737541000000,
+      "firstPrompt": "Search for files",
+      "summary": "Agent task",
+      "messageCount": 10,
+      "created": "2025-01-22T10:30:00Z",
+      "modified": "2025-01-22T10:35:00Z",
+      "gitBranch": "main",
+      "projectPath": "/home/user/portfolio",
+      "isSidechain": false
+    }
+  ],
+  "originalPath": "/home/user/portfolio"
+}

@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Bash(pnpm *)",
+      "Bash(pnpm dev)",
+      "Bash(pnpm build)",
+      "Bash(pnpm build:mcp)",
+      "Bash(pnpm lint)",
+      "Bash(pnpm test *)",
+      "Bash(pnpm test)",
+      "Bash(pnpm test:evals)",
+      "Bash(pnpm test:mcp)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git branch *)",
+      "Bash(git checkout *)",
+      "Bash(git switch *)",
+      "Bash(git stash *)",
+      "Bash(git merge *)",
+      "Bash(git rebase *)",
+      "Bash(git fetch *)",
+      "Bash(gh *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(cat *)",
+      "Bash(wc *)",
+      "Bash(which *)",
+      "Bash(echo *)",
+      "Bash(* --version)",
+      "Bash(* --help)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(git push)",
+      "Bash(pnpm publish *)",
+      "Bash(npm publish *)",
+      "Bash(rm -rf *)",
+      "Bash(rm -r *)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(.env.local)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.gnupg/**)",
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Edit(.env.local)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Write(.env.local)",
+      "Write(node_modules/**)",
+      "Write(pnpm-lock.yaml)",
+      "Write(package-lock.json)",
+      "Write(bun.lockb)",
+      "Edit(node_modules/**)",
+      "Edit(pnpm-lock.yaml)",
+      "Edit(package-lock.json)",
+      "Bash(curl *)",
+      "Bash(wget *)"
+    ]
+  },
+
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write:*.ts|Edit:*.ts|Write:*.tsx|Edit:*.tsx",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | xargs -I {} sh -c 'npx prettier --write \"{}\" 2>/dev/null || true'"
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | xargs -I {} sh -c 'npx eslint --fix \"{}\" 2>/dev/null || true'"
+          },
+          {
+            "type": "command",
+            "command": "npx tsc --noEmit"
+          }
+        ]
+      },
+      {
+        "matcher": "Write:*.test.ts|Edit:*.test.ts|Write:*.test.tsx|Edit:*.test.tsx",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | xargs -I {} sh -c 'npm test -- {} --passWithNoTests 2>/dev/null || true'"
+          }
+        ]
+      }
+    ],
+
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsc --noEmit && echo 'TypeScript compilation check passed' || echo 'Warning: TypeScript errors found'"
+          }
+        ]
+      }
+    ],
+
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "worklog ingest --project $(pwd) 2>&1 || echo 'Worklog ingest skipped'"
+          }
+        ]
+      }
+    ]
+  }
+}
