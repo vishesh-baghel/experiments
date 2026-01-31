@@ -1,0 +1,45 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "group:monorepos",
+    "group:recommended",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "labels": ["dependencies"],
+  "schedule": ["before 5am on monday"],
+  "timezone": "Asia/Kolkata",
+  "prConcurrentLimit": 5,
+  "minor": {
+    "automerge": true
+  },
+  "patch": {
+    "automerge": true
+  },
+  "pin": {
+    "automerge": true
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 5am on monday"]
+  },
+  "packageRules": [
+    {
+      "description": "Group all GitHub Actions updates into a single PR",
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions",
+      "automerge": true
+    },
+    {
+      "description": "Group all devDependency updates (lint, test, build tools)",
+      "matchDepTypes": ["devDependencies"],
+      "groupName": "dev-dependencies",
+      "automerge": true
+    },
+    {
+      "description": "Require manual review for major version bumps",
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    }
+  ]
+}

@@ -10,6 +10,7 @@ on:
       - 'packages/llm-router/**'
       - 'packages/llm-router-ui/**'
       - 'packages/memory/**'
+      - 'packages/worklog/**'
       - 'pnpm-lock.yaml'
       - 'package.json'
       - 'turbo.json'
@@ -25,6 +26,7 @@ on:
       - 'packages/llm-router/**'
       - 'packages/llm-router-ui/**'
       - 'packages/memory/**'
+      - 'packages/worklog/**'
       - 'pnpm-lock.yaml'
       - 'package.json'
       - 'turbo.json'
@@ -51,6 +53,7 @@ jobs:
       llm-router: ${{ steps.filter.outputs.llm-router }}
       llm-router-ui: ${{ steps.filter.outputs.llm-router-ui }}
       memory: ${{ steps.filter.outputs.memory }}
+      worklog: ${{ steps.filter.outputs.worklog }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -88,6 +91,11 @@ jobs:
               - 'turbo.json'
             memory:
               - 'packages/memory/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'turbo.json'
+            worklog:
+              - 'packages/worklog/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'turbo.json'
@@ -294,6 +302,31 @@ jobs:
         working-directory: packages/memory
         run: pnpm lint
 
+  # Worklog tests
+  test-worklog:
+    needs: changes
+    if: ${{ needs.changes.outputs.worklog == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 2
+
+      - name: Setup project
+        uses: ./.github/actions/setup-project
+
+      - name: Run Worklog tests
+        run: pnpm --filter worklog test
+
+      - name: Run Worklog build
+        run: pnpm --filter worklog build
+
+      - name: Run Worklog typecheck
+        run: pnpm --filter worklog typecheck
+
   # Aggregated status check for branch protection
   ci-status:
     if: always()
@@ -305,6 +338,7 @@ jobs:
       - test-llm-router
       - test-llm-router-ui
       - test-memory
+      - test-worklog
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
