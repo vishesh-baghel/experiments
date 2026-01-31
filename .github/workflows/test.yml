@@ -15,6 +15,7 @@ on:
       - 'turbo.json'
       - 'tsconfig.json'
       - '.github/workflows/test.yml'
+      - '.github/actions/setup-project/**'
   pull_request:
     branches: [main]
     paths:
@@ -29,6 +30,7 @@ on:
       - 'turbo.json'
       - 'tsconfig.json'
       - '.github/workflows/test.yml'
+      - '.github/actions/setup-project/**'
 
 permissions:
   contents: read
@@ -100,18 +102,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 20.x
-          cache: 'pnpm'
+          fetch-depth: 2
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup project
+        uses: ./.github/actions/setup-project
 
       - name: Run Squad tests
         run: pnpm --filter squad test --run
@@ -143,18 +138,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 20.x
-          cache: 'pnpm'
+          fetch-depth: 2
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup project
+        uses: ./.github/actions/setup-project
 
       - name: Generate Prisma Client
         working-directory: packages/jack-x-agent
@@ -196,18 +184,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 20.x
-          cache: 'pnpm'
+          fetch-depth: 2
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup project
+        uses: ./.github/actions/setup-project
 
       - name: Generate Prisma Client
         working-directory: packages/sensie
@@ -239,18 +220,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 20.x
-          cache: 'pnpm'
+          fetch-depth: 2
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup project
+        uses: ./.github/actions/setup-project
 
       - name: Run LLM Router tests
         run: pnpm --filter llm-router test --run
@@ -271,18 +245,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 20.x
-          cache: 'pnpm'
+          fetch-depth: 2
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup project
+        uses: ./.github/actions/setup-project
 
       - name: Run LLM Router UI build
         run: pnpm --filter llm-router-ui build
@@ -305,18 +272,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 20.x
-          cache: 'pnpm'
+          fetch-depth: 2
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup project
+        uses: ./.github/actions/setup-project
 
       - name: Generate Drizzle Client
         working-directory: packages/memory
