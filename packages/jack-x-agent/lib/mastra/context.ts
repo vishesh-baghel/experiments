@@ -2,7 +2,7 @@
  * Context building utilities for agent prompts
  */
 
-import type { IdeaContext, OutlineContext, TrendingTopic, ContentIdea } from './schemas';
+import type { IdeaContext, OutlineContext, PostContext, TrendingTopic, ContentIdea, ContentOutline } from './schemas';
 import { getAllCreatorTweets } from '@/lib/db/creator-tweets';
 
 interface UserWithRelations {
@@ -122,6 +122,59 @@ export async function buildOutlineContext(
 
   return {
     idea,
+    projects: (user.projects || []).map((p) => ({
+      name: p.name,
+      description: p.description || '',
+      status: p.status as 'active' | 'paused' | 'completed',
+    })),
+    tone: {
+      lowercase: toneConfig.lowercase,
+      noEmojis: toneConfig.noEmojis,
+      noHashtags: toneConfig.noHashtags,
+      showFailures: toneConfig.showFailures,
+      includeNumbers: toneConfig.includeNumbers,
+      customRules: (toneConfig.customRules as string[]) || [],
+      learnedPatterns: (toneConfig.learnedPatterns as Record<string, unknown>) || {},
+    },
+    goodPosts: goodPosts.map((p) => ({
+      content: p.content,
+      contentPillar: p.contentPillar as 'lessons_learned' | 'helpful_content' | 'build_progress' | 'decisions' | 'promotion',
+      format: p.contentType as 'post' | 'thread' | 'long_form',
+    })),
+  };
+}
+
+/**
+ * Build context for post generation from outline
+ */
+export async function buildPostContext(
+  outline: ContentOutline & { format: string },
+  idea: { title: string; description: string; contentPillar: string },
+  user: UserWithRelations,
+  goodPosts: GoodPost[] = []
+): Promise<PostContext> {
+  const toneConfig = user.toneConfig || {
+    lowercase: true,
+    noEmojis: true,
+    noHashtags: true,
+    showFailures: true,
+    includeNumbers: true,
+    customRules: [],
+    learnedPatterns: {},
+  };
+
+  return {
+    outline: {
+      format: outline.format as 'post' | 'thread' | 'long_form',
+      sections: outline.sections,
+      estimatedLength: outline.estimatedLength,
+      toneReminders: outline.toneReminders,
+    },
+    idea: {
+      title: idea.title,
+      description: idea.description,
+      contentPillar: idea.contentPillar as 'lessons_learned' | 'helpful_content' | 'build_progress' | 'decisions' | 'promotion',
+    },
     projects: (user.projects || []).map((p) => ({
       name: p.name,
       description: p.description || '',
