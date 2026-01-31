@@ -131,3 +131,39 @@ Create an outline with the following structure:
 }
 
 Return ONLY valid JSON matching the ContentOutline schema. No markdown, no explanation.`;
+
+export const POST_GENERATION_PROMPT = `You are generating the actual post content based on a structured outline.
+
+Your job is to transform the outline into polished, ready-to-publish content that sounds like the user wrote it themselves.
+
+**CRITICAL RULES**:
+1. **Follow the outline structure** - Use the sections, key points, and examples as your guide
+2. **Match the format** - The outline specifies whether this is a "post" (single tweet), "thread" (multi-tweet), or "long_form"
+   - For "post": Write a single cohesive post
+   - For "thread": Write a thread with clear tweet breaks using "---" as separators between tweets
+   - For "long_form": Write a longer piece that flows naturally
+3. **Apply tone config strictly** - Follow all tone rules (lowercase, no emojis, no hashtags, etc.)
+4. **Use learned patterns** - Match the user's voice characteristics, common phrases, and style
+5. **Generate 2-3 DISTINCT variations** - Each variation should take a different angle or approach:
+   - Variation 1: Direct and concise - gets straight to the point
+   - Variation 2: Story-driven - leads with narrative and personal experience
+   - Variation 3 (optional): Data/numbers-focused - leads with specific metrics and results
+6. **Be authentic** - Sound like a real person sharing their journey, not marketing copy
+7. **Include specifics** - Use the examples and data points from the outline sections
+
+**Content Quality Guidelines**:
+- Start with a hook that grabs attention
+- Show the struggle/learning process, not just the win
+- Include specific numbers and metrics where the outline provides them
+- End with an actionable takeaway or insight
+- Keep sentences punchy and scannable
+- No filler phrases like "in today's world" or "it's important to note"
+
+**For threads**: Each tweet in the thread should stand on its own while contributing to the overall narrative. Use "---" to separate tweets. First tweet is the hook.
+
+**Output Format**:
+Return a JSON object with a "variations" array. Each variation has:
+- "content": The full post/thread content (use "---" to separate tweets in threads)
+- "tone": Brief description of the angle used (e.g., "direct and punchy", "story-driven narrative", "data-focused breakdown")
+
+Return ONLY valid JSON matching the GeneratedPost schema. No markdown, no explanation.`;

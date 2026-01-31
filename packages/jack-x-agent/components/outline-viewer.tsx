@@ -27,11 +27,18 @@ interface ContentOutline {
   toneReminders: string[];
 }
 
+interface PostVariation {
+  content: string;
+  tone: string;
+}
+
 interface OutlineViewerProps {
   outline: ContentOutline;
   ideaTitle: string;
   contentPillar: string;
   onSaveDraft?: (content: string) => void;
+  onGeneratePost?: () => Promise<PostVariation[]>;
+  isGenerating?: boolean;
 }
 
 export function OutlineViewer({
@@ -39,10 +46,15 @@ export function OutlineViewer({
   ideaTitle,
   contentPillar,
   onSaveDraft,
+  onGeneratePost,
+  isGenerating = false,
 }: OutlineViewerProps) {
   const [draftContent, setDraftContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
+  const [variations, setVariations] = useState<PostVariation[]>([]);
+  const [selectedVariation, setSelectedVariation] = useState<number>(-1);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   useEffect(() => {
     const session = getUserSession();
@@ -57,6 +69,26 @@ export function OutlineViewer({
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleGenerate = async () => {
+    if (!onGeneratePost) return;
+    setGenerateError(null);
+    try {
+      const result = await onGeneratePost();
+      setVariations(result);
+      if (result.length > 0) {
+        setSelectedVariation(0);
+        setDraftContent(result[0].content);
+      }
+    } catch (error) {
+      setGenerateError(error instanceof Error ? error.message : 'Failed to generate post');
+    }
+  };
+
+  const handleSelectVariation = (index: number) => {
+    setSelectedVariation(index);
+    setDraftContent(variations[index].content);
   };
 
   return (
@@ -139,10 +171,36 @@ export function OutlineViewer({
             </span>
           </div>
 
+          {/* Variation Selector */}
+          {variations.length > 0 && (
+            <div className="flex gap-2 flex-wrap">
+              {variations.map((variation, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSelectVariation(idx)}
+                  className={`px-3 py-1.5 text-xs rounded-md border transition-colors ${
+                    selectedVariation === idx
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'
+                  }`}
+                >
+                  variation {idx + 1}: {variation.tone}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Generate Error */}
+          {generateError && (
+            <div className="p-3 text-sm bg-destructive/10 text-destructive rounded-md">
+              {generateError}
+            </div>
+          )}
+
           <Card className="flex-1 min-h-0 flex flex-col">
             <CardContent className="pt-6 flex-1 min-h-0 flex flex-col">
               <Textarea
-                placeholder="start writing in your authentic voice..."
+                placeholder="start writing in your authentic voice, or generate a post from the outline..."
                 value={draftContent}
                 onChange={(e) => setDraftContent(e.target.value)}
                 className="flex-1 min-h-[300px] font-mono text-sm resize-none custom-scrollbar"
@@ -151,6 +209,15 @@ export function OutlineViewer({
           </Card>
 
           <div className="flex gap-2">
+            <GuestTooltipButton
+              onClick={handleGenerate}
+              disabled={isGenerating || isGuest}
+              isGuest={isGuest}
+              variant="secondary"
+              guestTooltip="generate posts is not available in guest mode"
+            >
+              {isGenerating ? 'generating...' : 'generate post'}
+            </GuestTooltipButton>
             <GuestTooltipButton
               onClick={handleSave}
               disabled={!draftContent.trim() || isSaving}
@@ -161,8 +228,12 @@ export function OutlineViewer({
             </GuestTooltipButton>
             <Button
               variant="outline"
-              onClick={() => setDraftContent('')}
-              disabled={!draftContent}
+              onClick={() => {
+                setDraftContent('');
+                setVariations([]);
+                setSelectedVariation(-1);
+              }}
+              disabled={!draftContent && variations.length === 0}
             >
               clear
             </Button>

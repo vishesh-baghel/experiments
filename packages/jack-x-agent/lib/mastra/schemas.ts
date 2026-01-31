@@ -145,6 +145,44 @@ export const OutlineContextSchema = z.object({
 
 export type OutlineContext = z.infer<typeof OutlineContextSchema>;
 
+// Generated Post Variation
+export const GeneratedPostVariationSchema = z.object({
+  content: z.string().min(1, 'Content is required'),
+  tone: z.string().describe('Brief description of the tone/angle used in this variation'),
+});
+
+export type GeneratedPostVariation = z.infer<typeof GeneratedPostVariationSchema>;
+
+// Generated Post (output from post generation agent)
+export const GeneratedPostSchema = z.object({
+  variations: z
+    .array(GeneratedPostVariationSchema)
+    .min(2, 'Must generate at least 2 variations')
+    .max(3, 'Must generate at most 3 variations'),
+});
+
+export type GeneratedPost = z.infer<typeof GeneratedPostSchema>;
+
+// Context for Post Generation
+export const PostContextSchema = z.object({
+  outline: z.object({
+    format: ContentFormatSchema,
+    sections: z.array(OutlineSectionSchema),
+    estimatedLength: z.string(),
+    toneReminders: z.array(z.string()),
+  }),
+  idea: z.object({
+    title: z.string(),
+    description: z.string(),
+    contentPillar: ContentPillarSchema,
+  }),
+  projects: z.array(ProjectSchema),
+  goodPosts: z.array(GoodPostSchema),
+  tone: ToneConfigSchema,
+});
+
+export type PostContext = z.infer<typeof PostContextSchema>;
+
 // Learned Patterns (extracted from good posts)
 export const LearnedPatternsSchema = z.object({
   avgPostLength: z.number().optional(),
