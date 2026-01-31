@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     // Parse outline sections from JSON
     const parsedOutline = {
-      format: outline.format,
+      format: outline.format as 'post' | 'thread' | 'long_form',
       sections: outline.sections as Array<{
         heading: string;
         keyPoints: string[];
