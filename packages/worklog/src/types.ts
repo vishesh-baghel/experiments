@@ -80,8 +80,8 @@ export interface ConversationTurn {
 export interface SanitizationConfig {
   blockedProjects: string[];
   blockedPaths: string[];
-  allowedProjects: string[];
   blockedDomains: string[];
+  redactedTerms: Record<string, string>;
 }
 
 // --- Enrichment Output ---

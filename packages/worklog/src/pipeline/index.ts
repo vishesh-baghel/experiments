@@ -5,6 +5,10 @@ import { sanitizeRuleBased } from './sanitize.js';
 import { enrich } from './enrich.js';
 import { buildMemoryPayload, publishToMemory } from './publish.js';
 
+export interface PipelineOptions {
+  work?: boolean;
+}
+
 export interface PipelineResult {
   sessionId: string;
   project: string;
@@ -17,7 +21,8 @@ export interface PipelineResult {
 
 export const processSession = async (
   entry: SessionIndexEntry,
-  config: WorklogConfig
+  config: WorklogConfig,
+  options: PipelineOptions = {}
 ): Promise<PipelineResult> => {
   const date = entry.created.split('T')[0];
   const baseResult = {
@@ -34,6 +39,11 @@ export const processSession = async (
 
   // 2. Normalize
   const normalized = normalize(entry, rawEntries);
+
+  // Override project name for work projects
+  if (options.work) {
+    normalized.project = 'work';
+  }
 
   if (normalized.turns.length < 3) {
     return { ...baseResult, skippedReason: 'Too few turns after normalization' };
@@ -56,7 +66,8 @@ export const processSession = async (
     enrichmentResult = await enrich(
       sanitized,
       config.enrichment.apiKey,
-      config.enrichment.model
+      config.enrichment.model,
+      config.sanitization.redactedTerms
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

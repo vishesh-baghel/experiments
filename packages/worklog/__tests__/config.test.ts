@@ -125,22 +125,37 @@ describe('loadConfig', () => {
       expect(config.sanitization.blockedPaths).toEqual([]);
     });
 
-    it('parses WORKLOG_ALLOWED_PROJECTS as comma-separated list', async () => {
+    it('parses WORKLOG_REDACTED_TERMS as colon-separated pairs', async () => {
       setRequiredEnv();
-      process.env.WORKLOG_ALLOWED_PROJECTS = 'portfolio,experiments,side-project';
+      process.env.WORKLOG_REDACTED_TERMS = 'ubixi.com:work,batonsystems.com:work';
 
       const { loadConfig } = await import('../src/config.js');
       const config = loadConfig();
-      expect(config.sanitization.allowedProjects).toEqual(['portfolio', 'experiments', 'side-project']);
+      expect(config.sanitization.redactedTerms).toEqual({
+        'ubixi.com': 'work',
+        'batonsystems.com': 'work',
+      });
     });
 
-    it('defaults allowedProjects to portfolio,experiments', async () => {
+    it('defaults redactedTerms to empty object', async () => {
       setRequiredEnv();
-      delete process.env.WORKLOG_ALLOWED_PROJECTS;
+      delete process.env.WORKLOG_REDACTED_TERMS;
 
       const { loadConfig } = await import('../src/config.js');
       const config = loadConfig();
-      expect(config.sanitization.allowedProjects).toEqual(['portfolio', 'experiments']);
+      expect(config.sanitization.redactedTerms).toEqual({});
+    });
+
+    it('ignores malformed redacted term entries', async () => {
+      setRequiredEnv();
+      process.env.WORKLOG_REDACTED_TERMS = 'ubixi.com:work,badentry,another:replacement';
+
+      const { loadConfig } = await import('../src/config.js');
+      const config = loadConfig();
+      expect(config.sanitization.redactedTerms).toEqual({
+        'ubixi.com': 'work',
+        'another': 'replacement',
+      });
     });
 
     it('parses WORKLOG_BLOCKED_DOMAINS as comma-separated list', async () => {

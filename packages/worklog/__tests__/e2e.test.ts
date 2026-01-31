@@ -65,7 +65,7 @@ const testConfig: WorklogConfig = {
   sanitization: {
     blockedProjects: ['secret-project'],
     blockedPaths: ['/home/user/work'],
-    allowedProjects: ['portfolio', 'experiments'],
+    redactedTerms: {},
     blockedDomains: ['internal.company.com'],
   },
   enrichment: {
@@ -288,12 +288,20 @@ describe('E2E: Worklog Pipeline', () => {
   });
 
   describe('sanitization filtering', () => {
-    it('skips sessions from projects not in allowlist', async () => {
+    it('processes sessions from any project (no allowlist gate)', async () => {
+      mockGenerateText.mockResolvedValueOnce({
+        text: JSON.stringify(mockEnrichmentResponse),
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
       const { processSession } = await import('../src/pipeline/index.js');
 
-      // Create entry with project not in allowedProjects
-      const blockedEntry: SessionIndexEntry = {
-        sessionId: 'blocked-session',
+      // Entry with a project name not previously in allowlist — should now pass through
+      const workEntry: SessionIndexEntry = {
+        sessionId: 'work-session',
         fullPath: path.join(FIXTURES_DIR, 'sample-session.jsonl'),
         fileMtime: Date.now(),
         firstPrompt: 'Test',
@@ -302,16 +310,14 @@ describe('E2E: Worklog Pipeline', () => {
         created: '2025-01-22T10:00:00Z',
         modified: '2025-01-22T10:15:00Z',
         gitBranch: 'main',
-        projectPath: '/home/user/secret-project',
+        projectPath: '/home/user/any-project',
         isSidechain: false,
       };
 
-      const result = await processSession(blockedEntry, testConfig);
+      const result = await processSession(workEntry, testConfig);
 
-      expect(result.published).toBe(false);
-      expect(result.skippedReason).toContain('sanitization');
-      expect(mockGenerateText).not.toHaveBeenCalled();
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(result.published).toBe(true);
+      expect(mockGenerateText).toHaveBeenCalled();
     });
 
     it('redacts blocked paths from conversation content', async () => {

@@ -1,7 +1,8 @@
 import { generateText, createGateway } from 'ai';
 import type { NormalizedSession, EnrichmentResult, PublicEntry, ContextDocument } from '../types.js';
 
-const SYSTEM_PROMPT = `You are a worklog processor. You analyze coding session transcripts and produce two outputs:
+const buildSystemPrompt = (redactedTerms: Record<string, string>): string => {
+  const base = `You are a worklog processor. You analyze coding session transcripts and produce two outputs:
 
 1. A PUBLIC ENTRY (if the session is significant enough) — a concise summary showcasing engineering skill
 2. A CONTEXT DOCUMENT — structured notes capturing the full session context
@@ -19,9 +20,21 @@ SKIP public entry if:
 - Session was purely exploratory with no concrete outcome
 - Session was abandoned or very short
 
-PRIVACY: If any turn mentions proprietary work concepts, internal tools, or company-specific systems that aren't clearly part of a personal open-source project, exclude those turns from your analysis entirely.
+PRIVACY: If any turn mentions proprietary work concepts, internal tools, or company-specific systems that aren't clearly part of a personal open-source project, exclude those turns from your analysis entirely.`;
+
+  const terms = Object.keys(redactedTerms);
+  if (terms.length === 0) {
+    return base + '\n\nRespond with valid JSON only.';
+  }
+
+  const blocklist = terms.map(t => `- "${t}"`).join('\n');
+  return base + `
+
+CONFIDENTIALITY CHECKPOINT: The following terms are confidential and MUST NOT appear anywhere in your output (summary, decision, problem, title, context, or any other field). If any of these terms somehow appear in the input, replace them with their generic equivalent. Never reproduce them verbatim.
+${blocklist}
 
 Respond with valid JSON only.`;
+};
 
 const buildPrompt = (session: NormalizedSession): string => {
   const turnsSummary = session.turns
@@ -133,13 +146,14 @@ const formatContextMarkdown = (
 export const enrich = async (
   session: NormalizedSession,
   apiKey: string,
-  model: string
+  model: string,
+  redactedTerms: Record<string, string> = {}
 ): Promise<EnrichmentResult> => {
   const gateway = createGateway({ apiKey });
 
   const { text } = await generateText({
     model: gateway(model),
-    system: SYSTEM_PROMPT,
+    system: buildSystemPrompt(redactedTerms),
     prompt: buildPrompt(session),
     temperature: 0.3,
   });

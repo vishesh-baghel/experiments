@@ -2,6 +2,21 @@ import path from 'path';
 import os from 'os';
 import type { WorklogConfig } from './types.js';
 
+const parseRedactedTerms = (raw: string): Record<string, string> => {
+  if (!raw) return {};
+  const terms: Record<string, string> = {};
+  for (const pair of raw.split(',')) {
+    const colonIdx = pair.indexOf(':');
+    if (colonIdx === -1) continue;
+    const term = pair.slice(0, colonIdx).trim();
+    const replacement = pair.slice(colonIdx + 1).trim();
+    if (term && replacement) {
+      terms[term] = replacement;
+    }
+  }
+  return terms;
+};
+
 const getEnvOrThrow = (key: string): string => {
   const value = process.env[key];
   if (!value) throw new Error(`Missing required environment variable: ${key}`);
@@ -19,8 +34,8 @@ export const loadConfig = (): WorklogConfig => ({
   sanitization: {
     blockedProjects: (process.env.WORKLOG_BLOCKED_PROJECTS || '').split(',').filter(Boolean),
     blockedPaths: (process.env.WORKLOG_BLOCKED_PATHS || '').split(',').filter(Boolean),
-    allowedProjects: (process.env.WORKLOG_ALLOWED_PROJECTS || 'portfolio,experiments').split(',').filter(Boolean),
     blockedDomains: (process.env.WORKLOG_BLOCKED_DOMAINS || '').split(',').filter(Boolean),
+    redactedTerms: parseRedactedTerms(process.env.WORKLOG_REDACTED_TERMS || ''),
   },
   enrichment: {
     provider: 'ai-gateway',

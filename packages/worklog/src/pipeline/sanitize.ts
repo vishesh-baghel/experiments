@@ -1,4 +1,8 @@
-import type { NormalizedSession, ConversationTurn, SanitizationConfig } from '../types.js';
+import type {
+  NormalizedSession,
+  ConversationTurn,
+  SanitizationConfig,
+} from "../types.js";
 
 const SECRET_PATTERNS = [
   /(?:api[_-]?key|token|secret|password|auth|credential)\s*[:=]\s*['"]?\S+['"]?/gi,
@@ -8,53 +12,77 @@ const SECRET_PATTERNS = [
 ];
 
 const IP_PATTERN = /\b(?:\d{1,3}\.){3}\d{1,3}\b/g;
-const INTERNAL_URL_PATTERN = /https?:\/\/(?:localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+)[^\s)"]*/g;
+const INTERNAL_URL_PATTERN =
+  /https?:\/\/(?:localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+)[^\s)"]*/g;
 
 const redactSecrets = (text: string): string => {
   let result = text;
   for (const pattern of SECRET_PATTERNS) {
-    result = result.replace(pattern, '[REDACTED]');
+    result = result.replace(pattern, "[REDACTED]");
   }
-  result = result.replace(IP_PATTERN, '[REDACTED_IP]');
-  result = result.replace(INTERNAL_URL_PATTERN, '[REDACTED_URL]');
+  result = result.replace(IP_PATTERN, "[REDACTED_IP]");
+  result = result.replace(INTERNAL_URL_PATTERN, "[REDACTED_URL]");
   return result;
 };
 
-const containsBlockedPath = (text: string, blockedPaths: string[]): boolean => {
-  return blockedPaths.some(p => text.includes(p));
+const redactTerms = (
+  text: string,
+  redactedTerms: Record<string, string>,
+): string => {
+  let result = text;
+  for (const [term, replacement] of Object.entries(redactedTerms)) {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    result = result.replace(new RegExp(escaped, "gi"), replacement);
+  }
+  return result;
 };
 
-const containsBlockedProject = (text: string, blockedProjects: string[]): boolean => {
+const containsBlockedPath = (
+  text: string,
+  blockedPaths: string[],
+): boolean => {
+  return blockedPaths.some((p) => text.includes(p));
+};
+
+const containsBlockedProject = (
+  text: string,
+  blockedProjects: string[],
+): boolean => {
   const lowerText = text.toLowerCase();
-  return blockedProjects.some(p => lowerText.includes(p.toLowerCase()));
+  return blockedProjects.some((p) => lowerText.includes(p.toLowerCase()));
 };
 
-const containsBlockedDomain = (text: string, blockedDomains: string[]): boolean => {
-  return blockedDomains.some(d => text.includes(d));
+const containsBlockedDomain = (
+  text: string,
+  blockedDomains: string[],
+): boolean => {
+  return blockedDomains.some((d) => text.includes(d));
 };
 
-const isAllowedProject = (project: string, allowedProjects: string[]): boolean => {
-  return allowedProjects.some(p => project.toLowerCase().includes(p.toLowerCase()));
-};
+const sanitizeTurn = (
+  turn: ConversationTurn,
+  config: SanitizationConfig,
+): ConversationTurn | null => {
+  // Apply term redaction before blocked checks
+  let content = redactTerms(turn.content, config.redactedTerms);
 
-const sanitizeTurn = (turn: ConversationTurn, config: SanitizationConfig): ConversationTurn | null => {
-  if (containsBlockedPath(turn.content, config.blockedPaths)) return null;
-  if (containsBlockedProject(turn.content, config.blockedProjects)) return null;
-  if (containsBlockedDomain(turn.content, config.blockedDomains)) return null;
+  if (containsBlockedPath(content, config.blockedPaths)) return null;
+  if (containsBlockedProject(content, config.blockedProjects)) return null;
+  if (containsBlockedDomain(content, config.blockedDomains)) return null;
 
   return {
     ...turn,
-    content: redactSecrets(turn.content),
+    content: redactSecrets(content),
   };
 };
 
 export const sanitizeRuleBased = (
   session: NormalizedSession,
-  config: SanitizationConfig
+  config: SanitizationConfig,
 ): NormalizedSession | null => {
-  if (!isAllowedProject(session.project, config.allowedProjects)) {
-    return null;
-  }
+  // Redact terms in session-level fields
+  const redactedProject = redactTerms(session.project, config.redactedTerms);
+  const redactedSummary = redactTerms(session.summary, config.redactedTerms);
 
   const sanitizedTurns: ConversationTurn[] = [];
   for (const turn of session.turns) {
@@ -68,6 +96,8 @@ export const sanitizeRuleBased = (
 
   return {
     ...session,
+    project: redactedProject,
+    summary: redactedSummary,
     turns: sanitizedTurns,
   };
 };

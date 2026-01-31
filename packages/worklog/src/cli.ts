@@ -38,8 +38,9 @@ program
   .option('--source <source>', 'Agent source', 'claude-code')
   .option('--project <path>', 'Project path (absolute)')
   .option('--session <id>', 'Specific session ID (default: latest)')
+  .option('--employer', 'Mark as employer project (redacts project name to "work")')
   .action(async (options) => {
-    const { source, project, session: sessionId } = options;
+    const { source, project, session: sessionId, employer } = options;
 
     if (source !== 'claude-code') {
       console.error(`Unsupported source: ${source}. Only "claude-code" is supported.`);
@@ -70,7 +71,7 @@ program
     console.log(`[worklog] Date: ${entry.created.split('T')[0]}`);
     console.log(`[worklog] Processing...`);
 
-    const result = await processSession(entry, config);
+    const result = await processSession(entry, config, { work: employer });
 
     if (result.published) {
       console.log(`[worklog] Published to Memory`);

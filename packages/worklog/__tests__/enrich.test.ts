@@ -219,6 +219,29 @@ describe('enrich', () => {
       expect(call.system).toContain('SIGNIFICANCE CRITERIA');
     });
 
+    it('includes confidentiality checkpoint when redactedTerms provided', async () => {
+      mockLLMResult(JSON.stringify(significantResponse));
+
+      await enrich(mockSession, 'key', 'anthropic/claude-3-5-haiku-latest', {
+        'ubixi.com': 'work',
+        'batonsystems': 'work',
+      });
+
+      const call = mockGenerateText.mock.calls[0][0];
+      expect(call.system).toContain('CONFIDENTIALITY CHECKPOINT');
+      expect(call.system).toContain('"ubixi.com"');
+      expect(call.system).toContain('"batonsystems"');
+    });
+
+    it('omits confidentiality checkpoint when redactedTerms is empty', async () => {
+      mockLLMResult(JSON.stringify(significantResponse));
+
+      await enrich(mockSession, 'key', 'anthropic/claude-3-5-haiku-latest', {});
+
+      const call = mockGenerateText.mock.calls[0][0];
+      expect(call.system).not.toContain('CONFIDENTIALITY CHECKPOINT');
+    });
+
     it('includes session metadata in prompt', async () => {
       mockLLMResult(JSON.stringify(significantResponse));
 

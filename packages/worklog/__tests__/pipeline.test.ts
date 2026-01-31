@@ -41,7 +41,7 @@ const mockConfig: WorklogConfig = {
   sanitization: {
     blockedProjects: [],
     blockedPaths: [],
-    allowedProjects: ['portfolio', 'experiments'],
+    redactedTerms: {},
     blockedDomains: [],
   },
   enrichment: { provider: 'ai-gateway', model: 'anthropic/claude-3-5-haiku-latest', apiKey: 'gw-test' },
@@ -140,14 +140,26 @@ describe('processSession', () => {
     });
 
     it('passes sanitization config to sanitizer', async () => {
+      // Block all turns by using a blocked path that matches the content
+      const blockedEntries: RawEntry[] = Array.from({ length: 4 }, (_, i) => ({
+        type: (i % 2 === 0 ? 'user' : 'assistant') as 'user' | 'assistant',
+        uuid: String(i),
+        parentUuid: i > 0 ? String(i - 1) : null,
+        timestamp: `2025-01-22T10:${String(i).padStart(2, '0')}:00Z`,
+        sessionId: 'session-xyz',
+        isSidechain: false,
+        message: i % 2 === 0
+          ? { role: 'user' as const, content: `Edit /blocked/path/file${i}.ts` }
+          : { role: 'assistant' as const, content: [{ type: 'text' as const, text: `Done with /blocked/path/file${i}.ts` }] },
+      }));
       const config = {
         ...mockConfig,
         sanitization: {
           ...mockConfig.sanitization,
-          allowedProjects: ['nonexistent'], // will block the session
+          blockedPaths: ['/blocked/path'],
         },
       };
-      mockReadSessionEntries.mockResolvedValueOnce(makeRawEntries(8));
+      mockReadSessionEntries.mockResolvedValueOnce(blockedEntries);
 
       const result = await processSession(mockEntry, config);
       expect(result.published).toBe(false);
@@ -165,7 +177,8 @@ describe('processSession', () => {
       expect(mockEnrich).toHaveBeenCalledWith(
         expect.anything(),
         'gw-test',
-        'anthropic/claude-3-5-haiku-latest'
+        'anthropic/claude-3-5-haiku-latest',
+        {}
       );
     });
   });
@@ -182,18 +195,21 @@ describe('processSession', () => {
       expect(mockEnrich).not.toHaveBeenCalled();
     });
 
-    it('skips when project not in allowlist', async () => {
+    it('redacts terms in session project and summary', async () => {
       const config = {
         ...mockConfig,
-        sanitization: { ...mockConfig.sanitization, allowedProjects: ['other-project'] },
+        sanitization: { ...mockConfig.sanitization, redactedTerms: { 'portfolio': 'work' } },
       };
       mockReadSessionEntries.mockResolvedValueOnce(makeRawEntries(8));
+      mockEnrich.mockResolvedValueOnce(mockSignificantEnrichment);
+      mockBuildMemoryPayload.mockReturnValueOnce(mockPayload);
+      mockPublishToMemory.mockResolvedValueOnce(undefined);
 
       const result = await processSession(mockEntry, config);
 
-      expect(result.published).toBe(false);
-      expect(result.skippedReason).toContain('sanitization');
-      expect(mockEnrich).not.toHaveBeenCalled();
+      expect(result.published).toBe(true);
+      // The project name gets redacted during sanitization
+      expect(mockEnrich).toHaveBeenCalled();
     });
 
     it('skips when too few turns remain after sanitization', async () => {
@@ -328,6 +344,45 @@ describe('processSession', () => {
 
       const result = await processSession(mockEntry, mockConfig);
       expect(result.date).toBe('2025-01-22');
+    });
+  });
+
+  describe('work flag', () => {
+    it('overrides project name to "work" when work flag is set', async () => {
+      mockReadSessionEntries.mockResolvedValueOnce(makeRawEntries(8));
+      mockEnrich.mockResolvedValueOnce(mockSignificantEnrichment);
+      mockBuildMemoryPayload.mockReturnValueOnce(mockPayload);
+      mockPublishToMemory.mockResolvedValueOnce(undefined);
+
+      await processSession(mockEntry, mockConfig, { work: true });
+
+      // The sanitized session passed to enrich should have project = "work"
+      const sanitizedSession = mockEnrich.mock.calls[0][0];
+      expect(sanitizedSession.project).toBe('work');
+    });
+
+    it('preserves original project name when work flag is not set', async () => {
+      mockReadSessionEntries.mockResolvedValueOnce(makeRawEntries(8));
+      mockEnrich.mockResolvedValueOnce(mockSignificantEnrichment);
+      mockBuildMemoryPayload.mockReturnValueOnce(mockPayload);
+      mockPublishToMemory.mockResolvedValueOnce(undefined);
+
+      await processSession(mockEntry, mockConfig);
+
+      const sanitizedSession = mockEnrich.mock.calls[0][0];
+      expect(sanitizedSession.project).toBe('portfolio');
+    });
+
+    it('passes "work" project through to buildMemoryPayload', async () => {
+      mockReadSessionEntries.mockResolvedValueOnce(makeRawEntries(8));
+      mockEnrich.mockResolvedValueOnce(mockSignificantEnrichment);
+      mockBuildMemoryPayload.mockReturnValueOnce(mockPayload);
+      mockPublishToMemory.mockResolvedValueOnce(undefined);
+
+      await processSession(mockEntry, mockConfig, { work: true });
+
+      const sanitizedSession = mockBuildMemoryPayload.mock.calls[0][0];
+      expect(sanitizedSession.project).toBe('work');
     });
   });
 });
