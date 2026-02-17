@@ -1,6 +1,6 @@
 /**
  * Outline Page Client Component
- * Handles client-side interactions like saving drafts
+ * Handles client-side interactions like saving drafts and generating posts
  */
 
 'use client';
@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { OutlineViewer } from '@/components/outline-viewer';
+import { getUserSession } from '@/lib/auth-client';
 
 interface OutlineSection {
   heading: string;
@@ -38,10 +39,11 @@ export function OutlinePageClient({
 }: OutlinePageClientProps) {
   const router = useRouter();
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleSaveDraft = async (content: string) => {
     setSaveError(null);
-    
+
     try {
       const response = await fetch('/api/drafts', {
         method: 'POST',
@@ -58,16 +60,46 @@ export function OutlinePageClient({
       }
 
       const data = await response.json();
-      
-      // Show success message (you could add a toast notification here)
+
       console.log('Draft saved successfully:', data.draft.id);
-      
+
       // Redirect to posts page to see the saved draft
       router.push('/posts');
     } catch (error) {
       console.error('Error saving draft:', error);
       setSaveError(error instanceof Error ? error.message : 'Failed to save draft');
-      throw error; // Re-throw so the component can handle the loading state
+      throw error;
+    }
+  };
+
+  const handleGeneratePost = async () => {
+    const session = getUserSession();
+    const userId = session.userId;
+
+    if (!userId) {
+      throw new Error('Not authenticated');
+    }
+
+    setIsGenerating(true);
+    try {
+      const response = await fetch('/api/posts/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          outlineId,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || data.hint || 'Failed to generate post');
+      }
+
+      const data = await response.json();
+      return data.variations || [];
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -83,6 +115,8 @@ export function OutlinePageClient({
         ideaTitle={ideaTitle}
         contentPillar={contentPillar}
         onSaveDraft={handleSaveDraft}
+        onGeneratePost={handleGeneratePost}
+        isGenerating={isGenerating}
       />
     </div>
   );

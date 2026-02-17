@@ -54,6 +54,21 @@ export function createOutlineTrace(userId: string, ideaTitle: string) {
 }
 
 /**
+ * Create a trace for post generation
+ */
+export function createPostGenerationTrace(userId: string, outlineId: string) {
+  return langfuse.trace({
+    name: 'generate-post',
+    userId,
+    metadata: {
+      component: 'mastra-agent',
+      function: 'generatePost',
+      outlineId,
+    },
+  });
+}
+
+/**
  * Create a span for LLM generation
  */
 export function createLLMSpan(

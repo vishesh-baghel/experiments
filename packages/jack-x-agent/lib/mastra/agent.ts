@@ -9,14 +9,17 @@ import {
   JACK_SYSTEM_PROMPT,
   IDEA_GENERATION_PROMPT,
   OUTLINE_GENERATION_PROMPT,
+  POST_GENERATION_PROMPT,
 } from './prompts';
 import {
   ContentIdeaSchema,
   ContentOutlineSchema,
+  GeneratedPostSchema,
   IdeaContextSchema,
   OutlineContextSchema,
+  PostContextSchema,
 } from './schemas';
-import { createIdeaTrace, createOutlineTrace } from '@/lib/observability/langfuse';
+import { createIdeaTrace, createOutlineTrace, createPostGenerationTrace } from '@/lib/observability/langfuse';
 
 /**
  * Jack Agent Configuration with Vercel AI Gateway
@@ -125,9 +128,11 @@ Generate 3-5 FRESH content ideas as a JSON array. Remember: Avoid duplicating re
     console.log(`[AGENT] Sending request to LLM...`);
 
     const result = await jackAgent.generate(prompt, {
-      output: z.object({
-        ideas: z.array(ContentIdeaSchema),
-      }),
+      structuredOutput: {
+        schema: z.object({
+          ideas: z.array(ContentIdeaSchema),
+        }),
+      },
     });
 
     console.log(`[AGENT] LLM returned ${result.object?.ideas?.length || 0} ideas`);
@@ -201,7 +206,9 @@ Generate a detailed outline as JSON matching the ContentOutline schema.`;
     console.log(`[AGENT] Sending outline request to LLM...`);
 
     const result = await jackAgent.generate(prompt, {
-      output: ContentOutlineSchema,
+      structuredOutput: {
+        schema: ContentOutlineSchema,
+      },
     });
 
     console.log(`[AGENT] Outline generated successfully`);
@@ -211,6 +218,99 @@ Generate a detailed outline as JSON matching the ContentOutline schema.`;
     });
 
     return result.object || { format: 'post' as const, sections: [], estimatedLength: '280', toneReminders: [] };
+  } catch (error) {
+    trace.update({
+      metadata: { error: error instanceof Error ? error.message : 'Unknown error' },
+    });
+    throw error;
+  }
+}
+
+/**
+ * Generate post content from an outline
+ */
+export async function generatePost(
+  userId: string,
+  outlineId: string,
+  context: z.infer<typeof PostContextSchema>
+) {
+  console.log(`[AGENT] Starting post generation for outline, idea: "${context.idea.title}"`);
+
+  const trace = createPostGenerationTrace(userId, outlineId);
+
+  try {
+    const span = trace.span({
+      name: 'generate-post',
+      input: context,
+    });
+
+    console.log(`[AGENT] Post context:`, {
+      ideaTitle: context.idea.title,
+      format: context.outline.format,
+      sectionsCount: context.outline.sections.length,
+      goodPostsCount: context.goodPosts.length,
+      hasToneConfig: !!context.tone,
+      hasLearnedPatterns: !!context.tone.learnedPatterns,
+    });
+
+    // Build custom rules section
+    const customRulesSection = context.tone.customRules && context.tone.customRules.length > 0
+      ? `\nCustom Voice Rules:\n${context.tone.customRules.map((rule: string, i: number) => `${i + 1}. ${rule}`).join('\n')}`
+      : '';
+
+    const prompt = `${POST_GENERATION_PROMPT}
+
+---
+
+**Idea**: ${context.idea.title}
+**Description**: ${context.idea.description}
+**Content Pillar**: ${context.idea.contentPillar}
+**Format**: ${context.outline.format}
+
+**Outline Sections**:
+${context.outline.sections.map((s, i) => `
+Section ${i + 1}: ${s.heading}
+Key Points: ${s.keyPoints.join(', ')}
+Tone Guidance: ${s.toneGuidance}
+Examples: ${s.examples.join(', ')}
+`).join('\n')}
+
+**Tone Reminders**: ${context.outline.toneReminders.join(', ')}
+
+**Estimated Length**: ${context.outline.estimatedLength} characters
+
+**Tone Config**:
+${JSON.stringify(context.tone, null, 2)}
+${customRulesSection}
+
+**Learned Patterns**:
+${JSON.stringify(context.tone.learnedPatterns, null, 2)}
+
+**Good Posts** (match this style):
+${context.goodPosts.length > 0
+  ? context.goodPosts.map((p) => `[${p.contentPillar}] ${p.content.substring(0, 200)}...`).join('\n\n')
+  : 'No examples yet - write in an authentic, conversational tone'}
+
+---
+
+Generate 2-3 distinct variations of the post content as JSON matching the GeneratedPost schema.`;
+
+    console.log(`[AGENT] Post prompt length: ${prompt.length} characters`);
+    console.log(`[AGENT] Sending post generation request to LLM...`);
+
+    const result = await jackAgent.generate(prompt, {
+      structuredOutput: {
+        schema: GeneratedPostSchema,
+      },
+    });
+
+    console.log(`[AGENT] Post generated successfully with ${result.object?.variations?.length || 0} variations`);
+
+    span.end({
+      output: result,
+    });
+
+    return result.object || { variations: [] };
   } catch (error) {
     trace.update({
       metadata: { error: error instanceof Error ? error.message : 'Unknown error' },

@@ -89,45 +89,46 @@ Return ONLY valid JSON matching the ContentIdea schema. No markdown, no explanat
 
 export const OUTLINE_GENERATION_PROMPT = `Create a detailed outline for the content idea provided below.
 
-Create an outline with the following structure:
+Use the suggested format from the idea (post, thread, or long_form).
 
-**sections** (array of 3-7 sections, each MUST have):
-  - **heading**: section title (string)
-  - **keyPoints**: array of 3-5 key points to cover (REQUIRED, must be an array with 3-5 strings)
-  - **toneGuidance**: specific tone/style notes for this section (string)
-  - **examples**: array of specific examples, metrics, or data points to include (REQUIRED, must be an array with at least 1 string)
+Create 3-7 sections that follow this storytelling arc:
+1. Start with a hook that grabs attention (relatable problem or surprising insight)
+2. Show the struggle/journey - be honest about what didn't work
+3. Share the breakthrough or learning moment
+4. End with actionable takeaways
 
-**toneReminders** (array of strings): Overall tone reminders for maintaining authentic voice
+For each section, include:
+- Key points to cover (3-5 specific points)
+- Tone guidance for how to write this section
+- Concrete examples, metrics, or data points to reference
 
-**estimatedLength** (string): Character count based on format and learned patterns (avg: {{avgPostLength}} chars)
-
-**CRITICAL SCHEMA REQUIREMENTS**:
-- Each section MUST have a keyPoints array with 3-5 items
-- Each section MUST have an examples array with at least 1 item
-- Each section MUST have a toneGuidance string
-- The first section should typically be a "hook" to grab attention
-
-**Content Requirements**:
+Content guidelines:
 - lowercase throughout (except proper nouns like X, GitHub, OpenAI)
 - no emojis, no hashtags
 - include specific numbers/metrics where relevant
 - show the struggle/learning process, not just the win
-- make it feel like a real person sharing their journey
-- reference good posts for style inspiration
+- make it feel like a real person sharing their journey`;
 
-**Example Section Structure**:
-{
-  "heading": "the struggle",
-  "keyPoints": [
-    "spent 3 months debugging auth issues",
-    "tried 5 different approaches before finding one that worked",
-    "learned the hard way that premature optimization is real"
-  ],
-  "toneGuidance": "be honest about the frustration and dead ends",
-  "examples": [
-    "wasted $200 on a third-party auth service that didn't fit our needs",
-    "had to rewrite the entire login flow after realizing session management was broken"
-  ]
-}
+export const POST_GENERATION_PROMPT = `Transform the outline into polished, ready-to-publish content that sounds like the user wrote it themselves.
 
-Return ONLY valid JSON matching the ContentOutline schema. No markdown, no explanation.`;
+Generate 2-3 DISTINCT variations, each taking a different angle:
+- Direct and concise - gets straight to the point
+- Story-driven - leads with narrative and personal experience
+- Data/numbers-focused - leads with specific metrics and results
+
+Format handling:
+- For "post": Write a single cohesive post
+- For "thread": Write multiple tweets separated by "---" (first tweet is the hook)
+- For "long_form": Write a longer piece that flows naturally
+
+Content guidelines:
+- Follow all tone rules (lowercase, no emojis, no hashtags, etc.)
+- Match the user's voice characteristics and common phrases
+- Start with a hook that grabs attention
+- Show the struggle/learning process, not just the win
+- Include specific numbers and metrics from the outline
+- End with an actionable takeaway
+- Keep sentences punchy and scannable
+- No filler phrases like "in today's world" or "it's important to note"
+
+Use the outline's sections, key points, and examples as your guide.`;
