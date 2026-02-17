@@ -169,7 +169,6 @@ describe('Post Generation Prompt', () => {
     expect(typeof POST_GENERATION_PROMPT).toBe('string');
     expect(POST_GENERATION_PROMPT).toContain('variations');
     expect(POST_GENERATION_PROMPT).toContain('outline');
-    expect(POST_GENERATION_PROMPT).toContain('GeneratedPost');
   });
 
   it('should mention format handling for posts, threads, and long_form', async () => {

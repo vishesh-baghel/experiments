@@ -66,7 +66,7 @@ export type OutlineSection = z.infer<typeof OutlineSectionSchema>;
 
 // Content Outline
 export const ContentOutlineSchema = z.object({
-  format: ContentFormatSchema.optional(),
+  format: ContentFormatSchema,
   sections: z.array(OutlineSectionSchema).min(1, 'Must have at least 1 section'),
   estimatedLength: z.string(),
   toneReminders: z.array(z.string()),

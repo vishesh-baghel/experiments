@@ -89,81 +89,46 @@ Return ONLY valid JSON matching the ContentIdea schema. No markdown, no explanat
 
 export const OUTLINE_GENERATION_PROMPT = `Create a detailed outline for the content idea provided below.
 
-Create an outline with the following structure:
+Use the suggested format from the idea (post, thread, or long_form).
 
-**sections** (array of 3-7 sections, each MUST have):
-  - **heading**: section title (string)
-  - **keyPoints**: array of 3-5 key points to cover (REQUIRED, must be an array with 3-5 strings)
-  - **toneGuidance**: specific tone/style notes for this section (string)
-  - **examples**: array of specific examples, metrics, or data points to include (REQUIRED, must be an array with at least 1 string)
+Create 3-7 sections that follow this storytelling arc:
+1. Start with a hook that grabs attention (relatable problem or surprising insight)
+2. Show the struggle/journey - be honest about what didn't work
+3. Share the breakthrough or learning moment
+4. End with actionable takeaways
 
-**toneReminders** (array of strings): Overall tone reminders for maintaining authentic voice
+For each section, include:
+- Key points to cover (3-5 specific points)
+- Tone guidance for how to write this section
+- Concrete examples, metrics, or data points to reference
 
-**estimatedLength** (string): Character count based on format and learned patterns (avg: {{avgPostLength}} chars)
-
-**CRITICAL SCHEMA REQUIREMENTS**:
-- Each section MUST have a keyPoints array with 3-5 items
-- Each section MUST have an examples array with at least 1 item
-- Each section MUST have a toneGuidance string
-- The first section should typically be a "hook" to grab attention
-
-**Content Requirements**:
+Content guidelines:
 - lowercase throughout (except proper nouns like X, GitHub, OpenAI)
 - no emojis, no hashtags
 - include specific numbers/metrics where relevant
 - show the struggle/learning process, not just the win
-- make it feel like a real person sharing their journey
-- reference good posts for style inspiration
+- make it feel like a real person sharing their journey`;
 
-**Example Section Structure**:
-{
-  "heading": "the struggle",
-  "keyPoints": [
-    "spent 3 months debugging auth issues",
-    "tried 5 different approaches before finding one that worked",
-    "learned the hard way that premature optimization is real"
-  ],
-  "toneGuidance": "be honest about the frustration and dead ends",
-  "examples": [
-    "wasted $200 on a third-party auth service that didn't fit our needs",
-    "had to rewrite the entire login flow after realizing session management was broken"
-  ]
-}
+export const POST_GENERATION_PROMPT = `Transform the outline into polished, ready-to-publish content that sounds like the user wrote it themselves.
 
-Return ONLY valid JSON matching the ContentOutline schema. No markdown, no explanation.`;
+Generate 2-3 DISTINCT variations, each taking a different angle:
+- Direct and concise - gets straight to the point
+- Story-driven - leads with narrative and personal experience
+- Data/numbers-focused - leads with specific metrics and results
 
-export const POST_GENERATION_PROMPT = `You are generating the actual post content based on a structured outline.
+Format handling:
+- For "post": Write a single cohesive post
+- For "thread": Write multiple tweets separated by "---" (first tweet is the hook)
+- For "long_form": Write a longer piece that flows naturally
 
-Your job is to transform the outline into polished, ready-to-publish content that sounds like the user wrote it themselves.
-
-**CRITICAL RULES**:
-1. **Follow the outline structure** - Use the sections, key points, and examples as your guide
-2. **Match the format** - The outline specifies whether this is a "post" (single tweet), "thread" (multi-tweet), or "long_form"
-   - For "post": Write a single cohesive post
-   - For "thread": Write a thread with clear tweet breaks using "---" as separators between tweets
-   - For "long_form": Write a longer piece that flows naturally
-3. **Apply tone config strictly** - Follow all tone rules (lowercase, no emojis, no hashtags, etc.)
-4. **Use learned patterns** - Match the user's voice characteristics, common phrases, and style
-5. **Generate 2-3 DISTINCT variations** - Each variation should take a different angle or approach:
-   - Variation 1: Direct and concise - gets straight to the point
-   - Variation 2: Story-driven - leads with narrative and personal experience
-   - Variation 3 (optional): Data/numbers-focused - leads with specific metrics and results
-6. **Be authentic** - Sound like a real person sharing their journey, not marketing copy
-7. **Include specifics** - Use the examples and data points from the outline sections
-
-**Content Quality Guidelines**:
+Content guidelines:
+- Follow all tone rules (lowercase, no emojis, no hashtags, etc.)
+- Match the user's voice characteristics and common phrases
 - Start with a hook that grabs attention
 - Show the struggle/learning process, not just the win
-- Include specific numbers and metrics where the outline provides them
-- End with an actionable takeaway or insight
+- Include specific numbers and metrics from the outline
+- End with an actionable takeaway
 - Keep sentences punchy and scannable
 - No filler phrases like "in today's world" or "it's important to note"
 
-**For threads**: Each tweet in the thread should stand on its own while contributing to the overall narrative. Use "---" to separate tweets. First tweet is the hook.
-
-**Output Format**:
-Return a JSON object with a "variations" array. Each variation has:
-- "content": The full post/thread content (use "---" to separate tweets in threads)
-- "tone": Brief description of the angle used (e.g., "direct and punchy", "story-driven narrative", "data-focused breakdown")
-
-Return ONLY valid JSON matching the GeneratedPost schema. No markdown, no explanation.`;
+Use the outline's sections, key points, and examples as your guide.`;
