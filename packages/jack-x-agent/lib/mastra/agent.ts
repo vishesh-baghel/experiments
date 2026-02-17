@@ -128,9 +128,11 @@ Generate 3-5 FRESH content ideas as a JSON array. Remember: Avoid duplicating re
     console.log(`[AGENT] Sending request to LLM...`);
 
     const result = await jackAgent.generate(prompt, {
-      output: z.object({
-        ideas: z.array(ContentIdeaSchema),
-      }),
+      structuredOutput: {
+        schema: z.object({
+          ideas: z.array(ContentIdeaSchema),
+        }),
+      },
     });
 
     console.log(`[AGENT] LLM returned ${result.object?.ideas?.length || 0} ideas`);
@@ -204,7 +206,9 @@ Generate a detailed outline as JSON matching the ContentOutline schema.`;
     console.log(`[AGENT] Sending outline request to LLM...`);
 
     const result = await jackAgent.generate(prompt, {
-      output: ContentOutlineSchema,
+      structuredOutput: {
+        schema: ContentOutlineSchema,
+      },
     });
 
     console.log(`[AGENT] Outline generated successfully`);
@@ -295,7 +299,9 @@ Generate 2-3 distinct variations of the post content as JSON matching the Genera
     console.log(`[AGENT] Sending post generation request to LLM...`);
 
     const result = await jackAgent.generate(prompt, {
-      output: GeneratedPostSchema,
+      structuredOutput: {
+        schema: GeneratedPostSchema,
+      },
     });
 
     console.log(`[AGENT] Post generated successfully with ${result.object?.variations?.length || 0} variations`);
